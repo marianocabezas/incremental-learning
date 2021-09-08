@@ -135,6 +135,7 @@ class ImageCroppingDataset(Dataset):
             ]
 
     def __getitem__(self, index):
+        print(index, len(self.patch_slices))
         if index < (2 * len(self.patch_slices)):
             flip = index >= len(self.patch_slices)
             if flip:
