@@ -147,7 +147,7 @@ class ImageCroppingDataset(Dataset):
             if len(self.current_bck) == 0:
                 self.current_bck = deepcopy(self.bck_slices)
 
-        data = self.subjects[index]
+        data = self.subjects[case_idx]
         labels = self.labels[case_idx]
         none_slice = (slice(None, None),)
         # Patch "extraction".
