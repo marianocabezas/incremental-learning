@@ -191,7 +191,7 @@ def train(config, net, training, validation, model_name, verbose=0):
         # Training
         if verbose > 1:
             print('< Training dataset >')
-        dtrain, ltrain, rtrain = get_data(config, training)
+        dtrain, ltrain, rtrain = get_data(config, training[:20])
         if 'train_patch' in config and 'train_overlap' in config:
             train_dataset = config['training'](
                 dtrain, ltrain, rtrain, patch_size=config['train_batch'],
@@ -231,6 +231,14 @@ def train(config, net, training, validation, model_name, verbose=0):
         val_loader = DataLoader(
             val_dataset, config['test_batch'], True, num_workers=32
         )
+
+        if verbose > 1:
+            print(
+                'Training / validation samples samples = '
+                '{:02d} / {:02d}'.format(
+                    len(train_dataset), len(val_dataset)
+                )
+            )
 
         net.fit(
             train_loader, val_loader, epochs=epochs, patience=patience
