@@ -335,6 +335,7 @@ def main(verbose=2):
             print(exc)
     n_folds = config['folds']
     val_split = config['val_split']
+    model_base = os.path.splitext(os.path.basename(options['config']))[0]
 
     print(
         '{:}[{:}] {:}<Incremental learning framework>{:}'.format(
@@ -354,7 +355,7 @@ def main(verbose=2):
     )
     starting_model = os.path.join(
         config['output_path'],
-        '{:}-start.pt'.format(config['model_name'])
+        '{:}-start.pt'.format(model_base)
     )
     net.save_model(starting_model)
 
@@ -414,8 +415,8 @@ def main(verbose=2):
             ]
             model_name = os.path.join(
                 config['output_path'],
-                '{:}-bl.n{:d}.pt'.format(
-                    config['model_name'], i
+                '{:}-bl.n{:d}.{:05d}.pt'.format(
+                    model_base, i, seed
                 )
             )
             train(config, net, training_set, validation_set, model_name, 2)
