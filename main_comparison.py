@@ -354,7 +354,7 @@ def main(verbose=2):
 
     for test_n, seed in enumerate(config['seeds']):
         print(
-            '{:}[{:}] {:}Starting cross-validation{:} (seed {:d){:}'.format(
+            '{:}[{:}] {:}Starting cross-validation{:} (seed {:d}){:}'.format(
                 c['c'], strftime("%H:%M:%S"), c['g'], c['nc'] + c['y'],
                 seed, c['nc']
             )
