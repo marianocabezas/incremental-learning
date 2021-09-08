@@ -229,7 +229,7 @@ def train(config, net, training, validation, model_name, verbose=0):
         if verbose > 1:
             print('Dataloader creation <val>')
         val_loader = DataLoader(
-            val_dataset, config['batch_test'], True, num_workers=32
+            val_dataset, config['test_batch'], True, num_workers=32
         )
 
         net.fit(
