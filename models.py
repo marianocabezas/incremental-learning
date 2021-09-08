@@ -154,12 +154,35 @@ class DualHeadedUNet(BaseModel):
         # <Loss function setup>
         self.train_functions = [
             {
-                'name': 'xent',
+                'name': 'xentropy',
                 'weight': 1,
                 'f': lambda p, t: F.binary_cross_entropy(
                     p, t.type_as(p).to(p.device),
                 )
             }
+        ]
+
+        self.val_functions = [
+            {
+                'name': 'pdsc',
+                'weight': 0,
+                'f': lambda p, t: gendsc_loss(p, t, w_bg=0, w_fg=1)
+            },
+            {
+                'name': 'dsc',
+                'weight': 1,
+                'f': lambda p, t: dsc_binary_loss(p, t)
+            },
+            {
+                'name': 'fn',
+                'weight': 0,
+                'f': lambda p, t: tp_binary_loss(p, t)
+            },
+            {
+                'name': 'fp',
+                'weight': 0,
+                'f': lambda p, t: tn_binary_loss(p, t)
+            },
         ]
 
         # <Optimizer setup>
