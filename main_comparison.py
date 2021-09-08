@@ -86,7 +86,7 @@ def load_image_list(path, image_list, roi):
         for image in image_list
     ]
 
-    return np.stack(images)
+    return np.stack(images).astype(np.float16)
 
 
 def get_data(experiment_config, subject_list):
