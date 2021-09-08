@@ -135,7 +135,6 @@ class ImageCroppingDataset(Dataset):
             ]
 
     def __getitem__(self, index):
-        print(index, len(self.patch_slices))
         if index < (2 * len(self.patch_slices)):
             flip = index >= len(self.patch_slices)
             if flip:
@@ -162,7 +161,7 @@ class ImageCroppingDataset(Dataset):
         target_data = np.expand_dims(labels[slice_i].astype(np.uint8), axis=0)
         if flip:
             if isinstance(data, tuple):
-                data = (
+                data = tuple(
                     np.fliplr(data_i).copy() for data_i in data
                 )
             else:
@@ -207,7 +206,7 @@ class ImageDataset(Dataset):
         target_data = np.expand_dims(labels[bb].astype(np.uint8), axis=0)
         if flip:
             if isinstance(data, tuple):
-                data = (
+                data = tuple(
                     np.fliplr(data_i).copy() for data_i in data
                 )
             else:
