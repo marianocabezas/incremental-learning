@@ -52,10 +52,10 @@ def get_subjects(experiment_config):
     except KeyError:
         pass
 
-    subjects = [
+    subjects = sorted([
         patient for patient in os.listdir(d_path)
         if os.path.isdir(os.path.join(d_path, patient))
-    ]
+    ])
     subject_dicts = {
         task: [] for task in tasks
     }

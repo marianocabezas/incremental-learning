@@ -267,10 +267,7 @@ def remove_small_regions(img_vol, min_size=3):
     labels = list(filter(bool, np.unique(blobs)))
     areas = [np.count_nonzero(np.equal(blobs, lab)) for lab in labels]
     nu_labels = [lab for lab, a in zip(labels, areas) if a >= min_size]
-    nu_mask = reduce(
-        lambda x, y: np.logical_or(x, y),
-        [np.equal(blobs, lab) for lab in nu_labels]
-    ) if nu_labels else np.zeros_like(img_vol)
+    nu_mask = np.isin(blobs, nu_labels)
     return nu_mask
 
 
