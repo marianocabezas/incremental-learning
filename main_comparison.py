@@ -136,7 +136,7 @@ def get_data(experiment_config, subject_list):
             print(
                 'Loading subject {:} ({:d}/{:d}) '
                 '{:} ETA {:}'.format(
-                    p, pi + 1, len(subjects),
+                    p, pi + 1, len(subject_list),
                     time_to_string(load_elapsed),
                     time_to_string(load_eta),
                 ), end='\r'
