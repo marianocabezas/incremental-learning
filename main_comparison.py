@@ -107,7 +107,6 @@ def get_data(experiment_config, subject_list):
                 if os.path.isdir(os.path.join(p_path, session))
             ]
             for si, session in enumerate(sessions):
-                print(' '.join([' '] * 300), end='\r')
                 print(
                     'Loading subject {:} [{:}] ({:d}/{:d} - {:d}/{:d}) '
                     '{:} ETA {:}'.format(
@@ -134,7 +133,6 @@ def get_data(experiment_config, subject_list):
                     )
                 subjects.append(images)
         else:
-            print(' '.join([' '] * 300), end='\r')
             print(
                 'Loading subject {:} ({:d}/{:d}) '
                 '{:} ETA {:}'.format(
