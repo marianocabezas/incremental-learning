@@ -62,7 +62,7 @@ class SimpleUNet(BaseModel):
         # <Parameter setup>
         self.segmenter = nn.Sequential(
             Autoencoder(
-                self.conv_filters, device, 2 * n_images, block=ResConv3dBlock,
+                self.conv_filters, device, n_images, block=ResConv3dBlock,
                 norm=norm_f
             ),
             nn.Conv3d(self.conv_filters[0], 1, 1)
