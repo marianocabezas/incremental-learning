@@ -156,7 +156,7 @@ def get_data(experiment_config, subject_list):
                     p_path, experiment_config['files'], roi
                 )
             subjects.append(images)
-
+    print('\033[K', end='\r')
     return subjects, labels, rois
 
 
