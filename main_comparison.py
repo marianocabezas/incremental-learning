@@ -454,6 +454,7 @@ def main(verbose=2):
                         model_base, ti, i, seed
                     )
                 )
+                net.init = True
                 train(config, net, training_set, validation_set, model_name, 2)
 
 
