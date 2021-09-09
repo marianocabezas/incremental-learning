@@ -358,12 +358,16 @@ def main(verbose=2):
         '{:}-start.pt'.format(model_base)
     )
     net.save_model(starting_model)
+    n_param = sum(
+        p.numel() for p in net.parameters() if p.requires_grad
+    )
 
     for test_n, seed in enumerate(config['seeds']):
         print(
-            '{:}[{:}] {:}Starting cross-validation{:} (seed {:d}){:}'.format(
-                c['c'], strftime("%H:%M:%S"), c['g'], c['nc'] + c['y'],
-                seed, c['nc']
+            '{:}[{:}] {:}Starting cross-validation (model: {:}){:}'
+            ' (seed {:d}){:}'.format(
+                c['c'], strftime("%H:%M:%S"), c['g'], model_base,
+                c['nc'] + c['y'], seed, c['nc']
             )
         )
         np.random.seed(seed)
@@ -425,10 +429,28 @@ def main(verbose=2):
                     model_base, i, seed
                 )
             )
+            print(
+                '{:}Starting baseline fold {:} - {:02d}/{:02d} '
+                '({:} parameters)'.format(
+                    c['c'], c['g'] + str(i) + c['nc'],
+                    test_n + 1, len(config['seeds']),
+                    c['b'] + str(n_param) + c['nc']
+                )
+            )
             train(config, net, training_set, validation_set, model_name, 2)
+
+            net.load_model(starting_model)
             for ti, (training_set, validation_set) in enumerate(
                 zip(training_tasks, validation_tasks)
             ):
+                print(
+                    '{:}Starting task {:02d} fold {:} - {:02d}/{:02d} '
+                    '({:} parameters)'.format(
+                        c['c'], ti + 1, c['g'] + str(i) + c['nc'],
+                        test_n + 1, len(config['seeds']),
+                        c['b'] + str(n_param) + c['nc']
+                    )
+                )
                 model_name = os.path.join(
                     config['output_path'],
                     '{:}-t{:02d}.n{:d}.{:05d}.pt'.format(
