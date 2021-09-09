@@ -331,8 +331,6 @@ class BaseModel(nn.Module):
 
             self.epoch_update(epochs)
 
-        self.epoch = best_e
-        self.load_state_dict(self.best_state)
         t_end = time.time() - t_start
         t_end_s = time_to_string(t_end)
         if verbose:
@@ -342,6 +340,9 @@ class BaseModel(nn.Module):
                         self.epoch + 1, t_end_s, self.best_loss_val, best_e
                     )
             )
+
+        self.epoch = best_e
+        self.load_state_dict(self.best_state)
 
     def inference(self, data):
         with torch.no_grad():
