@@ -434,6 +434,7 @@ def main(verbose=2):
                     c['b'] + str(n_param) + c['nc']
                 )
             )
+            net.init = True
             train(config, net, training_set, validation_set, model_name, 2)
 
             net.load_model(starting_model)
