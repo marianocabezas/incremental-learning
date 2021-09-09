@@ -349,18 +349,6 @@ def main(verbose=2):
         n_images = len(config['files'][0])
     else:
         n_images = len(config['files'])
-    net = config['network'](
-        conv_filters=config['filters'],
-        n_images=n_images
-    )
-    starting_model = os.path.join(
-        config['output_path'],
-        '{:}-start.pt'.format(model_base)
-    )
-    net.save_model(starting_model)
-    n_param = sum(
-        p.numel() for p in net.parameters() if p.requires_grad
-    )
 
     for test_n, seed in enumerate(config['seeds']):
         print(
@@ -372,9 +360,18 @@ def main(verbose=2):
         )
         np.random.seed(seed)
         torch.manual_seed(seed)
-        # model_name = 'presnet.{:02d}-e{:d}.n{:d}.pt'.format(
-        #     t, epochs, i
-        # )
+        net = config['network'](
+            conv_filters=config['filters'],
+            n_images=n_images
+        )
+        starting_model = os.path.join(
+            config['output_path'],
+            '{:}-start.s{:05d}.pt'.format(model_base, seed)
+        )
+        net.save_model(starting_model)
+        n_param = sum(
+            p.numel() for p in net.parameters() if p.requires_grad
+        )
         for i in range(n_folds):
             subjects_fold = {
                 t_key: {
@@ -425,7 +422,7 @@ def main(verbose=2):
             ]
             model_name = os.path.join(
                 config['output_path'],
-                '{:}-bl.n{:d}.{:05d}.pt'.format(
+                '{:}-bl.n{:d}.s{:05d}.pt'.format(
                     model_base, i, seed
                 )
             )
@@ -453,7 +450,7 @@ def main(verbose=2):
                 )
                 model_name = os.path.join(
                     config['output_path'],
-                    '{:}-t{:02d}.n{:d}.{:05d}.pt'.format(
+                    '{:}-t{:02d}.n{:d}.s{:05d}.pt'.format(
                         model_base, ti, i, seed
                     )
                 )
