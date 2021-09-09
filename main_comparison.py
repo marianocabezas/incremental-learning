@@ -398,6 +398,14 @@ def main(verbose=2):
                         len(shuffled_subjects) // config['task_size']
                     )
                 ]
+            training_tasks = [
+                [p for p in p_list[int(len(p_list) * val_split):]]
+                for p_list in training_validation
+            ]
+            validation_tasks = [
+                [p for p in p_list[:int(len(p_list) * val_split)]]
+                for p_list in training_validation
+            ]
             testing_set = [
                 p for t in subjects_fold.values()
                 for p in t['list'][t['ini']:t['end']]
@@ -406,12 +414,10 @@ def main(verbose=2):
             # Baseline model (full continuum access)
             net.load_model(starting_model)
             training_set = [
-                p for p_list in training_validation
-                for p in p_list[int(len(p_list) * val_split):]
+                p for p_list in training_tasks for p in p_list
             ]
             validation_set = [
-                p for p_list in training_validation
-                for p in p_list[:int(len(p_list) * val_split)]
+                p for p_list in validation_tasks for p in p_list
             ]
             model_name = os.path.join(
                 config['output_path'],
