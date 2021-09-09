@@ -82,7 +82,7 @@ def get_subjects(experiment_config):
 
 def load_image_list(path, image_list, roi):
     images = [
-        get_normalised_image(os.path.join(path, image), roi)
+        get_normalised_image(os.path.join(path, image), roi, masked=True)
         for image in image_list
     ]
 
@@ -229,7 +229,7 @@ def train(config, net, training, validation, model_name, verbose=0):
         if verbose > 1:
             print('Dataloader creation <val>')
         val_loader = DataLoader(
-            val_dataset, config['test_batch'], True, num_workers=32
+            val_dataset, config['test_batch'], num_workers=32
         )
 
         if verbose > 1:
