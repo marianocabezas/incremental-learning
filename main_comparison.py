@@ -426,6 +426,16 @@ def main(verbose=2):
                 )
             )
             train(config, net, training_set, validation_set, model_name, 2)
+            for ti, (training_set, validation_set) in enumerate(
+                zip(training_tasks, validation_tasks)
+            ):
+                model_name = os.path.join(
+                    config['output_path'],
+                    '{:}-t{:02d}.n{:d}.{:05d}.pt'.format(
+                        model_base, ti, i, seed
+                    )
+                )
+                train(config, net, training_set, validation_set, model_name, 2)
 
 
 if __name__ == '__main__':
