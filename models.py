@@ -164,13 +164,20 @@ class DualHeadedUNet(BaseModel):
 
         self.val_functions = [
             {
+                'name': 'xentropy',
+                'weight': 1,
+                'f': lambda p, t: F.binary_cross_entropy(
+                    p, t.type_as(p).to(p.device),
+                )
+            },
+            {
                 'name': 'pdsc',
                 'weight': 0,
                 'f': lambda p, t: gendsc_loss(p, t, w_bg=0, w_fg=1)
             },
             {
                 'name': 'dsc',
-                'weight': 1,
+                'weight': 0,
                 'f': lambda p, t: dsc_binary_loss(p, t)
             },
             {
