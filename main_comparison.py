@@ -399,20 +399,27 @@ def main(verbose=2):
                         len(shuffled_subjects) // config['task_size']
                     )
                 ]
-            training_tasks = [
-                [p for p in p_list[int(len(p_list) * val_split):]]
-                for p_list in training_validation
-            ]
-            validation_tasks = [
-                [p for p in p_list[:int(len(p_list) * val_split)]]
-                for p_list in training_validation
-            ]
+            if val_split > 0:
+                training_tasks = [
+                    [p for p in p_list[int(len(p_list) * val_split):]]
+                    for p_list in training_validation
+                ]
+                validation_tasks = [
+                    [p for p in p_list[:int(len(p_list) * val_split)]]
+                    for p_list in training_validation
+                ]
+            else:
+                training_tasks = validation_tasks = training_validation
             testing_set = [
                 p for t in subjects_fold.values()
                 for p in t['list'][t['ini']:t['end']]
             ]
 
             # Baseline model (full continuum access)
+            net = config['network'](
+                conv_filters=config['filters'],
+                n_images=n_images
+            )
             net.load_model(starting_model)
             training_set = [
                 p for p_list in training_tasks for p in p_list
@@ -434,9 +441,12 @@ def main(verbose=2):
                     c['b'] + str(n_param) + c['nc']
                 )
             )
-            net.init = True
             train(config, net, training_set, validation_set, model_name, 2)
 
+            net = config['network'](
+                conv_filters=config['filters'],
+                n_images=n_images
+            )
             net.load_model(starting_model)
             for ti, (training_set, validation_set) in enumerate(
                 zip(training_tasks, validation_tasks)
@@ -455,8 +465,12 @@ def main(verbose=2):
                         model_base, ti, i, seed
                     )
                 )
-                net.init = True
                 train(config, net, training_set, validation_set, model_name, 2)
+                net = config['network'](
+                    conv_filters=config['filters'],
+                    n_images=n_images
+                )
+                net.load_model(model_name)
 
 
 if __name__ == '__main__':
