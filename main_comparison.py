@@ -107,7 +107,7 @@ def get_data(experiment_config, subject_list):
                 print(
                     '\033[KLoading subject {:} [{:}] ({:d}/{:d} - {:d}/{:d}) '
                     '{:} ETA {:}'.format(
-                        p, session, pi + 1, len(subject_list),
+                        p['subject'], session, pi + 1, len(subject_list),
                         si + 1, len(sessions),
                         time_to_string(load_elapsed),
                         time_to_string(load_eta),
