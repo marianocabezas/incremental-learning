@@ -97,15 +97,12 @@ def get_data(experiment_config, subject_list):
     labels = []
     rois = []
     for pi, p in enumerate(subject_list):
-        p_path = os.path.join(d_path, p)
         loads = len(subject_list) - pi
         load_elapsed = time.time() - load_start
         load_eta = loads * load_elapsed / (pi + 1)
         if experiment_config['multisession']:
-            sessions = [
-                session for session in os.listdir(p_path)
-                if os.path.isdir(os.path.join(p_path, session))
-            ]
+            p_path = os.path.join(d_path, p['subject'])
+            sessions = p['sessions']
             for si, session in enumerate(sessions):
                 print(
                     '\033[KLoading subject {:} [{:}] ({:d}/{:d} - {:d}/{:d}) '
@@ -133,6 +130,7 @@ def get_data(experiment_config, subject_list):
                     )
                 subjects.append(images)
         else:
+            p_path = os.path.join(d_path, p)
             print(
                 '\033[KLoading subject {:} ({:d}/{:d}) '
                 '{:} ETA {:}'.format(
@@ -424,22 +422,12 @@ def main(verbose=2):
                 n_images=n_images
             )
             net.load_model(starting_model)
-            if config['multisession']:
-                training_set = [
-                    t for p_list in training_tasks
-                    for p in p_list for t in p['sessions']
-                ]
-                validation_set = [
-                    t for p_list in validation_tasks
-                    for p in p_list for t in p['sessions']
-                ]
-            else:
-                training_set = [
-                    p for p_list in training_tasks for p in p_list
-                ]
-                validation_set = [
-                    p for p_list in validation_tasks for p in p_list
-                ]
+            training_set = [
+                p for p_list in training_tasks for p in p_list
+            ]
+            validation_set = [
+                p for p_list in validation_tasks for p in p_list
+            ]
             model_name = os.path.join(
                 config['output_path'],
                 '{:}-bl.n{:d}.s{:05d}.pt'.format(
