@@ -141,11 +141,11 @@ class BaseModel(nn.Module):
             self.print_progress(
                 batch_i, n_batches, loss_value, np.mean(losses)
             )
+            torch.cuda.empty_cache()
+            torch.cuda.ipc_collect()
 
         # Mean loss of the global loss (we don't need the loss for each batch).
         mean_loss = np.mean(losses)
-        torch.cuda.empty_cache()
-        torch.cuda.ipc_collect()
 
         if train:
             return mean_loss
