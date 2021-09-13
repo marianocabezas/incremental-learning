@@ -424,12 +424,22 @@ def main(verbose=2):
                 n_images=n_images
             )
             net.load_model(starting_model)
-            training_set = [
-                p for p_list in training_tasks for p in p_list
-            ]
-            validation_set = [
-                p for p_list in validation_tasks for p in p_list
-            ]
+            if config['multisession']:
+                training_set = [
+                    t for p_list in training_tasks
+                    for p in p_list for t in p['sessions']
+                ]
+                validation_set = [
+                    t for p_list in validation_tasks
+                    for p in p_list for t in p['sessions']
+                ]
+            else:
+                training_set = [
+                    p for p_list in training_tasks for p in p_list
+                ]
+                validation_set = [
+                    p for p_list in validation_tasks for p in p_list
+                ]
             model_name = os.path.join(
                 config['output_path'],
                 '{:}-bl.n{:d}.s{:05d}.pt'.format(
