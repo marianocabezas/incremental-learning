@@ -82,7 +82,7 @@ class SimpleUNet(BaseModel):
 
         self.val_functions = [
             {
-                'name': 'xentropy',
+                'name': 'xent',
                 'weight': 1,
                 'f': lambda p, t: F.binary_cross_entropy(
                     p, t.type_as(p).to(p.device),
