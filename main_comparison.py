@@ -247,7 +247,13 @@ def train(config, net, training, validation, model_name, verbose=0):
         net.save_model(os.path.join(path, model_name))
 
 
-def test(seed, net, testing, training, validation=None, verbose=0):
+def test(config, seed, net, testing, training, validation=None, verbose=0):
+    # Init
+    c = color_codes()
+    options = parse_inputs()
+    masks_path = config['masks_path']
+    mask_base = os.path.splitext(os.path.basename(options['config']))[0]
+
     print(testing)
     print(training)
     if validation is not None:
@@ -270,7 +276,15 @@ def main(verbose=2):
             print(exc)
     n_folds = config['folds']
     val_split = config['val_split']
+    model_path = config['model_path']
+    if not os.path.isdir(model_path):
+        os.mkdir(model_path)
+    masks_path = config['masks_path']
+    if not os.path.isdir(masks_path):
+        os.mkdir(masks_path)
     model_base = os.path.splitext(os.path.basename(options['config']))[0]
+
+    seeds = config['seeds']
 
     print(
         '{:}[{:}] {:}<Incremental learning framework>{:}'.format(
@@ -280,12 +294,27 @@ def main(verbose=2):
 
     # We want a common starting point
     subjects = get_subjects(config)
+    testing_results = {
+        subject: {
+            str(seed): {
+                'TPV': [],
+                'TNV': [],
+                'FPV': [],
+                'FNV': [],
+                'TPR': [],
+                'FPR': [],
+                'FNR': [],
+            }
+            for seed in seeds
+        }
+        for subject in subjects
+    }
     if isinstance(config['files'], tuple):
         n_images = len(config['files'][0])
     else:
         n_images = len(config['files'])
 
-    for test_n, seed in enumerate(config['seeds']):
+    for test_n, seed in enumerate(seeds):
         print(
             '{:}[{:}] {:}Starting cross-validation (model: {:}){:}'
             ' (seed {:d}){:}'.format(
@@ -300,7 +329,7 @@ def main(verbose=2):
             n_images=n_images
         )
         starting_model = os.path.join(
-            config['output_path'],
+            model_path,
             '{:}-start.s{:05d}.pt'.format(model_base, seed)
         )
         net.save_model(starting_model)
@@ -363,7 +392,7 @@ def main(verbose=2):
                 p for p_list in validation_tasks for p in p_list
             ]
             model_name = os.path.join(
-                config['output_path'],
+                model_path,
                 '{:}-bl.n{:d}.s{:05d}.pt'.format(
                     model_base, i, seed
                 )
@@ -385,9 +414,12 @@ def main(verbose=2):
             net.load_model(starting_model)
 
             if val_split > 0:
-                test(seed, net, testing_set, training_tasks, validation_tasks)
+                test(
+                    config, seed, net, testing_results, training_tasks,
+                    validation_tasks
+                )
             else:
-                test(seed, net, testing_set, training_tasks)
+                test(config, seed, net, testing_results, training_tasks)
 
             for ti, (training_set, validation_set) in enumerate(
                 zip(training_tasks, validation_tasks)
@@ -401,7 +433,7 @@ def main(verbose=2):
                     )
                 )
                 model_name = os.path.join(
-                    config['output_path'],
+                    model_path,
                     '{:}-t{:02d}.n{:d}.s{:05d}.pt'.format(
                         model_base, ti, i, seed
                     )
