@@ -307,7 +307,7 @@ def main(verbose=2):
             }
             for seed in seeds
         }
-        for subject in subjects
+        for t_list in subjects.values() for subject in t_list
     }
     if isinstance(config['files'], tuple):
         n_images = len(config['files'][0])
