@@ -247,77 +247,11 @@ def train(config, net, training, validation, model_name, verbose=0):
         net.save_model(os.path.join(path, model_name))
 
 
-# def test(net, testing, path, model, verbose=0):
-#     c = color_codes()
-#     options = parse_inputs()
-#     labels = options['labels']
-#     confusion_matrix = np.array([[0, 0], [0, 0]])
-#
-#     for subject in testing:
-#         if verbose > 1:
-#             print(
-#                 '{:}Testing subject {:^24} [{:}] - {:}'.format(
-#                     c['c'], c['g'] + subject['name'] + c['nc'],
-#                     c['y'] + subject['class'] + c['nc'],
-#                     c['lgy'] + model + c['nc']
-#                 ), end='\r'
-#             )
-#         p_path = os.path.join(path, subject['class'].upper(), subject['name'])
-#         o_path = os.path.join(p_path, 'Predictions')
-#         if not os.path.exists(o_path):
-#             os.mkdir(o_path)
-#
-#         pr = net.classify(
-#             np.expand_dims(subject['dwi'], axis=0),
-#             np.expand_dims(subject['brain'], axis=0)
-#         )
-#
-#         true_label = subject['label']
-#         pred_label = int(pr > 0.5)
-#         label_name = labels[pred_label]
-#         true_name = labels[true_label]
-#
-#         if verbose > 1:
-#             tp_c = c['g'] if true_label == pred_label else c['r']
-#             print(
-#                 '{:}Testing subject (CEL) {:^24} [{:} - {:}] - {:}'.format(
-#                     c['c'], c['g'] + subject['name'] + c['nc'],
-#                     c['y'] + subject['class'] + c['nc'],
-#                     tp_c + label_name + c['nc'],
-#                     c['lgy'] + model + c['nc']
-#                 )
-#             )
-#
-#         confusion_matrix[true_label, pred_label] += 1
-#
-#         # We need to clean previous files (labels might have changed)
-#         for file in os.listdir(o_path):
-#             if file.startswith(model) and file.endswith('.txt'):
-#                 os.remove(os.path.join(o_path, file))
-#
-#         pr_name = os.path.join(o_path, '{:}_{:}-{:}.txt'.format(
-#             model, label_name, true_name
-#         ))
-#
-#         with open(pr_name, 'w') as f:
-#             if pred_label:
-#                 f.write(str(pr))
-#             else:
-#                 f.write(str(1 - pr))
-#
-#     n = np.sum(confusion_matrix)
-#     n_ctl = np.sum(confusion_matrix[0, :])
-#     n_als = np.sum(confusion_matrix[1, :])
-#     tp_ctl = 100 * confusion_matrix[0, 0]
-#     tp_als = 100 * confusion_matrix[1, 1]
-#     intersection = 100 * (confusion_matrix[0, 0] + confusion_matrix[1, 1])
-#     tpf_ctl = tp_ctl / n_ctl
-#     tpf_als = tp_als / n_als
-#
-#     print('TPF (CTL) =', tpf_ctl)
-#     print('TPF (ALS) =', tpf_als)
-#     print('Accuracy =', intersection / n)
-#     print('Balanced accuracy =', (tpf_ctl + tpf_als) / 2)
+def test(net, testing, training, validation=None, verbose=0):
+    print(testing)
+    print(training)
+    if validation is not None:
+        print(validation)
 
 
 """
@@ -449,6 +383,9 @@ def main(verbose=2):
                 n_images=n_images
             )
             net.load_model(starting_model)
+
+            test(net, testing_set, training_tasks, validation_tasks)
+
             for ti, (training_set, validation_set) in enumerate(
                 zip(training_tasks, validation_tasks)
             ):
