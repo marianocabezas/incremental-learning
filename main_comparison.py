@@ -254,7 +254,7 @@ def test(config, seed, net, testing, training, validation=None, verbose=0):
     masks_path = config['masks_path']
     mask_base = os.path.splitext(os.path.basename(options['config']))[0]
 
-    print(testing)
+    print(list(testing.keys()))
     print(training)
     if validation is not None:
         print(validation)
