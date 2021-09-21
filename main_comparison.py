@@ -247,7 +247,7 @@ def train(config, net, training, validation, model_name, verbose=0):
         net.save_model(os.path.join(path, model_name))
 
 
-def test(net, testing, training, validation=None, verbose=0):
+def test(seed, net, testing, training, validation=None, verbose=0):
     print(testing)
     print(training)
     if validation is not None:
@@ -384,7 +384,10 @@ def main(verbose=2):
             )
             net.load_model(starting_model)
 
-            test(net, testing_set, training_tasks, validation_tasks)
+            if val_split > 0:
+                test(seed, net, testing_set, training_tasks, validation_tasks)
+            else:
+                test(seed, net, testing_set, training_tasks)
 
             for ti, (training_set, validation_set) in enumerate(
                 zip(training_tasks, validation_tasks)

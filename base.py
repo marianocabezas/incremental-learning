@@ -349,12 +349,12 @@ class BaseModel(nn.Module):
             if isinstance(data, list) or isinstance(data, tuple):
                 x_cuda = tuple(
                     torch.from_numpy(x_i).to(self.device) for x_i in data)
-                seg = self(*x_cuda)
+                output = self(*x_cuda)
             else:
-                seg = self(torch.from_numpy(data).to(self.device))
+                output = self(torch.from_numpy(data).to(self.device))
             torch.cuda.empty_cache()
 
-        return seg[0, 0].cpu().numpy()
+        return output[0, 0].cpu().numpy()
 
     def patch_inference(self, data, patch_size, batch_size,
         case=0, n_cases=1, t_start=None
