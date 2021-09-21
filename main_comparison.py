@@ -175,7 +175,7 @@ def train(config, net, training, validation, model_name, verbose=0):
     """
     # Init
     c = color_codes()
-    path = config['output_path']
+    path = config['model_path']
     epochs = config['epochs']
     patience = config['patience']
 
