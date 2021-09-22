@@ -312,14 +312,14 @@ def test_images(config, mask_name, net, subject, session=None):
 
 def test(
     config, seed, net, base_name, testing_results, testing_subjects,
-    training, validation=None, verbose=0
+    verbose=0
 ):
     # Init
     options = parse_inputs()
     mask_base = os.path.splitext(os.path.basename(options['config']))[0]
 
     test_start = time.time()
-    mask_name = '{:}-{:}-test.s{:05d}.nii.gz'.format(
+    mask_name = '{:}-{:}.s{:05d}.nii.gz'.format(
         mask_base, base_name, seed
     )
     for sub_i, subject in enumerate(testing_subjects):
@@ -360,9 +360,6 @@ def test(
                 testing_results[subject][str(seed)][r_key].append(
                     r_value
                 )
-
-    if validation is not None:
-        print(validation)
 
 
 """
@@ -468,6 +465,25 @@ def main(verbose=2):
         n_param = sum(
             p.numel() for p in net.parameters() if p.requires_grad
         )
+
+        print(
+            '{:}Testing initial weights - {:02d}/{:02d} '
+            '({:} parameters)'.format(
+                c['c'], test_n + 1, len(config['seeds']),
+                c['b'] + str(n_param) + c['nc']
+            )
+        )
+        all_subjects = [p for t_list in subjects.values() for p in t_list]
+        if val_split > 0:
+            test(
+                config, seed, net, 'init', starting_testing,
+                all_subjects, verbose=1
+            )
+        else:
+            test(
+                config, seed, net, 'init', starting_testing,
+                all_subjects, verbose=1
+            )
         for i in range(n_folds):
             subjects_fold = {
                 t_key: {
@@ -541,12 +557,12 @@ def main(verbose=2):
             if val_split > 0:
                 test(
                     config, seed, net, 'baseline', baseline_testing,
-                    testing_set, training_tasks, validation_tasks, verbose=1
+                    testing_set, verbose=1
                 )
             else:
                 test(
                     config, seed, net, 'baseline', baseline_testing,
-                    testing_set, training_tasks, verbose=1
+                    testing_set, verbose=1
                 )
 
             net = config['network'](
@@ -554,16 +570,6 @@ def main(verbose=2):
                 n_images=n_images
             )
             net.load_model(starting_model)
-            if val_split > 0:
-                test(
-                    config, seed, net, 'init', starting_testing,
-                    testing_set, training_tasks, validation_tasks, verbose=1
-                )
-            else:
-                test(
-                    config, seed, net, 'init', starting_testing,
-                    testing_set, training_tasks, verbose=1
-                )
 
             for ti, (training_set, validation_set) in enumerate(
                 zip(training_tasks, validation_tasks)
@@ -590,15 +596,13 @@ def main(verbose=2):
                 net.load_model(model_name)
                 if val_split > 0:
                     test(
-                        config, seed, net, 'naive.t{:02d}'.format(ti),
-                        naive_testing, testing_set, training_tasks,
-                        validation_tasks, verbose=1
+                        config, seed, net, 'naive.t{:02d}-test'.format(ti),
+                        naive_testing, testing_set, verbose=1
                     )
                 else:
                     test(
                         config, seed, net, 'naive.t{:02d}'.format(ti),
-                        naive_testing, testing_set, training_tasks,
-                        verbose=1
+                        naive_testing, testing_set, verbose=1
                     )
             json_name = '{:}-baseline_testing.f{:d}.s{:d}.jsom'.format(
                 model_base, i, seed
