@@ -353,7 +353,7 @@ class BaseModel(nn.Module):
                 )
                 output = self(*x_cuda)
             else:
-                x_cuda = torch.from_numpy(data.unsqueeze(0)).to(self.device)
+                x_cuda = torch.from_numpy(data).unsqueeze(0).to(self.device)
                 output = self(x_cuda)
             torch.cuda.empty_cache()
 
