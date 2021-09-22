@@ -416,9 +416,9 @@ def main(verbose=2):
                     }
                     for seed in seeds
                 }
+                for session in subject['sessions']
             }
             for t_list in subjects.values() for subject in t_list
-            for session in subject['sessions']
         }
     else:
         baseline_testing = {
