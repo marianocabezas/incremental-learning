@@ -336,7 +336,7 @@ def test(config, seed, net, testing, training, validation=None, verbose=0):
                     )
                 results = test_images(config, mask_name, net, subject, session)
                 for r_key, r_value in results.items():
-                    testing[subject][session][seed][r_key] = r_value
+                    testing[subject][session][str(seed)][r_key] = r_value
         else:
             if verbose > 0:
                 print(
@@ -348,7 +348,7 @@ def test(config, seed, net, testing, training, validation=None, verbose=0):
                 )
             results = test_images(config, mask_name, net, subject)
             for r_key, r_value in results.items():
-                testing[subject][seed][r_key] = r_value
+                testing[subject][str(seed)][r_key] = r_value
 
     print(testing)
     print(training)
