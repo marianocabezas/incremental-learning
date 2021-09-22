@@ -325,13 +325,14 @@ def test(
         test_elapsed = time.time() - test_start
         test_eta = tests * test_elapsed / (sub_i + 1)
         if config['multisession']:
-            sessions = list(subject.keys())
+            sessions = subject['sessions']
+            subject = subject['subject']
             for sess_j, session in enumerate(sessions):
                 if verbose:
                     print(
                         '\033[KTesting subject {:} [{:}]'
                         ' ({:d}/{:d} - {:d}/{:d}) {:} ETA {:}'.format(
-                            subject['subject'], session,
+                            subject, session,
                             sub_i + 1, len(testing_subjects),
                             sess_j + 1, len(sessions),
                             time_to_string(test_elapsed),
