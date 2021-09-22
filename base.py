@@ -348,10 +348,13 @@ class BaseModel(nn.Module):
         with torch.no_grad():
             if isinstance(data, list) or isinstance(data, tuple):
                 x_cuda = tuple(
-                    torch.from_numpy(x_i).to(self.device) for x_i in data)
+                    torch.from_numpy(x_i).unsqueeze(0).to(self.device)
+                    for x_i in data
+                )
                 output = self(*x_cuda)
             else:
-                output = self(torch.from_numpy(data).to(self.device))
+                x_cuda = torch.from_numpy(data.unsqueeze(0)).to(self.device)
+                output = self(x_cuda)
             torch.cuda.empty_cache()
 
         return output[0, 0].cpu().numpy()
