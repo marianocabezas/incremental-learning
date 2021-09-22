@@ -590,13 +590,15 @@ def main(verbose=2):
                 net.load_model(model_name)
                 if val_split > 0:
                     test(
-                        config, seed, net, 'naive', naive_testing,
-                        testing_set, training_tasks, validation_tasks, verbose=1
+                        config, seed, net, 'naive.t{:02d}'.format(ti),
+                        naive_testing, testing_set, training_tasks,
+                        validation_tasks, verbose=1
                     )
                 else:
                     test(
-                        config, seed, net, 'naive', naive_testing,
-                        testing_set, training_tasks, verbose=1
+                        config, seed, net, 'naive.t{:02d}'.format(ti),
+                        naive_testing, testing_set, training_tasks,
+                        verbose=1
                     )
             json_name = '{:}-baseline_testing.f{:d}.s{:d}.jsom'.format(
                 model_base, i, seed
