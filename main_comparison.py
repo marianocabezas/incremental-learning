@@ -318,7 +318,6 @@ def test(
     options = parse_inputs()
     mask_base = os.path.splitext(os.path.basename(options['config']))[0]
 
-    testing_subjects = list(testing_subjects.keys())
     test_start = time.time()
     mask_name = '{:}-test.s{:05d}.nii.gz'.format(mask_base, seed)
     for sub_i, subject in enumerate(testing_subjects):
