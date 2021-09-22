@@ -330,7 +330,7 @@ def test(config, seed, net, testing, training, validation=None, verbose=0):
                         '\033[KTesting subject {:} [{:}]'
                         ' ({:d}/{:d} - {:d}/{:d}) {:} ETA {:}'.format(
                             subject, session, sub_i + 1, len(testing_subjects),
-                            sess_j + 1, len(subject['sessions']),
+                            sess_j + 1, len(sessions),
                             time_to_string(test_elapsed),
                             time_to_string(test_eta),
                         ), end='\r'
