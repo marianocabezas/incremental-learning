@@ -323,7 +323,7 @@ def test(config, seed, net, testing, training, validation=None, verbose=0):
         test_elapsed = time.time() - test_start
         test_eta = tests * test_elapsed / (sub_i + 1)
         if config['multisession']:
-            sessions = list(subject.keys())
+            sessions = list(testing[subject].keys())
             for sess_j, session in enumerate(sessions):
                 if verbose:
                     print(
