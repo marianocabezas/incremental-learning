@@ -310,12 +310,15 @@ def test_images(config, mask_name, net, subject, session=None):
     return results
 
 
-def test(config, seed, net, testing, training, validation=None, verbose=0):
+def test(
+    config, seed, net, testing_results, testing_subjects,
+    training, validation=None, verbose=0
+):
     # Init
     options = parse_inputs()
     mask_base = os.path.splitext(os.path.basename(options['config']))[0]
 
-    testing_subjects = list(testing.keys())
+    testing_subjects = list(testing_subjects.keys())
     test_start = time.time()
     mask_name = '{:}-test.s{:05d}.nii.gz'.format(mask_base, seed)
     for sub_i, subject in enumerate(testing_subjects):
@@ -323,7 +326,7 @@ def test(config, seed, net, testing, training, validation=None, verbose=0):
         test_elapsed = time.time() - test_start
         test_eta = tests * test_elapsed / (sub_i + 1)
         if config['multisession']:
-            sessions = list(testing[subject].keys())
+            sessions = list(testing_subjects[subject].keys())
             for sess_j, session in enumerate(sessions):
                 if verbose:
                     print(
@@ -337,7 +340,9 @@ def test(config, seed, net, testing, training, validation=None, verbose=0):
                     )
                 results = test_images(config, mask_name, net, subject, session)
                 for r_key, r_value in results.items():
-                    testing[subject][session][str(seed)][r_key].append(r_value)
+                    testing_results[subject][session][str(seed)][r_key].append(
+                        r_value
+                    )
         else:
             if verbose > 0:
                 print(
@@ -349,9 +354,11 @@ def test(config, seed, net, testing, training, validation=None, verbose=0):
                 )
             results = test_images(config, mask_name, net, subject)
             for r_key, r_value in results.items():
-                testing[subject][str(seed)][r_key].append(r_value)
+                testing_results[subject][str(seed)][r_key].append(
+                    r_value
+                )
 
-    print(testing)
+    print(testing_results)
     print(training)
     if validation is not None:
         print(validation)
@@ -572,13 +579,13 @@ def main(verbose=2):
                 net.load_model(model_name)
                 if val_split > 0:
                     test(
-                        config, seed, net, naive_testing, training_tasks,
-                        validation_tasks, verbose=1
+                        config, seed, net, naive_testing, testing_set,
+                        training_tasks, validation_tasks, verbose=1
                     )
                 else:
                     test(
-                        config, seed, net, naive_testing, training_tasks,
-                        verbose=1
+                        config, seed, net, naive_testing, testing_set,
+                        training_tasks, verbose=1
                     )
             json_name = '{:}-baseline_testing.f{:d}.s{:d}.jsom'.format(
                 model_base, i, seed
