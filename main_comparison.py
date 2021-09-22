@@ -303,10 +303,10 @@ def test_images(config, mask_name, net, subject, session=None):
     false_positive = np.logical_and(no_target, prediction)
 
     results = {
-        'TPV': np.sum(true_positive),
-        'TNV': np.sum(np.logical_and(no_target, no_prediction)),
-        'FPV': np.sum(false_positive),
-        'FNV': np.sum(np.logical_and(target, np.logical_not(prediction))),
+        'TPV': int(np.sum(true_positive)),
+        'TNV': int(np.sum(np.logical_and(no_target, no_prediction))),
+        'FPV': int(np.sum(false_positive)),
+        'FNV': int(np.sum(np.logical_and(target, np.logical_not(prediction)))),
         'TPR': len(np.unique(target_regions[true_positive])),
         'FPR': len(np.unique(prediction_regions[false_positive_regions])),
         'GTR': gtr,
