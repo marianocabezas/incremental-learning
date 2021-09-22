@@ -287,7 +287,6 @@ def test_images(config, mask_name, net, subject, session=None):
         )
         segmentation_nii.to_filename(prediction_file)
     else:
-        print('Loaded')
         segmentation = nibabel.load(prediction_file).get_fdata()
         prediction = segmentation[bb].astype(bool)
 
@@ -480,16 +479,27 @@ def main(verbose=2):
             )
         )
         all_subjects = [p for t_list in subjects.values() for p in t_list]
-        if val_split > 0:
-            test(
-                config, seed, net, 'init', starting_testing,
-                all_subjects, verbose=1
-            )
+        json_name = '{:}-init_testing.s{:d}.jsom'.format(
+            model_base, seed
+        )
+        json_file = find_file(json_name, masks_path)
+        if json_file is None:
+            json_file = os.path.join(masks_path, json_name)
+            if val_split > 0:
+                test(
+                    config, seed, net, 'init', starting_testing,
+                    all_subjects, verbose=1
+                )
+            else:
+                test(
+                    config, seed, net, 'init', starting_testing,
+                    all_subjects, verbose=1
+                )
+            with open(json_file, 'w') as testing_json:
+                json.dump(starting_testing, testing_json)
         else:
-            test(
-                config, seed, net, 'init', starting_testing,
-                all_subjects, verbose=1
-            )
+            with open(json_file, 'r') as testing_json:
+                starting_testing = json.load(testing_json)
         for i in range(n_folds):
             subjects_fold = {
                 t_key: {
@@ -560,16 +570,27 @@ def main(verbose=2):
                 )
             )
             train(config, net, training_set, validation_set, model_name, 2)
-            if val_split > 0:
-                test(
-                    config, seed, net, 'baseline', baseline_testing,
-                    testing_set, verbose=1
-                )
+            json_name = '{:}-baseline_testing.f{:d}.s{:d}.jsom'.format(
+                model_base, i, seed
+            )
+            json_file = find_file(json_name, masks_path)
+            if json_file is None:
+                json_file = os.path.join(masks_path, json_name)
+                if val_split > 0:
+                    test(
+                        config, seed, net, 'baseline', baseline_testing,
+                        testing_set, verbose=1
+                    )
+                else:
+                    test(
+                        config, seed, net, 'baseline', baseline_testing,
+                        testing_set, verbose=1
+                    )
+                with open(json_file, 'w') as testing_json:
+                    json.dump(baseline_testing, testing_json)
             else:
-                test(
-                    config, seed, net, 'baseline', baseline_testing,
-                    testing_set, verbose=1
-                )
+                with open(json_file, 'r') as testing_json:
+                    baseline_testing = json.load(testing_json)
 
             net = config['network'](
                 conv_filters=config['filters'],
@@ -610,11 +631,7 @@ def main(verbose=2):
                         config, seed, net, 'naive.t{:02d}'.format(ti),
                         naive_testing, testing_set, verbose=1
                     )
-            json_name = '{:}-baseline_testing.f{:d}.s{:d}.jsom'.format(
-                model_base, i, seed
-            )
-            with open(os.path.join(masks_path, json_name), 'w') as testing_json:
-                json.dump(baseline_testing, testing_json)
+
             json_name = '{:}-naive_testing.f{:d}.s{:d}.jsom'.format(
                 model_base, i, seed
             )
@@ -630,10 +647,6 @@ def main(verbose=2):
     json_name = '{:}-init_testing.jsom'.format(model_base)
     with open(os.path.join(masks_path, json_name), 'w') as testing_json:
         json.dump(naive_testing, testing_json)
-
-    # Read data from file:
-    # data = json.load(open("file_name.json"))
-
 
 if __name__ == '__main__':
     main()
