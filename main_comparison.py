@@ -295,6 +295,10 @@ def test_images(config, mask_name, net, subject, session=None):
     no_prediction = np.logical_not(prediction)
     prediction_regions, r = bwlabeln(prediction, return_num=True)
     true_positive = np.logical_and(target, prediction)
+    no_false_positives = np.unique(prediction_regions[true_positive])
+    false_positive_regions = np.logical_not(
+        np.isin(prediction_regions, no_false_positives.tolist() + [0])
+    )
     false_positive = np.logical_and(no_target, prediction)
 
     results = {
@@ -303,7 +307,7 @@ def test_images(config, mask_name, net, subject, session=None):
         'FPV': np.sum(false_positive),
         'FNV': np.sum(np.logical_and(target, np.logical_not(prediction))),
         'TPR': len(np.unique(target_regions[true_positive])),
-        'FPR': len(np.unique(prediction_regions[false_positive])),
+        'FPR': len(np.unique(prediction_regions[false_positive_regions])),
         'GTR': gtr,
         'R': r
     }
