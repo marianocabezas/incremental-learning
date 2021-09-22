@@ -311,7 +311,7 @@ def test_images(config, mask_name, net, subject, session=None):
 
 
 def test(
-    config, seed, net, testing_results, testing_subjects,
+    config, seed, net, base_name, testing_results, testing_subjects,
     training, validation=None, verbose=0
 ):
     # Init
@@ -319,7 +319,9 @@ def test(
     mask_base = os.path.splitext(os.path.basename(options['config']))[0]
 
     test_start = time.time()
-    mask_name = '{:}-test.s{:05d}.nii.gz'.format(mask_base, seed)
+    mask_name = '{:}-{:}-test.s{:05d}.nii.gz'.format(
+        mask_base, base_name, seed
+    )
     for sub_i, subject in enumerate(testing_subjects):
         tests = len(testing_subjects) - sub_i
         test_elapsed = time.time() - test_start
@@ -544,13 +546,13 @@ def main(verbose=2):
 
             if val_split > 0:
                 test(
-                    config, seed, net, naive_testing, testing_set,
-                    training_tasks, validation_tasks, verbose=1
+                    config, seed, net, 'baseline', baseline_testing,
+                    testing_set, training_tasks, validation_tasks, verbose=1
                 )
             else:
                 test(
-                    config, seed, net, naive_testing, testing_set,
-                    training_tasks, verbose=1
+                    config, seed, net, 'baseline', baseline_testing,
+                    testing_set, training_tasks, verbose=1
                 )
 
             for ti, (training_set, validation_set) in enumerate(
@@ -578,13 +580,13 @@ def main(verbose=2):
                 net.load_model(model_name)
                 if val_split > 0:
                     test(
-                        config, seed, net, naive_testing, testing_set,
-                        training_tasks, validation_tasks, verbose=1
+                        config, seed, net, 'naive', naive_testing,
+                        testing_set, training_tasks, validation_tasks, verbose=1
                     )
                 else:
                     test(
-                        config, seed, net, naive_testing, testing_set,
-                        training_tasks, verbose=1
+                        config, seed, net, 'naive', naive_testing,
+                        testing_set, training_tasks, verbose=1
                     )
             json_name = '{:}-baseline_testing.f{:d}.s{:d}.jsom'.format(
                 model_base, i, seed
