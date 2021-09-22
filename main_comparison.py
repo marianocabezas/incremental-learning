@@ -545,13 +545,13 @@ def main(verbose=2):
 
             if val_split > 0:
                 test(
-                    config, seed, net, baseline_testing, training_tasks,
-                    validation_tasks, verbose=1
+                    config, seed, net, naive_testing, testing_set,
+                    training_tasks, validation_tasks, verbose=1
                 )
             else:
                 test(
-                    config, seed, net, baseline_testing, training_tasks,
-                    verbose=1
+                    config, seed, net, naive_testing, testing_set,
+                    training_tasks, verbose=1
                 )
 
             for ti, (training_set, validation_set) in enumerate(
