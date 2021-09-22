@@ -467,9 +467,9 @@ def main(verbose=2):
         )
 
         print(
-            '{:}Testing initial weights - {:02d}/{:02d} '
+            '{:}Testing initial weights{:} - {:02d}/{:02d} '
             '({:} parameters)'.format(
-                c['c'], test_n + 1, len(config['seeds']),
+                c['c'], c['nc'], test_n + 1, len(config['seeds']),
                 c['b'] + str(n_param) + c['nc']
             )
         )
