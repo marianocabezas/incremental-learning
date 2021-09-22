@@ -269,7 +269,7 @@ def test_images(config, mask_name, net, subject, session=None):
         prediction_file = os.path.join(p_path, mask_name)
         segmentation = np.zeros_like(label)
         none_slice = (slice(None, None),)
-        # Patch "extraction".
+
         if isinstance(images, tuple):
             data = tuple(
                 data_i[none_slice + bb].astype(np.float32)
@@ -277,6 +277,7 @@ def test_images(config, mask_name, net, subject, session=None):
             )
         else:
             data = images[none_slice + bb].astype(np.float32)
+
         prediction = net.inference(data) > 0.5
         segmentation[bb] = prediction
         segmentation[np.logical_not(roi)] = 0
@@ -286,6 +287,7 @@ def test_images(config, mask_name, net, subject, session=None):
         )
         segmentation_nii.to_filename(prediction_file)
     else:
+        print('Loaded')
         segmentation = nibabel.load(prediction_file).get_fdata()
         prediction = segmentation[bb].astype(bool)
 
