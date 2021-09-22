@@ -359,8 +359,6 @@ def test(
                     r_value
                 )
 
-    print(testing_results)
-    print(training)
     if validation is not None:
         print(validation)
 
