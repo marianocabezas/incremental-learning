@@ -10,9 +10,10 @@ import yaml
 import torch
 from torch.utils.data import DataLoader
 from time import strftime
+from copy import deepcopy
+from skimage.measure import label as bwlabeln
 from utils import find_file, get_mask, get_normalised_image, get_bb
 from utils import color_codes, time_to_string
-from skimage.measure import label as bwlabeln
 
 
 """
@@ -336,7 +337,7 @@ def test(config, seed, net, testing, training, validation=None, verbose=0):
                     )
                 results = test_images(config, mask_name, net, subject, session)
                 for r_key, r_value in results.items():
-                    testing[subject][session][str(seed)][r_key] = r_value
+                    testing[subject][session][str(seed)][r_key].append(r_value)
         else:
             if verbose > 0:
                 print(
@@ -348,7 +349,7 @@ def test(config, seed, net, testing, training, validation=None, verbose=0):
                 )
             results = test_images(config, mask_name, net, subject)
             for r_key, r_value in results.items():
-                testing[subject][str(seed)][r_key] = r_value
+                testing[subject][str(seed)][r_key].append(r_value)
 
     print(testing)
     print(training)
@@ -391,19 +392,19 @@ def main(verbose=2):
     # We want a common starting point
     subjects = get_subjects(config)
     if config['multisession']:
-        testing_results = {
+        baseline_testing = {
             subject: {
                 session: {
                     str(seed): {
-                        'TPV': None,
-                        'TNV': None,
-                        'FPV': None,
-                        'FNV': None,
-                        'TPR': None,
-                        'FPR': None,
-                        'FNR': None,
-                        'GTR': None,
-                        'R': None,
+                        'TPV': [],
+                        'TNV': [],
+                        'FPV': [],
+                        'FNV': [],
+                        'TPR': [],
+                        'FPR': [],
+                        'FNR': [],
+                        'GTR': [],
+                        'R': [],
                     }
                     for seed in seeds
                 }
@@ -412,23 +413,24 @@ def main(verbose=2):
             for session in subject['sessions']
         }
     else:
-        testing_results = {
+        baseline_testing = {
             subject: {
                 str(seed): {
-                    'TPV': None,
-                    'TNV': None,
-                    'FPV': None,
-                    'FNV': None,
-                    'TPR': None,
-                    'FPR': None,
-                    'FNR': None,
-                    'GTR': None,
-                    'R': None,
+                    'TPV': [],
+                    'TNV': [],
+                    'FPV': [],
+                    'FNV': [],
+                    'TPR': [],
+                    'FPR': [],
+                    'FNR': [],
+                    'GTR': [],
+                    'R': [],
                 }
                 for seed in seeds
             }
             for t_list in subjects.values() for subject in t_list
         }
+    naive_testing = deepcopy(baseline_testing)
 
     if isinstance(config['files'], tuple):
         n_images = len(config['files'][0])
@@ -536,11 +538,14 @@ def main(verbose=2):
 
             if val_split > 0:
                 test(
-                    config, seed, net, testing_results, training_tasks,
-                    validation_tasks
+                    config, seed, net, baseline_testing, training_tasks,
+                    validation_tasks, verbose=1
                 )
             else:
-                test(config, seed, net, testing_results, training_tasks)
+                test(
+                    config, seed, net, baseline_testing, training_tasks,
+                    verbose=1
+                )
 
             for ti, (training_set, validation_set) in enumerate(
                 zip(training_tasks, validation_tasks)
@@ -565,15 +570,33 @@ def main(verbose=2):
                     n_images=n_images
                 )
                 net.load_model(model_name)
-            json_name = '{:}-testing.f{:d}.s{:d}.jsom'.format(
+                if val_split > 0:
+                    test(
+                        config, seed, net, naive_testing, training_tasks,
+                        validation_tasks, verbose=1
+                    )
+                else:
+                    test(
+                        config, seed, net, naive_testing, training_tasks,
+                        verbose=1
+                    )
+            json_name = '{:}-baseline_testing.f{:d}.s{:d}.jsom'.format(
                 model_base, i, seed
             )
             with open(os.path.join(masks_path, json_name), 'w') as testing_json:
-                json.dump(testing_results, testing_json)
+                json.dump(baseline_testing, testing_json)
+            json_name = '{:}-naive_testing.f{:d}.s{:d}.jsom'.format(
+                model_base, i, seed
+            )
+            with open(os.path.join(masks_path, json_name), 'w') as testing_json:
+                json.dump(naive_testing, testing_json)
 
-    json_name = '{:}-testing.jsom'.format(model_base)
+    json_name = '{:}-baseline_testing.jsom'.format(model_base)
     with open(os.path.join(masks_path, json_name), 'w') as testing_json:
-        json.dump(testing_results, testing_json)
+        json.dump(baseline_testing, testing_json)
+    json_name = '{:}-naive_testing.jsom'.format(model_base)
+    with open(os.path.join(masks_path, json_name), 'w') as testing_json:
+        json.dump(naive_testing, testing_json)
 
     # Read data from file:
     # data = json.load(open("file_name.json"))
