@@ -393,7 +393,7 @@ def main(verbose=2):
     subjects = get_subjects(config)
     if config['multisession']:
         baseline_testing = {
-            subject: {
+            subject['subject']: {
                 session: {
                     str(seed): {
                         'TPV': [],
