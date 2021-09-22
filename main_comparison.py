@@ -439,6 +439,7 @@ def main(verbose=2):
             for t_list in subjects.values() for subject in t_list
         }
     naive_testing = deepcopy(baseline_testing)
+    starting_testing = deepcopy(baseline_testing)
 
     if isinstance(config['files'], tuple):
         n_images = len(config['files'][0])
@@ -537,13 +538,6 @@ def main(verbose=2):
                 )
             )
             train(config, net, training_set, validation_set, model_name, 2)
-
-            net = config['network'](
-                conv_filters=config['filters'],
-                n_images=n_images
-            )
-            net.load_model(starting_model)
-
             if val_split > 0:
                 test(
                     config, seed, net, 'baseline', baseline_testing,
@@ -552,6 +546,22 @@ def main(verbose=2):
             else:
                 test(
                     config, seed, net, 'baseline', baseline_testing,
+                    testing_set, training_tasks, verbose=1
+                )
+
+            net = config['network'](
+                conv_filters=config['filters'],
+                n_images=n_images
+            )
+            net.load_model(starting_model)
+            if val_split > 0:
+                test(
+                    config, seed, net, 'init', starting_testing,
+                    testing_set, training_tasks, validation_tasks, verbose=1
+                )
+            else:
+                test(
+                    config, seed, net, 'init', starting_testing,
                     testing_set, training_tasks, verbose=1
                 )
 
