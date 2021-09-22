@@ -621,6 +621,9 @@ def main(verbose=2):
     json_name = '{:}-naive_testing.jsom'.format(model_base)
     with open(os.path.join(masks_path, json_name), 'w') as testing_json:
         json.dump(naive_testing, testing_json)
+    json_name = '{:}-init_testing.jsom'.format(model_base)
+    with open(os.path.join(masks_path, json_name), 'w') as testing_json:
+        json.dump(naive_testing, testing_json)
 
     # Read data from file:
     # data = json.load(open("file_name.json"))
