@@ -293,13 +293,13 @@ def test_images(config, mask_name, net, subject, session=None):
     target_regions, gtr = bwlabeln(target, return_num=True)
     no_prediction = np.logical_not(prediction)
     prediction_regions, r = bwlabeln(prediction, return_num=True)
-    true_positive = np.sum(np.logical_and(target, prediction))
-    false_positive = np.sum(np.logical_and(no_target, prediction))
+    true_positive = np.logical_and(target, prediction)
+    false_positive = np.logical_and(no_target, prediction)
 
     results = {
-        'TPV': true_positive,
+        'TPV': np.sum(true_positive),
         'TNV': np.sum(np.logical_and(no_target, no_prediction)),
-        'FPV': false_positive,
+        'FPV': np.sum(false_positive),
         'FNV': np.sum(np.logical_and(target, np.logical_not(prediction))),
         'TPR': len(np.unique(target_regions[true_positive])),
         'FPR': len(np.unique(prediction_regions[false_positive])),
