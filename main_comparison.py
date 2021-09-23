@@ -384,8 +384,7 @@ def test_tasks(config, net, base_name, task_results, verbose=0):
             test_elapsed = time.time() - test_start
             test_eta = tests * test_elapsed / (sub_i + 1)
             if config['multisession']:
-                print(task_list[subject])
-                sessions = task_list[subject]['sessions']
+                sessions = list(task_list[subject].keys())
                 for sess_j, session in enumerate(sessions):
                     if verbose:
                         print(
@@ -446,7 +445,7 @@ def empty_task_results(config, tasks):
         results = [
             {
                 subject['subject']: {
-                    session: empty_results_dict
+                    session: empty_results_dict()
                     for session in subject['sessions']
                 }
                 for subject in task_list
