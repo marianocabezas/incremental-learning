@@ -384,7 +384,7 @@ def test_tasks(config, net, base_name, task_results, verbose=0):
             test_elapsed = time.time() - test_start
             test_eta = tests * test_elapsed / (sub_i + 1)
             if config['multisession']:
-                pinrt(task_list[subject])
+                print(task_list[subject])
                 sessions = task_list[subject]['sessions']
                 for sess_j, session in enumerate(sessions):
                     if verbose:
