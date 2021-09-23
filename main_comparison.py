@@ -375,7 +375,7 @@ def test_tasks(config, net, base_name, task_results, verbose=0):
     test_start = time.time()
     n_subjects = sum(len(task) for task in task_results)
     sub_i = 0
-    for task_i, task_list in task_results.items():
+    for task_i, task_list in enumerate(task_results):
         mask_name = '{:}-{:}.t{:02d}.nii.gz'.format(
             mask_base, base_name, task_i
         )
