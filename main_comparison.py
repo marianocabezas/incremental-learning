@@ -392,8 +392,8 @@ def test_tasks(config, net, base_name, task_results, verbose=0):
                             'task {:02d}/{:02d} ({:d}/{:d} - {:d}/{:d}) '
                             '{:} ETA {:}'.format(
                                 subject, session,
-                                sub_i + 1, n_subjects,
                                 task_i, len(task_results),
+                                sub_i + 1, n_subjects,
                                 sess_j + 1, len(sessions),
                                 time_to_string(test_elapsed),
                                 time_to_string(test_eta),
@@ -410,8 +410,8 @@ def test_tasks(config, net, base_name, task_results, verbose=0):
                         '\033[KTesting subject {:} - '
                         'task {:02d}/{:02d} ({:d}/{:d}) '
                         '{:} ETA {:}'.format(
-                            subject, sub_i + 1, n_subjects,
-                            task_i, len(task_results),
+                            subject, task_i, len(task_results),
+                            sub_i + 1, n_subjects,
                             time_to_string(test_elapsed),
                             time_to_string(test_eta),
                         ), end='\r'
