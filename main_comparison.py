@@ -601,7 +601,7 @@ def main(verbose=2):
         print(
             '{:}[{:}] {:}Starting cross-validation (model: {:}){:}'
             ' (seed {:d}){:}'.format(
-                c['c'], strftime("%H:%M:%S"), c['g'], model_base,
+                c['clr'] + c['c'], strftime("%H:%M:%S"), c['g'], model_base,
                 c['nc'] + c['y'], seed, c['nc']
             )
         )
@@ -624,7 +624,7 @@ def main(verbose=2):
         print(
             '{:}Testing initial weights{:} - {:02d}/{:02d} '
             '({:} parameters)'.format(
-                c['c'], c['nc'], test_n + 1, len(config['seeds']),
+                c['clr'] + c['c'], c['nc'], test_n + 1, len(config['seeds']),
                 c['b'] + str(n_param) + c['nc']
             )
         )
@@ -748,7 +748,7 @@ def main(verbose=2):
             print(
                 '{:}Starting baseline fold {:} - {:02d}/{:02d} '
                 '({:} parameters)'.format(
-                    c['c'], c['g'] + str(i) + c['nc'],
+                    c['clr'] + c['c'], c['g'] + str(i) + c['nc'],
                     test_n + 1, len(config['seeds']),
                     c['b'] + str(n_param) + c['nc']
                 )
@@ -794,7 +794,7 @@ def main(verbose=2):
                 print(
                     '{:}Starting task {:02d} fold {:} - {:02d}/{:02d} '
                     '({:} parameters)'.format(
-                        c['c'], ti + 1, c['g'] + str(i) + c['nc'],
+                        c['clr'] + c['c'], ti + 1, c['g'] + str(i) + c['nc'],
                         test_n + 1, len(config['seeds']),
                         c['b'] + str(n_param) + c['nc']
                     )
