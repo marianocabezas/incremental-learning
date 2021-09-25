@@ -194,7 +194,7 @@ class ImageDataset(Dataset):
         data = self.subjects[index]
         labels = self.labels[index]
         none_slice = (slice(None, None),)
-        bb = get_bb(self.rois[index], 2)
+        bb = get_bb(self.rois[index], 1)
         # Patch "extraction".
         if isinstance(data, tuple):
             data = tuple(
