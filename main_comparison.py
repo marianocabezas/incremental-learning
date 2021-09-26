@@ -149,7 +149,7 @@ def get_data(experiment_config, subject_list):
                 ), end='\r'
             )
             roi, label, images = get_images(
-                experiment_config, p['subject']
+                experiment_config, p
             )
             rois.append(roi)
             labels.append(label)
