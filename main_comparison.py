@@ -763,19 +763,19 @@ def main(verbose=2):
                 config, seed, json_name, 'baseline', net,
                 baseline_testing, testing_set
             )
-            json_name = '{:}-baseline-training.s{:d}.jsom'.format(
-                model_base, seed
+            json_name = '{:}-baseline-training.f{:d}.s{:d}.jsom'.format(
+                model_base, i, seed
             )
             fold_tr_baseline = get_task_results(
-                config, json_name, 'baseline-train', net,
+                config, json_name, 'baseline-train.f{:d}'.format(i), net,
                 fold_tr_baseline
             )
             if fold_val_baseline is not None:
-                json_name = '{:}-baseline-validation.s{:d}.jsom'.format(
-                    model_base, seed
+                json_name = '{:}-baseline-validation.f{:d}.s{:d}.jsom'.format(
+                    model_base, i, seed
                 )
                 fold_val_baseline = get_task_results(
-                    config, json_name, 'baseline-val', net,
+                    config, json_name, 'baseline-val.f{:d}'.format(i), net,
                     fold_val_baseline
                 )
 
@@ -813,27 +813,27 @@ def main(verbose=2):
                 )
                 net.load_model(model_name)
 
-                # Then we test it against all the dtasets and tasks
+                # Then we test it against all the datasets and tasks
                 json_name = '{:}-naive_test.f{:d}.s{:d}.t{:02d}.jsom'.format(
                     model_base, i, seed, ti
                 )
                 naive_testing = get_test_results(
-                    config, seed, json_name, 'naive.t{:02d}-test'.format(ti),
+                    config, seed, json_name, 'naive-test.t{:02d}'.format(ti),
                     net, naive_testing, testing_set
                 )
-                json_name = '{:}-naive-training.s{:d}.t{:02d}.jsom'.format(
-                    model_base, seed, ti
+                json_name = '{:}-naive-training.f{:d}.s{:d}.t{:02d}.jsom'.format(
+                    model_base, i, seed, ti
                 )
                 fold_tr_naive = get_task_results(
-                    config, json_name, 'naive-train.t{:02d}'.format(ti),
+                    config, json_name, 'naive-train.f{:d}.t{:02d}'.format(i, ti),
                     net, fold_tr_naive
                 )
                 if fold_val_naive is not None:
-                    json_name = '{:}-naive-validation.s{:d}.t{:02d}.jsom'.format(
-                        model_base, seed, ti
+                    json_name = '{:}-naive-validation.f{:d}.s{:d}.t{:02d}.jsom'.format(
+                        model_base, i, seed, ti
                     )
                     fold_val_naive = get_task_results(
-                        config, json_name, 'naive-val.t{:02d}'.format(ti),
+                        config, json_name, 'naive-val.f{:d}.t{:02d}'.format(i, ti),
                         net, fold_val_naive
                     )
 
