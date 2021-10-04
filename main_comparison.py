@@ -654,10 +654,10 @@ def main(verbose=2):
                 [p for p in t['list'][t['end']:] + t['list'][:t['ini']]]
                 for t in subjects_fold.values()
             ]
-            if len(training_validation) == 1:
-                shuffled_subjects = np.random.permutation(
-                    training_validation[0]
-                )
+            if len(training_validation) == 1 or config['shuffling']:
+                shuffled_subjects = np.random.permutation([
+                    sub for subs in training_validation for sub in subs
+                ])
                 training_validation = [
                     array.tolist()
                     for array in np.array_split(
