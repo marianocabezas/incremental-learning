@@ -63,21 +63,24 @@ def get_subjects(experiment_config):
         task: [] for task in tasks
     }
     for pi, p in enumerate(subjects):
+        task_found = False
         if multitask:
             for task in tasks:
                 if task in p:
+                    task_found = True
                     break
-        p_path = os.path.join(d_path, p)
-        if experiment_config['multisession']:
-            sessions = [
-                session for session in os.listdir(p_path)
-                if os.path.isdir(os.path.join(p_path, session))
-            ]
-            patient_dict = {
-                'subject': p,
-                'sessions': sessions
-            }
-            subject_dicts[task].append(patient_dict)
+        if task_found:
+            p_path = os.path.join(d_path, p)
+            if experiment_config['multisession']:
+                sessions = [
+                    session for session in os.listdir(p_path)
+                    if os.path.isdir(os.path.join(p_path, session))
+                ]
+                patient_dict = {
+                    'subject': p,
+                    'sessions': sessions
+                }
+                subject_dicts[task].append(patient_dict)
         else:
             subject_dicts[task].append(p)
     return subject_dicts
