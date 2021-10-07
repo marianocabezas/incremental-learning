@@ -569,7 +569,7 @@ def main(verbose=2):
 
     # We want a common starting point
     subjects = get_subjects(config)
-    print(subjects)
+    print(subjects, config['tasks'])
 
     # We prepar the dictionaries that will hold the relevant segmentation and
     # detection measures. That includes all positive combinations of positives
