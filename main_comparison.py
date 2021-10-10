@@ -69,6 +69,7 @@ def get_subjects(experiment_config):
                 if task in p:
                     task_found = True
                     break
+            print(tasks, p, task_found)
             if task_found:
                 p_path = os.path.join(d_path, p)
                 if experiment_config['multisession']:
@@ -650,7 +651,6 @@ def main(verbose=2):
                 }
                 for t_key, t_list in subjects.items()
             }
-            print(subjects_fold)
             # Training
             # Here we'll do the training / validation / testing split...
             # Training and testing split
