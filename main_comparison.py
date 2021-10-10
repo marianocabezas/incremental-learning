@@ -69,7 +69,6 @@ def get_subjects(experiment_config):
                 if task in p:
                     task_found = True
                     break
-            print(tasks, p, task_found)
             if task_found:
                 p_path = os.path.join(d_path, p)
                 if experiment_config['multisession']:
@@ -573,6 +572,7 @@ def main(verbose=2):
 
     # We want a common starting point
     subjects = get_subjects(config)
+    print(subjects)
 
     # We prepar the dictionaries that will hold the relevant segmentation and
     # detection measures. That includes all positive combinations of positives
