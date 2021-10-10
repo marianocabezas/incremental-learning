@@ -661,6 +661,7 @@ def main(verbose=2):
                 shuffled_subjects = np.random.permutation([
                     sub for subs in training_validation for sub in subs
                 ])
+                print(len(shuffled_subjects))
                 training_validation = [
                     array.tolist()
                     for array in np.array_split(
