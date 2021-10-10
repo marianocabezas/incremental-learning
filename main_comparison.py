@@ -70,6 +70,7 @@ def get_subjects(experiment_config):
                     task_found = True
                     break
             if task_found:
+                print(tasks, task, task_found, p)
                 p_path = os.path.join(d_path, p)
                 if experiment_config['multisession']:
                     sessions = [
@@ -83,6 +84,8 @@ def get_subjects(experiment_config):
                     subject_dicts[task].append(patient_dict)
         else:
             subject_dicts[task].append(p)
+
+    print(subject_dicts)
     return subject_dicts
 
 
@@ -572,7 +575,6 @@ def main(verbose=2):
 
     # We want a common starting point
     subjects = get_subjects(config)
-    print(subjects)
 
     # We prepar the dictionaries that will hold the relevant segmentation and
     # detection measures. That includes all positive combinations of positives
