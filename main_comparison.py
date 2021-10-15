@@ -13,7 +13,7 @@ from time import strftime
 from copy import deepcopy
 from skimage.measure import label as bwlabeln
 from utils import find_file, get_mask, get_normalised_image, get_bb
-from utils import color_codes, time_to_string
+from utils import color_codes, time_to_string, remove_small_regions
 
 
 """
@@ -289,6 +289,7 @@ def test_images(config, mask_name, net, subject, session=None):
         prediction = net.inference(data) > 0.5
         segmentation[bb] = prediction
         segmentation[np.logical_not(roi)] = 0
+
         ref_nii = nibabel.load(os.path.join(d_path, config['labels']))
         segmentation_nii = nibabel.Nifti1Image(
             segmentation, ref_nii.get_qform(), ref_nii.header
@@ -297,6 +298,12 @@ def test_images(config, mask_name, net, subject, session=None):
     else:
         segmentation = nibabel.load(prediction_file).get_fdata()
         prediction = segmentation[bb].astype(bool)
+
+    try:
+        min_size = config['min_size']
+        prediction = remove_small_regions(prediction, min_size)
+    except KeyError:
+        pass
 
     target = label[bb].astype(bool)
     no_target = np.logical_not(target)
@@ -637,7 +644,7 @@ def main(verbose=2):
         )
         # We will save the initial results pre-training
         all_subjects = [p for t_list in subjects.values() for p in t_list]
-        json_name = '{:}-init_testing.s{:d}.jsom'.format(
+        json_name = '{:}-init_testing.s{:d}.json'.format(
             model_base, seed
         )
         init_testing = get_test_results(
@@ -711,21 +718,21 @@ def main(verbose=2):
 
             # We test ith the initial model to know the starting point for all
             # tasks
-            json_name = '{:}-baseline-init_training.s{:d}.jsom'.format(
+            json_name = '{:}-baseline-init_training.s{:d}.json'.format(
                 model_base, seed
             )
             fold_tr_baseline = get_task_results(
                 config, json_name, 'baseline-train.init', net,
                 fold_tr_baseline
             )
-            json_name = '{:}-naive-init_training.s{:d}.jsom'.format(
+            json_name = '{:}-naive-init_training.s{:d}.json'.format(
                 model_base, seed
             )
             fold_tr_naive = get_task_results(
                 config, json_name, 'naive-train.init', net, fold_tr_naive
             )
             if fold_val_baseline is not None:
-                json_name = '{:}-baseline-init_validation.s{:d}.jsom'.format(
+                json_name = '{:}-baseline-init_validation.s{:d}.json'.format(
                     model_base, seed
                 )
                 fold_val_baseline = get_task_results(
@@ -733,7 +740,7 @@ def main(verbose=2):
                     fold_val_baseline
                 )
             if fold_val_naive is not None:
-                json_name = '{:}-naive-init_validation.s{:d}.jsom'.format(
+                json_name = '{:}-naive-init_validation.s{:d}.json'.format(
                     model_base, seed
                 )
                 fold_val_naive = get_task_results(
@@ -764,14 +771,14 @@ def main(verbose=2):
 
             # Testing for the baseline. We want to reduce repeating the same
             # experiments to save time if the algorithm crashes.
-            json_name = '{:}-baseline_testing.f{:d}.s{:d}.jsom'.format(
+            json_name = '{:}-baseline_testing.f{:d}.s{:d}.json'.format(
                 model_base, i, seed
             )
             baseline_testing = get_test_results(
                 config, seed, json_name, 'baseline', net,
                 baseline_testing, testing_set
             )
-            json_name = '{:}-baseline-training.f{:d}.s{:d}.jsom'.format(
+            json_name = '{:}-baseline-training.f{:d}.s{:d}.json'.format(
                 model_base, i, seed
             )
             fold_tr_baseline = get_task_results(
@@ -779,7 +786,7 @@ def main(verbose=2):
                 fold_tr_baseline
             )
             if fold_val_baseline is not None:
-                json_name = '{:}-baseline-validation.f{:d}.s{:d}.jsom'.format(
+                json_name = '{:}-baseline-validation.f{:d}.s{:d}.json'.format(
                     model_base, i, seed
                 )
                 fold_val_baseline = get_task_results(
@@ -822,14 +829,14 @@ def main(verbose=2):
                 net.load_model(model_name)
 
                 # Then we test it against all the datasets and tasks
-                json_name = '{:}-naive_test.f{:d}.s{:d}.t{:02d}.jsom'.format(
+                json_name = '{:}-naive_test.f{:d}.s{:d}.t{:02d}.json'.format(
                     model_base, i, seed, ti
                 )
                 naive_testing = get_test_results(
                     config, seed, json_name, 'naive-test.t{:02d}'.format(ti),
                     net, naive_testing, testing_set
                 )
-                json_name = '{:}-naive-training.f{:d}.s{:d}.t{:02d}.jsom'.format(
+                json_name = '{:}-naive-training.f{:d}.s{:d}.t{:02d}.json'.format(
                     model_base, i, seed, ti
                 )
                 fold_tr_naive = get_task_results(
@@ -837,7 +844,7 @@ def main(verbose=2):
                     net, fold_tr_naive
                 )
                 if fold_val_naive is not None:
-                    json_name = '{:}-naive-validation.f{:d}.s{:d}.t{:02d}.jsom'.format(
+                    json_name = '{:}-naive-validation.f{:d}.s{:d}.t{:02d}.json'.format(
                         model_base, i, seed, ti
                     )
                     fold_val_naive = get_task_results(
@@ -857,19 +864,19 @@ def main(verbose=2):
                 )
 
     save_results(
-        config, '{:}-baseline_testing.jsom'.format(model_base),
+        config, '{:}-baseline_testing.json'.format(model_base),
         baseline_testing
     )
     save_results(
-        config, '{:}-baseline_training.jsom'.format(model_base),
+        config, '{:}-baseline_training.json'.format(model_base),
         baseline_training
     )
     save_results(
-        config, '{:}-naive_testing.jsom'.format(model_base),
+        config, '{:}-naive_testing.json'.format(model_base),
         naive_testing
     )
     save_results(
-        config, '{:}-naive_training.jsom'.format(model_base),
+        config, '{:}-naive_training.json'.format(model_base),
         naive_training
     )
 
