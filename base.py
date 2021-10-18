@@ -686,6 +686,144 @@ class DualAttentionAutoencoder(BaseModel):
         return output
 
 
+class AttentionAutoencoder(BaseModel):
+    """
+    Main autoencoder class. This class can actually be parameterised on init
+    to have different "main blocks", normalisation layers and activation
+    functions.
+    """
+    def __init__(
+            self,
+            conv_filters,
+            device=torch.device(
+                "cuda:0" if torch.cuda.is_available() else "cpu"
+            ),
+            n_inputs=1,
+            kernel=3,
+            pooling=False,
+            norm=None,
+            activation=None,
+            block=None,
+            attention=32,
+            dropout=0,
+    ):
+        """
+        Constructor of the class. It's heavily parameterisable to allow for
+        different autoencoder setups (residual blocks, double convolutions,
+        different normalisation and activations).
+        :param conv_filters: Filters for both the encoder and decoder. The
+         decoder mirrors the filters of the encoder.
+        :param device: Device where the model is stored (default is the first
+         cuda device).
+        :param n_inputs: Number of input channels.
+        :param kernel: Kernel width for the main block.
+        :param pooling: Whether to use pooling or not.
+        :param norm: Normalisation block (it has to be a pointer to a valid
+         normalisation Module).
+        :param activation: Activation block (it has to be a pointer to a valid
+         activation Module).
+        :param block: Main block. It has to be a pointer to a valid block from
+         this python file (otherwise it will fail when trying to create a
+         partial of it).
+        :param dropout: Dropout value.
+        """
+        super().__init__()
+        # Init
+        if norm is None:
+            norm = partial(lambda ch_in: nn.Sequential())
+        if block is None:
+            block = ResConv3dBlock
+        block_partial = partial(
+            block, kernel=kernel, norm=norm, activation=activation
+        )
+        self.pooling = pooling
+        self.device = device
+        self.dropout = dropout
+        self.filters = conv_filters
+        self.skip_inputs = []
+
+        conv_in, conv_out, deconv_in, deconv_out = block.compute_filters(
+            n_inputs, conv_filters
+        )
+
+        # Down path
+        # We'll use the partial and fill it with the channels for input and
+        # output for each level.
+        self.down = nn.ModuleList([
+            block_partial(f_in, f_out) for f_in, f_out in zip(
+                conv_in, conv_out
+            )
+        ])
+        self.ag = nn.ModuleList([
+            AttentionGate3D(f_in, f_g, attention)
+            for f_in, f_g in zip(conv_out[::-1], conv_filters[::-1])
+        ])
+
+        # Bottleneck
+        self.u = block_partial(conv_filters[-2], conv_filters[-1])
+
+        # Up path
+        # Now we'll do the same we did on the down path, but mirrored. We also
+        # need to account for the skip connections, that's why we sum the
+        # channels for both outputs. That basically means that we are
+        # concatenating with the skip connection, and not suming.
+        self.up = nn.ModuleList([
+            block_partial(f_in, f_out) for f_in, f_out in zip(
+                deconv_in, deconv_out
+            )
+        ])
+
+    def encode(self, input_x, *args, **kwargs):
+        # We need to keep track of the convolutional outputs, for the skip
+        # connections.
+        for c in self.down:
+            c.to(self.device)
+            input_x = F.dropout3d(
+                c(input_x), self.dropout, self.training
+            )
+            self.skip_inputs.append(input_x)
+            # Remember that pooling is optional
+            if self.pooling:
+                input_x = F.max_pool3d(input_x, 2)
+
+        self.u.to(self.device)
+        bottleneck = F.dropout3d(self.u(input_x), self.dropout, self.training)
+
+        return bottleneck
+
+    def decode(self, input_x):
+        # attention_maps = []
+        attention_gates = []
+        up_outputs = [input_x]
+        for d, ag, i in zip(self.up, self.ag, self.skip_inputs[::-1]):
+            d.to(self.device)
+            output_ag, attention = ag(i, input_x, True)
+            attention_gates.append(attention)
+            # Remember that pooling is optional
+            if self.pooling:
+                input_x = F.interpolate(input_x, size=i.size()[2:])
+
+            input_x = F.dropout3d(
+                d(torch.cat((input_x, output_ag), dim=1)),
+                self.dropout,
+                self.training
+            )
+            up_outputs.append(input_x)
+
+        self.skip_inputs = []
+
+        return input_x, up_outputs, attention_gates
+
+    def forward(self, input_x, keepfeat=False):
+        input_x = self.encode(input_x)
+
+        output_x, up_outputs, gates = self.decode(input_x)
+
+        output = (output_x, up_outputs, gates) if keepfeat else output_x
+
+        return output
+
+
 class Autoencoder(BaseModel):
     """
     Main autoencoder class. This class can actually be parameterised on init
@@ -917,5 +1055,39 @@ class AttentionBlock(BaseModel):
         )
         features = torch.clamp(1 - alpha, 0, 1) * value
         return self.end_seq(features)
+
+
+class AttentionGate3D(nn.Module):
+    """
+    Attention gade block based on
+    Jo Schlemper, Ozann Oktay, Michiel Schaap, Mattias Heinrich, Bernhard
+    Kainz, Ben Glocker, Daniel Rueckert. "Attention gated networks: Learning
+    to leverage salient regions in medical images"
+    https://doi.org/10.1016/j.media.2019.01.012
+    """
+
+    def __init__(
+            self, x_features, g_features, int_features, sigma2=torch.sigmoid
+    ):
+        super().__init__()
+        self.conv_g = nn.Conv3d(g_features, int_features, 1)
+        self.conv_x = nn.Conv3d(x_features, int_features, 1)
+        self.conv_phi = nn.Conv3d(int_features, 1, 1)
+        self.sigma2 = sigma2
+
+    def forward(self, x, g, attention=False):
+        g_emb = self.conv_g(g)
+        x_emb = F.interpolate(
+            self.conv_x(x), size=g_emb.size()[2:]
+        )
+        phi_emb = self.conv_phi(F.relu(g_emb + x_emb))
+        alpha = F.interpolate(
+            self.sigma2(phi_emb), size=x.size()[2:]
+        )
+
+        if attention:
+            return x * alpha, alpha
+        else:
+            return x * alpha
 
 

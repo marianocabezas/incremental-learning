@@ -5,7 +5,7 @@ from torch import nn
 import torch.nn.functional as F
 import numpy as np
 from base import BaseModel, ResConv3dBlock
-from base import Autoencoder, DualAttentionAutoencoder
+from base import Autoencoder, AttentionAutoencoder, DualAttentionAutoencoder
 from utils import time_to_string, to_torch_var
 from criteria import gendsc_loss, similarity_loss
 from criteria import tp_binary_loss, tn_binary_loss, dsc_binary_loss
@@ -75,6 +75,102 @@ class SimpleUNet(BaseModel):
                 'name': 'xentropy',
                 'weight': 1,
                 'f': lambda p, t: F.binary_cross_entropy(
+                    p, t.type_as(p).to(p.device),
+                )
+            }
+        ]
+
+        self.val_functions = [
+            {
+                'name': 'xent',
+                'weight': 1,
+                'f': lambda p, t: F.binary_cross_entropy(
+                    p, t.type_as(p).to(p.device),
+                )
+            },
+            {
+                'name': 'pdsc',
+                'weight': 0,
+                'f': lambda p, t: gendsc_loss(p, t, w_bg=0, w_fg=1)
+            },
+            {
+                'name': 'dsc',
+                'weight': 1,
+                'f': lambda p, t: dsc_binary_loss(p, t)
+            },
+            {
+                'name': 'fn',
+                'weight': 0,
+                'f': lambda p, t: tp_binary_loss(p, t)
+            },
+            {
+                'name': 'fp',
+                'weight': 0,
+                'f': lambda p, t: tn_binary_loss(p, t)
+            },
+        ]
+
+        # <Optimizer setup>
+        # We do this last step after all parameters are defined
+        model_params = filter(lambda p: p.requires_grad, self.parameters())
+        self.optimizer_alg = torch.optim.Adam(model_params)
+        if verbose > 1:
+            print(
+                'Network created on device {:} with training losses '
+                '[{:}] and validation losses [{:}]'.format(
+                    self.device,
+                    ', '.join([tf['name'] for tf in self.train_functions]),
+                    ', '.join([vf['name'] for vf in self.val_functions])
+                )
+            )
+
+    def forward(self, data):
+
+        return torch.sigmoid(self.segmenter(data))
+
+
+class AttentionUNet(BaseModel):
+    def __init__(
+            self,
+            conv_filters=None,
+            device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
+            n_images=3,
+            dropout=0,
+            verbose=0,
+    ):
+        super().__init__()
+        self.init = False
+        # Init values
+        if conv_filters is None:
+            self.conv_filters = [32, 64, 128, 256, 512]
+        else:
+            self.conv_filters = conv_filters
+        self.epoch = 0
+        self.t_train = 0
+        self.t_val = 0
+        self.device = device
+        self.dropout = dropout
+
+        # <Parameter setup>
+        self.segmenter = nn.Sequential(
+            AttentionAutoencoder(
+                self.conv_filters, device, n_images, block=ResConv3dBlock,
+                norm=norm_f
+            ),
+            ResConv3dBlock(
+                self.conv_filters[0], self.conv_filters[0], 1,
+                norm=norm_f
+            ),
+            nn.Conv3d(self.conv_filters[0], 1, 1)
+        )
+        self.segmenter.to(device)
+
+        # <Loss function setup>
+        self.train_functions = [
+            {
+                'name': 'grad',
+                'weight': 1,
+                'f': lambda p, t: grad_loss(
                     p, t.type_as(p).to(p.device),
                 )
             }

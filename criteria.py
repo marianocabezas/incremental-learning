@@ -76,7 +76,7 @@ def gendsc_loss(pred, target, w_bg=None, w_fg=None):
     return loss
 
 
-def new_loss(pred, target, weight_bg=None, weight_fg=None, gamma=2):
+def grad_loss(pred, target, weight_bg=None, weight_fg=None, gamma=2):
     return WeightedLoss.apply(pred, target, weight_bg, weight_fg, gamma)
 
 
