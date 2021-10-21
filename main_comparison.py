@@ -93,7 +93,7 @@ def get_subjects(experiment_config):
 
 def load_image_list(path, image_list, roi):
     images = [
-        get_normalised_image(os.path.join(path, image), roi, masked=True)
+        get_normalised_image(os.path.join(path, image), roi)
         for image in image_list
     ]
 
@@ -305,29 +305,31 @@ def test_images(config, mask_name, net, subject, session=None):
     except KeyError:
         pass
 
-    target = label[bb].astype(bool)
-    no_target = np.logical_not(target)
-    target_regions, gtr = bwlabeln(target, return_num=True)
-    no_prediction = np.logical_not(prediction)
-    prediction_regions, r = bwlabeln(prediction, return_num=True)
-    true_positive = np.logical_and(target, prediction)
-    no_false_positives = np.unique(prediction_regions[true_positive])
-    false_positive_regions = np.logical_not(
-        np.isin(prediction_regions, no_false_positives.tolist() + [0])
-    )
-    false_positive = np.logical_and(no_target, prediction)
-
-    results = {
-        'TPV': int(np.sum(true_positive)),
-        'TNV': int(np.sum(np.logical_and(no_target, no_prediction))),
-        'FPV': int(np.sum(false_positive)),
-        'FNV': int(np.sum(np.logical_and(target, np.logical_not(prediction)))),
-        'TPR': len(np.unique(target_regions[true_positive])),
-        'FPR': len(np.unique(prediction_regions[false_positive_regions])),
-        'GTR': gtr,
-        'R': r
-    }
-    return results
+    # TODO: Uncomment
+    # target = label[bb].astype(bool)
+    # no_target = np.logical_not(target)
+    # target_regions, gtr = bwlabeln(target, return_num=True)
+    # no_prediction = np.logical_not(prediction)
+    # prediction_regions, r = bwlabeln(prediction, return_num=True)
+    # true_positive = np.logical_and(target, prediction)
+    # no_false_positives = np.unique(prediction_regions[true_positive])
+    # false_positive_regions = np.logical_not(
+    #     np.isin(prediction_regions, no_false_positives.tolist() + [0])
+    # )
+    # false_positive = np.logical_and(no_target, prediction)
+    #
+    # results = {
+    #     'TPV': int(np.sum(true_positive)),
+    #     'TNV': int(np.sum(np.logical_and(no_target, no_prediction))),
+    #     'FPV': int(np.sum(false_positive)),
+    #     'FNV': int(np.sum(np.logical_and(target, np.logical_not(prediction)))),
+    #     'TPR': len(np.unique(target_regions[true_positive])),
+    #     'FPR': len(np.unique(prediction_regions[false_positive_regions])),
+    #     'GTR': gtr,
+    #     'R': r
+    # }
+    # return results
+    return {}
 
 
 def test(
@@ -515,11 +517,12 @@ def get_test_results(
             config, seed, net, base_name, results,
             subjects, verbose=1
         )
-        with open(json_file, 'w') as testing_json:
-            json.dump(results, testing_json)
-    else:
-        with open(json_file, 'r') as testing_json:
-            results = json.load(testing_json)
+    #     TODO: Uncomment
+    #     with open(json_file, 'w') as testing_json:
+    #         json.dump(results, testing_json)
+    # else:
+    #     with open(json_file, 'r') as testing_json:
+    #         results = json.load(testing_json)
 
     return results
 
@@ -534,11 +537,12 @@ def get_task_results(
         test_tasks(
             config, net, base_name, results, verbose=1
         )
-        with open(json_file, 'w') as testing_json:
-            json.dump(results, testing_json)
-    else:
-        with open(json_file, 'r') as testing_json:
-            results = json.load(testing_json)
+    #     TODO: Uncomment
+    #     with open(json_file, 'w') as testing_json:
+    #         json.dump(results, testing_json)
+    # else:
+    #     with open(json_file, 'r') as testing_json:
+    #         results = json.load(testing_json)
 
     return results
 
@@ -862,23 +866,23 @@ def main(verbose=2):
                 naive_training[str(seed)]['validation'].append(
                     fold_val_naive
                 )
-
-    save_results(
-        config, '{:}-baseline_testing.json'.format(model_base),
-        baseline_testing
-    )
-    save_results(
-        config, '{:}-baseline_training.json'.format(model_base),
-        baseline_training
-    )
-    save_results(
-        config, '{:}-naive_testing.json'.format(model_base),
-        naive_testing
-    )
-    save_results(
-        config, '{:}-naive_training.json'.format(model_base),
-        naive_training
-    )
+    # TODO: Uncomment
+    # save_results(
+    #     config, '{:}-baseline_testing.json'.format(model_base),
+    #     baseline_testing
+    # )
+    # save_results(
+    #     config, '{:}-baseline_training.json'.format(model_base),
+    #     baseline_training
+    # )
+    # save_results(
+    #     config, '{:}-naive_testing.json'.format(model_base),
+    #     naive_testing
+    # )
+    # save_results(
+    #     config, '{:}-naive_training.json'.format(model_base),
+    #     naive_training
+    # )
 
 
 if __name__ == '__main__':
