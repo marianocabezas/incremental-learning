@@ -72,6 +72,11 @@ class SimpleUNet(BaseModel):
         # <Loss function setup>
         self.train_functions = [
             {
+                'name': 'pdsc',
+                'weight': 0,
+                'f': lambda p, t: gendsc_loss(p, t, w_bg=0, w_fg=1)
+            },
+            {
                 'name': 'xentropy',
                 'weight': 1,
                 'f': lambda p, t: F.binary_cross_entropy(
