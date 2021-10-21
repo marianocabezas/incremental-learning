@@ -782,21 +782,22 @@ def main(verbose=2):
                 config, seed, json_name, 'baseline', net,
                 baseline_testing, testing_set
             )
-            json_name = '{:}-baseline-training.f{:d}.s{:d}.json'.format(
-                model_base, i, seed
-            )
-            fold_tr_baseline = get_task_results(
-                config, json_name, 'baseline-train.f{:d}'.format(i), net,
-                fold_tr_baseline
-            )
-            if fold_val_baseline is not None:
-                json_name = '{:}-baseline-validation.f{:d}.s{:d}.json'.format(
-                    model_base, i, seed
-                )
-                fold_val_baseline = get_task_results(
-                    config, json_name, 'baseline-val.f{:d}'.format(i), net,
-                    fold_val_baseline
-                )
+            # TODO: Uncomment
+            # json_name = '{:}-baseline-training.f{:d}.s{:d}.json'.format(
+            #     model_base, i, seed
+            # )
+            # fold_tr_baseline = get_task_results(
+            #     config, json_name, 'baseline-train.f{:d}'.format(i), net,
+            #     fold_tr_baseline
+            # )
+            # if fold_val_baseline is not None:
+            #     json_name = '{:}-baseline-validation.f{:d}.s{:d}.json'.format(
+            #         model_base, i, seed
+            #     )
+            #     fold_val_baseline = get_task_results(
+            #         config, json_name, 'baseline-val.f{:d}'.format(i), net,
+            #         fold_val_baseline
+            #     )
 
             # Naive approach. We just partition the data and update the model
             # with each new batch without caring about previous samples
@@ -840,21 +841,22 @@ def main(verbose=2):
                     config, seed, json_name, 'naive-test.t{:02d}'.format(ti),
                     net, naive_testing, testing_set
                 )
-                json_name = '{:}-naive-training.f{:d}.s{:d}.t{:02d}.json'.format(
-                    model_base, i, seed, ti
-                )
-                fold_tr_naive = get_task_results(
-                    config, json_name, 'naive-train.f{:d}.t{:02d}'.format(i, ti),
-                    net, fold_tr_naive
-                )
-                if fold_val_naive is not None:
-                    json_name = '{:}-naive-validation.f{:d}.s{:d}.t{:02d}.json'.format(
-                        model_base, i, seed, ti
-                    )
-                    fold_val_naive = get_task_results(
-                        config, json_name, 'naive-val.f{:d}.t{:02d}'.format(i, ti),
-                        net, fold_val_naive
-                    )
+                # TODO: Uncomment
+                # json_name = '{:}-naive-training.f{:d}.s{:d}.t{:02d}.json'.format(
+                #     model_base, i, seed, ti
+                # )
+                # fold_tr_naive = get_task_results(
+                #     config, json_name, 'naive-train.f{:d}.t{:02d}'.format(i, ti),
+                #     net, fold_tr_naive
+                # )
+                # if fold_val_naive is not None:
+                #     json_name = '{:}-naive-validation.f{:d}.s{:d}.t{:02d}.json'.format(
+                #         model_base, i, seed, ti
+                #     )
+                #     fold_val_naive = get_task_results(
+                #         config, json_name, 'naive-val.f{:d}.t{:02d}'.format(i, ti),
+                #         net, fold_val_naive
+                #     )
 
             # Now it's time to push the results
             baseline_training[str(seed)]['training'].append(fold_tr_baseline)
