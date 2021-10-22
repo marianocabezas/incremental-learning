@@ -646,13 +646,13 @@ def main(verbose=2):
         )
         # We will save the initial results pre-training
         all_subjects = [p for t_list in subjects.values() for p in t_list]
-        json_name = '{:}-init_testing.s{:d}.json'.format(
-            model_base, seed
-        )
-        init_testing = get_test_results(
-            config, seed, json_name, 'init', net,
-            init_testing, all_subjects
-        )
+        # json_name = '{:}-init_testing.s{:d}.json'.format(
+        #     model_base, seed
+        # )
+        # init_testing = get_test_results(
+        #     config, seed, json_name, 'init', net,
+        #     init_testing, all_subjects
+        # )
 
         # Cross-validation loop
         for i in range(n_folds):
@@ -718,36 +718,37 @@ def main(verbose=2):
             )
             net.load_model(starting_model)
 
+            # TODO: Uncomment
             # We test ith the initial model to know the starting point for all
             # tasks
-            json_name = '{:}-baseline-init_training.s{:d}.json'.format(
-                model_base, seed
-            )
-            fold_tr_baseline = get_task_results(
-                config, json_name, 'baseline-train.init', net,
-                fold_tr_baseline
-            )
-            json_name = '{:}-naive-init_training.s{:d}.json'.format(
-                model_base, seed
-            )
-            fold_tr_naive = get_task_results(
-                config, json_name, 'naive-train.init', net, fold_tr_naive
-            )
-            if fold_val_baseline is not None:
-                json_name = '{:}-baseline-init_validation.s{:d}.json'.format(
-                    model_base, seed
-                )
-                fold_val_baseline = get_task_results(
-                    config, json_name, 'baseline-val.init', net,
-                    fold_val_baseline
-                )
-            if fold_val_naive is not None:
-                json_name = '{:}-naive-init_validation.s{:d}.json'.format(
-                    model_base, seed
-                )
-                fold_val_naive = get_task_results(
-                    config, json_name, 'naive-val.init', net, fold_val_naive
-                )
+            # json_name = '{:}-baseline-init_training.s{:d}.json'.format(
+            #     model_base, seed
+            # )
+            # fold_tr_baseline = get_task_results(
+            #     config, json_name, 'baseline-train.init', net,
+            #     fold_tr_baseline
+            # )
+            # json_name = '{:}-naive-init_training.s{:d}.json'.format(
+            #     model_base, seed
+            # )
+            # fold_tr_naive = get_task_results(
+            #     config, json_name, 'naive-train.init', net, fold_tr_naive
+            # )
+            # if fold_val_baseline is not None:
+            #     json_name = '{:}-baseline-init_validation.s{:d}.json'.format(
+            #         model_base, seed
+            #     )
+            #     fold_val_baseline = get_task_results(
+            #         config, json_name, 'baseline-val.init', net,
+            #         fold_val_baseline
+            #     )
+            # if fold_val_naive is not None:
+            #     json_name = '{:}-naive-init_validation.s{:d}.json'.format(
+            #         model_base, seed
+            #     )
+            #     fold_val_naive = get_task_results(
+            #         config, json_name, 'naive-val.init', net, fold_val_naive
+            #     )
 
             training_set = [
                 p for p_list in training_tasks for p in p_list
