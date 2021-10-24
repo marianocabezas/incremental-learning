@@ -305,28 +305,29 @@ def test_images(config, mask_name, net, subject, session=None):
     except KeyError:
         pass
 
-    target = label[bb].astype(bool)
-    no_target = np.logical_not(target)
-    target_regions, gtr = bwlabeln(target, return_num=True)
-    no_prediction = np.logical_not(prediction)
-    prediction_regions, r = bwlabeln(prediction, return_num=True)
-    true_positive = np.logical_and(target, prediction)
-    no_false_positives = np.unique(prediction_regions[true_positive])
-    false_positive_regions = np.logical_not(
-        np.isin(prediction_regions, no_false_positives.tolist() + [0])
-    )
-    false_positive = np.logical_and(no_target, prediction)
-
-    results = {
-        'TPV': int(np.sum(true_positive)),
-        'TNV': int(np.sum(np.logical_and(no_target, no_prediction))),
-        'FPV': int(np.sum(false_positive)),
-        'FNV': int(np.sum(np.logical_and(target, np.logical_not(prediction)))),
-        'TPR': len(np.unique(target_regions[true_positive])),
-        'FPR': len(np.unique(prediction_regions[false_positive_regions])),
-        'GTR': gtr,
-        'R': r
-    }
+    results = {}
+    # target = label[bb].astype(bool)
+    # no_target = np.logical_not(target)
+    # target_regions, gtr = bwlabeln(target, return_num=True)
+    # no_prediction = np.logical_not(prediction)
+    # prediction_regions, r = bwlabeln(prediction, return_num=True)
+    # true_positive = np.logical_and(target, prediction)
+    # no_false_positives = np.unique(prediction_regions[true_positive])
+    # false_positive_regions = np.logical_not(
+    #     np.isin(prediction_regions, no_false_positives.tolist() + [0])
+    # )
+    # false_positive = np.logical_and(no_target, prediction)
+    #
+    # results = {
+    #     'TPV': int(np.sum(true_positive)),
+    #     'TNV': int(np.sum(np.logical_and(no_target, no_prediction))),
+    #     'FPV': int(np.sum(false_positive)),
+    #     'FNV': int(np.sum(np.logical_and(target, np.logical_not(prediction)))),
+    #     'TPR': len(np.unique(target_regions[true_positive])),
+    #     'FPR': len(np.unique(prediction_regions[false_positive_regions])),
+    #     'GTR': gtr,
+    #     'R': r
+    # }
     return results
 
 
@@ -658,7 +659,7 @@ def main(verbose=2):
         for i in range(n_folds):
             subjects_fold = {
                 t_key: {
-                    'list': t_list,
+                    'list': np.random.permutation(t_list),
                     'ini': len(t_list) * i // n_folds,
                     'end': len(t_list) * (i + 1) // n_folds
                 }
@@ -672,14 +673,16 @@ def main(verbose=2):
                 for t in subjects_fold.values()
             ]
             if len(training_validation) == 1 or config['shuffling']:
-                shuffled_subjects = np.random.permutation([
-                    sub for subs in training_validation for sub in subs
-                ])
+                # shuffled_subjects = np.random.permutation([
+                #     sub for subs in training_validation for sub in subs
+                # ])
                 training_validation = [
                     array.tolist()
                     for array in np.array_split(
-                        shuffled_subjects,
-                        len(shuffled_subjects) // config['task_size']
+                        training_validation,
+                        len(training_validation) // config['task_size']
+                        # shuffled_subjects,
+                        # len(shuffled_subjects) // config['task_size']
                     )
                 ]
 
