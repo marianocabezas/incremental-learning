@@ -301,13 +301,9 @@ def test_images(config, net, subject, session=None):
 
 
 def test(
-    config, seed, net, base_name, testing_results, testing_subjects,
+    config, seed, net, testing_results, testing_subjects,
     verbose=0
 ):
-    # Init
-    options = parse_inputs()
-    mask_base = os.path.splitext(os.path.basename(options['config']))[0]
-
     test_start = time.time()
     for sub_i, subject in enumerate(testing_subjects):
         tests = len(testing_subjects) - sub_i
@@ -349,11 +345,7 @@ def test(
                 )
 
 
-def test_tasks(config, net, base_name, task_results, verbose=0):
-    # Init
-    options = parse_inputs()
-    mask_base = os.path.splitext(os.path.basename(options['config']))[0]
-
+def test_tasks(config, net, task_results, verbose=0):
     test_start = time.time()
     n_subjects = sum(len(task) for task in task_results)
     sub_i = 0
@@ -464,14 +456,14 @@ def empty_test_results(config, subjects):
 
 
 def get_test_results(
-    config, seed, json_name, base_name, net, results, subjects
+    config, seed, json_name, net, results, subjects
 ):
     path = config['masks_path']
     json_file = find_file(json_name, path)
     if json_file is None:
         json_file = os.path.join(path, json_name)
         test(
-            config, seed, net, base_name, results,
+            config, seed, net, results,
             subjects, verbose=1
         )
 
@@ -485,14 +477,14 @@ def get_test_results(
 
 
 def get_task_results(
-    config, json_name, base_name, net, results
+    config, json_name, net, results
 ):
     path = config['masks_path']
     json_file = find_file(json_name, path)
     if json_file is None:
         json_file = os.path.join(path, json_name)
         test_tasks(
-            config, net, base_name, results, verbose=1
+            config, net, results, verbose=1
         )
 
         with open(json_file, 'w') as testing_json:
@@ -609,8 +601,7 @@ def main(verbose=2):
             model_base, seed
         )
         init_testing = get_test_results(
-            config, seed, json_name, 'init', net,
-            init_testing, all_subjects
+            config, seed, json_name, net, init_testing, all_subjects
         )
 
         # Cross-validation loop
@@ -688,29 +679,27 @@ def main(verbose=2):
                 model_base, seed
             )
             fold_tr_baseline = get_task_results(
-                config, json_name, 'baseline-train.init', net,
-                fold_tr_baseline
+                config, json_name, net, fold_tr_baseline
             )
             json_name = '{:}-naive-init_training.s{:d}.json'.format(
                 model_base, seed
             )
             fold_tr_naive = get_task_results(
-                config, json_name, 'naive-train.init', net, fold_tr_naive
+                config, json_name, net, fold_tr_naive
             )
             if fold_val_baseline is not None:
                 json_name = '{:}-baseline-init_validation.s{:d}.json'.format(
                     model_base, seed
                 )
                 fold_val_baseline = get_task_results(
-                    config, json_name, 'baseline-val.init', net,
-                    fold_val_baseline
+                    config, json_name,  net, fold_val_baseline
                 )
             if fold_val_naive is not None:
                 json_name = '{:}-naive-init_validation.s{:d}.json'.format(
                     model_base, seed
                 )
                 fold_val_naive = get_task_results(
-                    config, json_name, 'naive-val.init', net, fold_val_naive
+                    config, json_name, net, fold_val_naive
                 )
 
             training_set = [
@@ -741,15 +730,14 @@ def main(verbose=2):
                 model_base, i, seed
             )
             baseline_testing = get_test_results(
-                config, seed, json_name, 'baseline', net,
-                baseline_testing, testing_set
+                config, seed, json_name, net, baseline_testing, testing_set
             )
 
             json_name = '{:}-baseline-training.f{:d}.s{:d}.json'.format(
                 model_base, i, seed
             )
             fold_tr_baseline = get_task_results(
-                config, json_name, 'baseline-train.f{:d}'.format(i), net,
+                config, json_name, net,
                 fold_tr_baseline
             )
             if fold_val_baseline is not None:
@@ -757,7 +745,7 @@ def main(verbose=2):
                     model_base, i, seed
                 )
                 fold_val_baseline = get_task_results(
-                    config, json_name, 'baseline-val.f{:d}'.format(i), net,
+                    config, json_name, net,
                     fold_val_baseline
                 )
 
@@ -800,24 +788,21 @@ def main(verbose=2):
                     model_base, i, seed, ti
                 )
                 naive_testing = get_test_results(
-                    config, seed, json_name, 'naive-test.t{:02d}'.format(ti),
-                    net, naive_testing, testing_set
+                    config, seed, json_name, net, naive_testing, testing_set
                 )
 
                 json_name = '{:}-naive-training.f{:d}.s{:d}.t{:02d}.json'.format(
                     model_base, i, seed, ti
                 )
                 fold_tr_naive = get_task_results(
-                    config, json_name, 'naive-train.f{:d}.t{:02d}'.format(i, ti),
-                    net, fold_tr_naive
+                    config, json_name, net, fold_tr_naive
                 )
                 if fold_val_naive is not None:
                     json_name = '{:}-naive-validation.f{:d}.s{:d}.t{:02d}.json'.format(
                         model_base, i, seed, ti
                     )
                     fold_val_naive = get_task_results(
-                        config, json_name, 'naive-val.f{:d}.t{:02d}'.format(i, ti),
-                        net, fold_val_naive
+                        config, json_name, net, fold_val_naive
                     )
 
             # Now it's time to push the results
