@@ -178,11 +178,6 @@ class SimpleResNet(BaseModel):
         # <Loss function setup>
         self.train_functions = [
             {
-                'name': 'pdsc',
-                'weight': 0,
-                'f': lambda p, t: gendsc_loss(p, t, w_bg=0, w_fg=1)
-            },
-            {
                 'name': 'xentropy',
                 'weight': 1,
                 'f': lambda p, t: F.binary_cross_entropy(
@@ -371,6 +366,11 @@ class DualHeadedUNet(BaseModel):
         # <Loss function setup>
         self.train_functions = [
             {
+                'name': 'pdsc',
+                'weight': 1,
+                'f': lambda p, t: gendsc_loss(p, t, w_bg=0, w_fg=1)
+            },
+            {
                 'name': 'xentropy',
                 'weight': 1,
                 'f': lambda p, t: F.binary_cross_entropy(
@@ -382,7 +382,7 @@ class DualHeadedUNet(BaseModel):
         self.val_functions = [
             {
                 'name': 'xentropy',
-                'weight': 1,
+                'weight': 0,
                 'f': lambda p, t: F.binary_cross_entropy(
                     p, t.type_as(p).to(p.device),
                 )
@@ -394,7 +394,7 @@ class DualHeadedUNet(BaseModel):
             },
             {
                 'name': 'dsc',
-                'weight': 0,
+                'weight': 1,
                 'f': lambda p, t: dsc_binary_loss(p, t)
             },
             {
