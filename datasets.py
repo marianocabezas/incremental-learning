@@ -78,6 +78,96 @@ def get_slices(masks, patch_size, overlap):
 ''' Datasets '''
 
 
+class ImagePatchesDataset(Dataset):
+    def __init__(
+            self, subjects, labels, rois, patch_size=32,
+            overlap=0, balanced=True,
+    ):
+        # Init
+        if type(patch_size) is not tuple:
+            self.patch_size = (patch_size,) * 3
+        else:
+            self.patch_size = patch_size
+        if type(overlap) is not tuple:
+            self.overlap = (overlap,) * 3
+        else:
+            self.overlap = overlap
+        self.balanced = balanced
+
+        self.subjects = subjects
+        self.rois = rois
+        self.labels = labels
+
+        # We get the preliminary patch slices (inside the bounding box)...
+        slices = get_slices(self.rois, self.patch_size, self.overlap)
+
+        # ... however, being inside the bounding box doesn't guarantee that the
+        # patch itself will contain any lesion voxels. Since, the lesion class
+        # is extremely underrepresented, we will filter this preliminary slices
+        # to guarantee that we only keep the ones that contain at least one
+        # lesion voxel.
+        self.patch_slices = [
+            (s, i) for i, (label, s_i) in enumerate(
+                zip(labels, slices)
+            )
+            for s in s_i if np.sum(label[s]) > 0
+        ]
+        self.bck_slices = [
+            (s, i) for i, (label, s_i) in enumerate(
+                zip(labels, slices)
+            )
+            for s in s_i if np.sum(label[s]) == 0
+        ]
+        if self.balanced:
+            self.current_bck = deepcopy(self.bck_slices)
+
+    def __getitem__(self, index):
+        if index < (2 * len(self.patch_slices)):
+            flip = index >= len(self.patch_slices)
+            if flip:
+                index -= len(self.patch_slices)
+            slice_i, case_idx = self.patch_slices[index]
+            labels = True
+        else:
+            flip = np.random.random() > 0.5
+            if self.balanced:
+                index = np.random.randint(len(self.current_bck))
+                slice_i, case_idx = self.current_bck.pop(index)
+                if len(self.current_bck) == 0:
+                    self.current_bck = deepcopy(self.bck_slices)
+            else:
+                index -= 2 * len(self.patch_slices)
+                slice_i, case_idx = self.bck_slices[index]
+            labels = False
+
+        data = self.subjects[case_idx]
+        none_slice = (slice(None, None),)
+        # Patch "extraction".
+        if isinstance(data, tuple):
+            data = tuple(
+                data_i[none_slice + slice_i].astype(np.float32)
+                for data_i in data
+            )
+        else:
+            data = data[none_slice + slice_i].astype(np.float32)
+        target_data = np.array([labels], dtype=np.uint8)
+        if flip:
+            if isinstance(data, tuple):
+                data = tuple(
+                    np.fliplr(data_i).copy() for data_i in data
+                )
+            else:
+                data = np.fliplr(data).copy()
+
+        return data, target_data
+
+    def __len__(self):
+        if self.balanced:
+            return len(self.patch_slices) * 4
+        else:
+            return (len(self.patch_slices) + len(self.bck_slices)) * 2
+
+
 class ImageCroppingDataset(Dataset):
     def __init__(
             self, subjects, labels, rois, patch_size=32,

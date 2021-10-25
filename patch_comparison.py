@@ -222,14 +222,15 @@ def train(config, net, training, validation, model_name, verbose=0):
         if 'test_patch' in config and 'test_overlap' in config:
             val_dataset = config['validation'](
                 dval, None, rval, patch_size=config['train_batch'],
-                overlap=config['train_overlap']
+                overlap=config['train_overlap'], balanced=False
             )
         elif 'test_patch' in config:
             val_dataset = config['validation'](
-                dval, None,  rval, patch_size=config['train_batch']
+                dval, None,  rval, patch_size=config['train_batch'],
+                balanced=False
             )
         else:
-            val_dataset = config['validation'](dval, None, rval)
+            val_dataset = config['validation'](dval, None, rval, balanced=False)
 
         if verbose > 1:
             print('Dataloader creation <val>')
@@ -267,14 +268,15 @@ def test_images(config, net, subject, session=None):
     if 'test_patch' in config and 'test_overlap' in config:
         val_dataset = config['validation'](
             images, None, roi, patch_size=config['train_batch'],
-            overlap=config['train_overlap']
+            overlap=config['train_overlap'], balanced=False
         )
     elif 'test_patch' in config:
         val_dataset = config['validation'](
-            images, None, roi, patch_size=config['train_batch']
+            images, None, roi, patch_size=config['train_batch'],
+            balanced=False
         )
     else:
-        val_dataset = config['validation'](images, None, roi)
+        val_dataset = config['validation'](images, None, roi, balanced=False)
 
     test_loader = DataLoader(
         val_dataset, config['test_batch'], num_workers=32
