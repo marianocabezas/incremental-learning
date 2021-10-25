@@ -676,13 +676,14 @@ def main(verbose=2):
                 # shuffled_subjects = np.random.permutation([
                 #     sub for subs in training_validation for sub in subs
                 # ])
+                shuffled_subjects = np.array([
+                    sub for subs in training_validation for sub in subs
+                ])
                 training_validation = [
                     array.tolist()
                     for array in np.array_split(
-                        training_validation,
-                        len(training_validation) // config['task_size']
-                        # shuffled_subjects,
-                        # len(shuffled_subjects) // config['task_size']
+                        shuffled_subjects,
+                        len(shuffled_subjects) // config['task_size']
                     )
                 ]
 
