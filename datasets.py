@@ -140,15 +140,20 @@ class ImageCroppingDataset(Dataset):
             if flip:
                 index -= len(self.patch_slices)
             slice_i, case_idx = self.patch_slices[index]
+            positive = True
         else:
             flip = np.random.random() > 0.5
             index = np.random.randint(len(self.current_bck))
             slice_i, case_idx = self.current_bck.pop(index)
             if len(self.current_bck) == 0:
                 self.current_bck = deepcopy(self.bck_slices)
+            positive = False
 
         data = self.subjects[case_idx]
-        labels = self.labels[case_idx]
+        if self.labels is None:
+            labels = positive
+        else:
+            labels = self.labels[case_idx]
         none_slice = (slice(None, None),)
         # Patch "extraction".
         if isinstance(data, tuple):

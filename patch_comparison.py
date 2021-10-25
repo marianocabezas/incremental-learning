@@ -106,7 +106,6 @@ def get_images(experiment_config, subject, session=None):
     if session is not None:
         p_path = os.path.join(p_path, session)
     roi = get_mask(find_file(experiment_config['roi'], p_path))
-    label = get_mask(find_file(experiment_config['labels'], p_path))
     if isinstance(experiment_config['files'], tuple):
         images = tuple(
             load_image_list(p_path, file_i, roi)
@@ -116,14 +115,13 @@ def get_images(experiment_config, subject, session=None):
         images = load_image_list(
             p_path, experiment_config['files'], roi
         )
-    return roi, label, images
+    return roi, images
 
 
 def get_data(experiment_config, subject_list):
     load_start = time.time()
 
     subjects = []
-    labels = []
     rois = []
     for pi, p in enumerate(subject_list):
         loads = len(subject_list) - pi
@@ -141,11 +139,10 @@ def get_data(experiment_config, subject_list):
                         time_to_string(load_eta),
                     ), end='\r'
                 )
-                roi, label, images = get_images(
+                roi, images = get_images(
                     experiment_config, p['subject'], session
                 )
                 rois.append(roi)
-                labels.append(label)
                 subjects.append(images)
         else:
             print(
@@ -156,14 +153,13 @@ def get_data(experiment_config, subject_list):
                     time_to_string(load_eta),
                 ), end='\r'
             )
-            roi, label, images = get_images(
+            roi, images = get_images(
                 experiment_config, p
             )
             rois.append(roi)
-            labels.append(label)
             subjects.append(images)
     print('\033[K', end='\r')
-    return subjects, labels, rois
+    return subjects, rois
 
 
 """
@@ -197,18 +193,18 @@ def train(config, net, training, validation, model_name, verbose=0):
         # Training
         if verbose > 1:
             print('< Training dataset >')
-        dtrain, ltrain, rtrain = get_data(config, training)
+        dtrain, rtrain = get_data(config, training)
         if 'train_patch' in config and 'train_overlap' in config:
             train_dataset = config['training'](
-                dtrain, ltrain, rtrain, patch_size=config['train_batch'],
+                dtrain, None, rtrain, patch_size=config['train_batch'],
                 overlap=config['train_overlap']
             )
         elif 'train_patch' in config:
             train_dataset = config['training'](
-                dtrain, ltrain, rtrain , patch_size=config['train_batch']
+                dtrain, None, rtrain, patch_size=config['train_batch']
             )
         else:
-            train_dataset = config['training'](dtrain, ltrain, rtrain)
+            train_dataset = config['training'](dtrain, None, rtrain)
 
         if verbose > 1:
             print('Dataloader creation <with validation>')
@@ -220,20 +216,20 @@ def train(config, net, training, validation, model_name, verbose=0):
         if verbose > 1:
             print('< Validation dataset >')
         if training == validation:
-            dval, lval, rval = dtrain, ltrain, rtrain
+            dval, rval = dtrain, rtrain
         else:
-            dval, lval, rval = get_data(config, validation)
+            dval, rval = get_data(config, validation)
         if 'test_patch' in config and 'test_overlap' in config:
             val_dataset = config['validation'](
-                dval, lval, rval, patch_size=config['train_batch'],
+                dval, None, rval, patch_size=config['train_batch'],
                 overlap=config['train_overlap']
             )
         elif 'test_patch' in config:
             val_dataset = config['validation'](
-                dval, lval, rval, patch_size=config['train_batch']
+                dval, None,  rval, patch_size=config['train_batch']
             )
         else:
-            val_dataset = config['validation'](dval, lval, rval)
+            val_dataset = config['validation'](dval, None, rval)
 
         if verbose > 1:
             print('Dataloader creation <val>')
@@ -255,79 +251,52 @@ def train(config, net, training, validation, model_name, verbose=0):
         net.save_model(os.path.join(path, model_name))
 
 
-def test_images(config, mask_name, net, subject, session=None):
+def test_images(config, net, subject, session=None):
     masks_path = config['masks_path']
-    d_path = os.path.join(config['path'], subject)
     p_path = os.path.join(masks_path, subject)
     if not os.path.isdir(p_path):
         os.mkdir(p_path)
     if session is not None:
         p_path = os.path.join(p_path, session)
-        d_path = os.path.join(d_path, session)
         if not os.path.isdir(p_path):
             os.mkdir(p_path)
 
-    roi, label, images = get_images(
+    roi, images = get_images(
         config, subject, session
     )
-    bb = get_bb(roi, 2)
-
-    prediction_file = find_file(mask_name, p_path)
-    if prediction_file is None:
-        prediction_file = os.path.join(p_path, mask_name)
-        segmentation = np.zeros_like(label)
-        none_slice = (slice(None, None),)
-
-        if isinstance(images, tuple):
-            data = tuple(
-                data_i[none_slice + bb].astype(np.float32)
-                for data_i in images
-            )
-        else:
-            data = images[none_slice + bb].astype(np.float32)
-
-        prediction = net.inference(data) > 0.5
-        segmentation[bb] = prediction
-        segmentation[np.logical_not(roi)] = 0
-
-        ref_nii = nibabel.load(os.path.join(d_path, config['labels']))
-        segmentation_nii = nibabel.Nifti1Image(
-            segmentation, ref_nii.get_qform(), ref_nii.header
+    if 'test_patch' in config and 'test_overlap' in config:
+        val_dataset = config['validation'](
+            images, None, roi, patch_size=config['train_batch'],
+            overlap=config['train_overlap']
         )
-        segmentation_nii.to_filename(prediction_file)
+    elif 'test_patch' in config:
+        val_dataset = config['validation'](
+            images, None, roi, patch_size=config['train_batch']
+        )
     else:
-        segmentation = nibabel.load(prediction_file).get_fdata()
-        prediction = segmentation[bb].astype(bool)
+        val_dataset = config['validation'](images, None, roi)
 
-    try:
-        min_size = config['min_size']
-        # prediction = remove_small_regions(prediction, min_size)
-    except KeyError:
-        pass
+    test_loader = DataLoader(
+        val_dataset, config['test_batch'], num_workers=32
+    )
 
-    results = {}
-    # target = label[bb].astype(bool)
-    # no_target = np.logical_not(target)
-    # target_regions, gtr = bwlabeln(target, return_num=True)
-    # no_prediction = np.logical_not(prediction)
-    # prediction_regions, r = bwlabeln(prediction, return_num=True)
-    # true_positive = np.logical_and(target, prediction)
-    # no_false_positives = np.unique(prediction_regions[true_positive])
-    # false_positive_regions = np.logical_not(
-    #     np.isin(prediction_regions, no_false_positives.tolist() + [0])
-    # )
-    # false_positive = np.logical_and(no_target, prediction)
-    #
-    # results = {
-    #     'TPV': int(np.sum(true_positive)),
-    #     'TNV': int(np.sum(np.logical_and(no_target, no_prediction))),
-    #     'FPV': int(np.sum(false_positive)),
-    #     'FNV': int(np.sum(np.logical_and(target, no_prediction))),
-    #     'TPR': len(np.unique(target_regions[true_positive])),
-    #     'FPR': len(np.unique(prediction_regions[false_positive_regions])),
-    #     'GTR': gtr,
-    #     'R': r
-    # }
+    prediction = []
+    target = []
+    for batch_i, (x, y) in enumerate(test_loader):
+        prediction += [net.inference(x_i.cpu().numpy()) > 0.5 for x_i in x]
+        target += [y_i.cpu().numpy() for y_i in y]
+
+    prediction = np.array(prediction, dtype=bool)
+    target = np.array(target, dtype=bool)
+
+    no_target = np.logical_not(target)
+    no_prediction = np.logical_not(prediction)
+    results = {
+        'TP': int(np.sum(np.logical_and(target, prediction))),
+        'TN': int(np.sum(np.logical_and(no_target, no_prediction))),
+        'FP': int(np.sum(np.logical_and(no_target, prediction))),
+        'FN': int(np.sum(np.logical_and(target, no_prediction))),
+    }
     return results
 
 
@@ -340,9 +309,6 @@ def test(
     mask_base = os.path.splitext(os.path.basename(options['config']))[0]
 
     test_start = time.time()
-    mask_name = '{:}-{:}.s{:05d}.nii.gz'.format(
-        mask_base, base_name, seed
-    )
     for sub_i, subject in enumerate(testing_subjects):
         tests = len(testing_subjects) - sub_i
         test_elapsed = time.time() - test_start
@@ -362,7 +328,7 @@ def test(
                             time_to_string(test_eta),
                         ), end='\r'
                     )
-                results = test_images(config, mask_name, net, subject, session)
+                results = test_images(config, net, subject, session)
                 for r_key, r_value in results.items():
                     testing_results[subject][session][str(seed)][r_key].append(
                         r_value
@@ -376,7 +342,7 @@ def test(
                         time_to_string(test_eta),
                     ), end='\r'
                 )
-            results = test_images(config, mask_name, net, subject)
+            results = test_images(config, net, subject)
             for r_key, r_value in results.items():
                 testing_results[subject][str(seed)][r_key].append(
                     r_value
@@ -392,9 +358,6 @@ def test_tasks(config, net, base_name, task_results, verbose=0):
     n_subjects = sum(len(task) for task in task_results)
     sub_i = 0
     for task_i, task_list in enumerate(task_results):
-        mask_name = '{:}-{:}.t{:02d}.nii.gz'.format(
-            mask_base, base_name, task_i
-        )
         for subject in task_list.keys():
             tests = n_subjects - sub_i
             test_elapsed = time.time() - test_start
@@ -415,7 +378,7 @@ def test_tasks(config, net, base_name, task_results, verbose=0):
                                 time_to_string(test_eta),
                             ), end='\r'
                         )
-                    results = test_images(config, mask_name, net, subject, session)
+                    results = test_images(config, net, subject, session)
                     for r_key, r_value in results.items():
                         task_list[subject][session][r_key].append(
                             r_value
@@ -432,7 +395,7 @@ def test_tasks(config, net, base_name, task_results, verbose=0):
                             time_to_string(test_eta),
                         ), end='\r'
                     )
-                results = test_images(config, mask_name, net, subject)
+                results = test_images(config, net, subject)
                 for r_key, r_value in results.items():
                     task_list[subject][r_key].append(
                         r_value
@@ -442,15 +405,10 @@ def test_tasks(config, net, base_name, task_results, verbose=0):
 
 def empty_results_dict():
     results_dict = {
-        'TPV': [],
-        'TNV': [],
-        'FPV': [],
-        'FNV': [],
-        'TPR': [],
-        'FPR': [],
-        'FNR': [],
-        'GTR': [],
-        'R': [],
+        'TP': [],
+        'TN': [],
+        'FP': [],
+        'FN': [],
     }
 
     return results_dict
@@ -536,12 +494,12 @@ def get_task_results(
         test_tasks(
             config, net, base_name, results, verbose=1
         )
-    #     TODO: Uncomment
-    #     with open(json_file, 'w') as testing_json:
-    #         json.dump(results, testing_json)
-    # else:
-    #     with open(json_file, 'r') as testing_json:
-    #         results = json.load(testing_json)
+
+        with open(json_file, 'w') as testing_json:
+            json.dump(results, testing_json)
+    else:
+        with open(json_file, 'r') as testing_json:
+            results = json.load(testing_json)
 
     return results
 
@@ -647,13 +605,13 @@ def main(verbose=2):
         )
         # We will save the initial results pre-training
         all_subjects = [p for t_list in subjects.values() for p in t_list]
-        # json_name = '{:}-init_testing.s{:d}.json'.format(
-        #     model_base, seed
-        # )
-        # init_testing = get_test_results(
-        #     config, seed, json_name, 'init', net,
-        #     init_testing, all_subjects
-        # )
+        json_name = '{:}-init_testing.s{:d}.json'.format(
+            model_base, seed
+        )
+        init_testing = get_test_results(
+            config, seed, json_name, 'init', net,
+            init_testing, all_subjects
+        )
 
         # Cross-validation loop
         for i in range(n_folds):
@@ -724,37 +682,36 @@ def main(verbose=2):
             )
             net.load_model(starting_model)
 
-            # TODO: Uncomment
             # We test ith the initial model to know the starting point for all
             # tasks
-            # json_name = '{:}-baseline-init_training.s{:d}.json'.format(
-            #     model_base, seed
-            # )
-            # fold_tr_baseline = get_task_results(
-            #     config, json_name, 'baseline-train.init', net,
-            #     fold_tr_baseline
-            # )
-            # json_name = '{:}-naive-init_training.s{:d}.json'.format(
-            #     model_base, seed
-            # )
-            # fold_tr_naive = get_task_results(
-            #     config, json_name, 'naive-train.init', net, fold_tr_naive
-            # )
-            # if fold_val_baseline is not None:
-            #     json_name = '{:}-baseline-init_validation.s{:d}.json'.format(
-            #         model_base, seed
-            #     )
-            #     fold_val_baseline = get_task_results(
-            #         config, json_name, 'baseline-val.init', net,
-            #         fold_val_baseline
-            #     )
-            # if fold_val_naive is not None:
-            #     json_name = '{:}-naive-init_validation.s{:d}.json'.format(
-            #         model_base, seed
-            #     )
-            #     fold_val_naive = get_task_results(
-            #         config, json_name, 'naive-val.init', net, fold_val_naive
-            #     )
+            json_name = '{:}-baseline-init_training.s{:d}.json'.format(
+                model_base, seed
+            )
+            fold_tr_baseline = get_task_results(
+                config, json_name, 'baseline-train.init', net,
+                fold_tr_baseline
+            )
+            json_name = '{:}-naive-init_training.s{:d}.json'.format(
+                model_base, seed
+            )
+            fold_tr_naive = get_task_results(
+                config, json_name, 'naive-train.init', net, fold_tr_naive
+            )
+            if fold_val_baseline is not None:
+                json_name = '{:}-baseline-init_validation.s{:d}.json'.format(
+                    model_base, seed
+                )
+                fold_val_baseline = get_task_results(
+                    config, json_name, 'baseline-val.init', net,
+                    fold_val_baseline
+                )
+            if fold_val_naive is not None:
+                json_name = '{:}-naive-init_validation.s{:d}.json'.format(
+                    model_base, seed
+                )
+                fold_val_naive = get_task_results(
+                    config, json_name, 'naive-val.init', net, fold_val_naive
+                )
 
             training_set = [
                 p for p_list in training_tasks for p in p_list
@@ -787,22 +744,22 @@ def main(verbose=2):
                 config, seed, json_name, 'baseline', net,
                 baseline_testing, testing_set
             )
-            # TODO: Uncomment
-            # json_name = '{:}-baseline-training.f{:d}.s{:d}.json'.format(
-            #     model_base, i, seed
-            # )
-            # fold_tr_baseline = get_task_results(
-            #     config, json_name, 'baseline-train.f{:d}'.format(i), net,
-            #     fold_tr_baseline
-            # )
-            # if fold_val_baseline is not None:
-            #     json_name = '{:}-baseline-validation.f{:d}.s{:d}.json'.format(
-            #         model_base, i, seed
-            #     )
-            #     fold_val_baseline = get_task_results(
-            #         config, json_name, 'baseline-val.f{:d}'.format(i), net,
-            #         fold_val_baseline
-            #     )
+
+            json_name = '{:}-baseline-training.f{:d}.s{:d}.json'.format(
+                model_base, i, seed
+            )
+            fold_tr_baseline = get_task_results(
+                config, json_name, 'baseline-train.f{:d}'.format(i), net,
+                fold_tr_baseline
+            )
+            if fold_val_baseline is not None:
+                json_name = '{:}-baseline-validation.f{:d}.s{:d}.json'.format(
+                    model_base, i, seed
+                )
+                fold_val_baseline = get_task_results(
+                    config, json_name, 'baseline-val.f{:d}'.format(i), net,
+                    fold_val_baseline
+                )
 
             # Naive approach. We just partition the data and update the model
             # with each new batch without caring about previous samples
@@ -846,22 +803,22 @@ def main(verbose=2):
                     config, seed, json_name, 'naive-test.t{:02d}'.format(ti),
                     net, naive_testing, testing_set
                 )
-                # TODO: Uncomment
-                # json_name = '{:}-naive-training.f{:d}.s{:d}.t{:02d}.json'.format(
-                #     model_base, i, seed, ti
-                # )
-                # fold_tr_naive = get_task_results(
-                #     config, json_name, 'naive-train.f{:d}.t{:02d}'.format(i, ti),
-                #     net, fold_tr_naive
-                # )
-                # if fold_val_naive is not None:
-                #     json_name = '{:}-naive-validation.f{:d}.s{:d}.t{:02d}.json'.format(
-                #         model_base, i, seed, ti
-                #     )
-                #     fold_val_naive = get_task_results(
-                #         config, json_name, 'naive-val.f{:d}.t{:02d}'.format(i, ti),
-                #         net, fold_val_naive
-                #     )
+
+                json_name = '{:}-naive-training.f{:d}.s{:d}.t{:02d}.json'.format(
+                    model_base, i, seed, ti
+                )
+                fold_tr_naive = get_task_results(
+                    config, json_name, 'naive-train.f{:d}.t{:02d}'.format(i, ti),
+                    net, fold_tr_naive
+                )
+                if fold_val_naive is not None:
+                    json_name = '{:}-naive-validation.f{:d}.s{:d}.t{:02d}.json'.format(
+                        model_base, i, seed, ti
+                    )
+                    fold_val_naive = get_task_results(
+                        config, json_name, 'naive-val.f{:d}.t{:02d}'.format(i, ti),
+                        net, fold_val_naive
+                    )
 
             # Now it's time to push the results
             baseline_training[str(seed)]['training'].append(fold_tr_baseline)
@@ -873,23 +830,23 @@ def main(verbose=2):
                 naive_training[str(seed)]['validation'].append(
                     fold_val_naive
                 )
-    # TODO: Uncomment
-    # save_results(
-    #     config, '{:}-baseline_testing.json'.format(model_base),
-    #     baseline_testing
-    # )
-    # save_results(
-    #     config, '{:}-baseline_training.json'.format(model_base),
-    #     baseline_training
-    # )
-    # save_results(
-    #     config, '{:}-naive_testing.json'.format(model_base),
-    #     naive_testing
-    # )
-    # save_results(
-    #     config, '{:}-naive_training.json'.format(model_base),
-    #     naive_training
-    # )
+
+    save_results(
+        config, '{:}-baseline_testing.json'.format(model_base),
+        baseline_testing
+    )
+    save_results(
+        config, '{:}-baseline_training.json'.format(model_base),
+        baseline_training
+    )
+    save_results(
+        config, '{:}-naive_testing.json'.format(model_base),
+        naive_testing
+    )
+    save_results(
+        config, '{:}-naive_training.json'.format(model_base),
+        naive_training
+    )
 
 
 if __name__ == '__main__':
