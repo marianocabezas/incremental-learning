@@ -129,14 +129,17 @@ class ImagePatchesDataset(Dataset):
             slice_i, case_idx = self.patch_slices[index]
             labels = True
         else:
-            flip = np.random.random() > 0.5
             if self.balanced:
+                flip = np.random.random() > 0.5
                 index = np.random.randint(len(self.current_bck))
                 slice_i, case_idx = self.current_bck.pop(index)
                 if len(self.current_bck) == 0:
                     self.current_bck = deepcopy(self.bck_slices)
             else:
                 index -= 2 * len(self.patch_slices)
+                flip = index >= len(self.bck_slices)
+                if flip:
+                    index -= len(self.bck_slices)
                 slice_i, case_idx = self.bck_slices[index]
             labels = False
 
