@@ -106,6 +106,7 @@ def get_images(experiment_config, subject, session=None):
     if session is not None:
         p_path = os.path.join(p_path, session)
     roi = get_mask(find_file(experiment_config['roi'], p_path))
+    label = get_mask(find_file(experiment_config['labels'], p_path))
     if isinstance(experiment_config['files'], tuple):
         images = tuple(
             load_image_list(p_path, file_i, roi)
@@ -115,13 +116,14 @@ def get_images(experiment_config, subject, session=None):
         images = load_image_list(
             p_path, experiment_config['files'], roi
         )
-    return roi, images
+    return roi, label, images
 
 
 def get_data(experiment_config, subject_list):
     load_start = time.time()
 
     subjects = []
+    labels = []
     rois = []
     for pi, p in enumerate(subject_list):
         loads = len(subject_list) - pi
@@ -139,10 +141,11 @@ def get_data(experiment_config, subject_list):
                         time_to_string(load_eta),
                     ), end='\r'
                 )
-                roi, images = get_images(
+                roi, label, images = get_images(
                     experiment_config, p['subject'], session
                 )
                 rois.append(roi)
+                labels.append(label)
                 subjects.append(images)
         else:
             print(
@@ -153,13 +156,14 @@ def get_data(experiment_config, subject_list):
                     time_to_string(load_eta),
                 ), end='\r'
             )
-            roi, images = get_images(
+            roi, label, images = get_images(
                 experiment_config, p
             )
             rois.append(roi)
+            labels.append(label)
             subjects.append(images)
     print('\033[K', end='\r')
-    return subjects, rois
+    return subjects, labels, rois
 
 
 """
@@ -262,17 +266,17 @@ def test_images(config, net, subject, session=None):
         if not os.path.isdir(p_path):
             os.mkdir(p_path)
 
-    roi, images = get_images(
+    roi, labels, images = get_images(
         config, subject, session
     )
     if 'test_patch' in config and 'test_overlap' in config:
         val_dataset = config['validation'](
-            images, None, roi, patch_size=config['train_batch'],
+            images, labels, roi, patch_size=config['train_batch'],
             overlap=config['train_overlap'], balanced=False
         )
     elif 'test_patch' in config:
         val_dataset = config['validation'](
-            images, None, roi, patch_size=config['train_batch'],
+            images, labels, roi, patch_size=config['train_batch'],
             balanced=False
         )
     else:
