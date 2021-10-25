@@ -659,7 +659,7 @@ def main(verbose=2):
         for i in range(n_folds):
             subjects_fold = {
                 t_key: {
-                    'list': np.random.permutation(t_list),
+                    'list': np.random.permutation(t_list).tolist(),
                     'ini': len(t_list) * i // n_folds,
                     'end': len(t_list) * (i + 1) // n_folds
                 }
