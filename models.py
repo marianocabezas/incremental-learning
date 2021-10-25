@@ -157,11 +157,9 @@ class SimpleResNet(BaseModel):
         self.dropout = dropout
 
         # <Parameter setup>
-        self.extractor = nn.Sequential(
-            Autoencoder(
-                self.conv_filters, device, n_images, block=ResConv3dBlock,
-                norm=norm_f
-            )
+        self.extractor = Autoencoder(
+            self.conv_filters, device, n_images, block=ResConv3dBlock,
+            norm=norm_f
         )
         self.extractor.encoder.to(device)
         self.classifier = nn.Sequential(
