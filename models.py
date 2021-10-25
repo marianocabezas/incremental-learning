@@ -73,7 +73,7 @@ class SimpleUNet(BaseModel):
         self.train_functions = [
             {
                 'name': 'pdsc',
-                'weight': 0,
+                'weight': 1,
                 'f': lambda p, t: gendsc_loss(p, t, w_bg=0, w_fg=1)
             },
             {
