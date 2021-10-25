@@ -667,7 +667,6 @@ def main(verbose=2):
                 }
                 for t_key, t_list in subjects.items()
             }
-            print(subjects_fold)
             # Training
             # Here we'll do the training / validation / testing split...
             # Training and testing split
