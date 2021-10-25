@@ -661,12 +661,13 @@ def main(verbose=2):
                 t_key: {
                     'list': np.random.permutation([
                         sub for sub in t_list
-                    ]),
+                    ]).tolist(),
                     'ini': len(t_list) * i // n_folds,
                     'end': len(t_list) * (i + 1) // n_folds
                 }
                 for t_key, t_list in subjects.items()
             }
+            print(subjects_fold)
             # Training
             # Here we'll do the training / validation / testing split...
             # Training and testing split
