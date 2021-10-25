@@ -161,7 +161,8 @@ class SimpleResNet(BaseModel):
             self.conv_filters, device, n_images, block=ResConv3dBlock,
             norm=norm_f
         )
-        self.extractor.encoder.to(device)
+        self.extractor.down.to(device)
+        self.extractor.u.to(device)
         self.classifier = nn.Sequential(
             nn.Linear(self.conv_filters[-1], self.conv_filters[-1] // 2),
             nn.ReLU(),
