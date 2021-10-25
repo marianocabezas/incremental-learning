@@ -301,7 +301,7 @@ def test_images(config, mask_name, net, subject, session=None):
 
     try:
         min_size = config['min_size']
-        prediction = remove_small_regions(prediction, min_size)
+        # prediction = remove_small_regions(prediction, min_size)
     except KeyError:
         pass
 
