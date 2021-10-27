@@ -165,5 +165,20 @@ def tn_binary_loss(pred, target):
     tn_k = intersection / sum_target
     tn_k = tn_k[torch.logical_not(torch.isnan(tn_k))]
     tn = 1 - torch.mean(tn_k)
+    if torch.isnan(tn):
+        tn = torch.tensor(0.)
 
     return torch.clamp(tn, 0., 1.)
+
+
+def accuracy(predicted, target):
+    """
+
+    :param predicted:
+    :param target:
+    :return:
+    """
+    correct_positive = predicted * target
+    correct_negative = (1. - predicted) * (1. - target)
+
+    return torch.mean(correct_positive + correct_negative)

@@ -656,17 +656,19 @@ def main(verbose=2):
         # )
 
         # Cross-validation loop
-        for i in range(n_folds):
-            subjects_fold = {
-                t_key: {
-                    'list': np.random.permutation([
-                        sub for sub in t_list
-                    ]).tolist(),
-                    'ini': len(t_list) * i // n_folds,
-                    'end': len(t_list) * (i + 1) // n_folds
-                }
-                for t_key, t_list in subjects.items()
+        subjects_fold = {
+            t_key: {
+                'list': np.random.permutation([
+                    sub for sub in t_list
+                ]).tolist()
             }
+            for t_key, t_list in subjects.items()
+        }
+        for i in range(n_folds):
+            for t_key, t_dict in subjects_fold.items():
+                t_list = t_dict['list']
+                subjects_fold[t_key]['ini'] = len(t_list) * i // n_folds
+                subjects_fold[t_key]['end'] = len(t_list) * (i + 1) // n_folds
             # Training
             # Here we'll do the training / validation / testing split...
             # Training and testing split

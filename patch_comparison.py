@@ -197,18 +197,18 @@ def train(config, net, training, validation, model_name, verbose=0):
         # Training
         if verbose > 1:
             print('< Training dataset >')
-        dtrain, rtrain = get_data(config, training)
+        dtrain, ltrain, rtrain = get_data(config, training)
         if 'train_patch' in config and 'train_overlap' in config:
             train_dataset = config['training'](
-                dtrain, None, rtrain, patch_size=config['train_batch'],
+                dtrain, ltrain, rtrain, patch_size=config['train_batch'],
                 overlap=config['train_overlap']
             )
         elif 'train_patch' in config:
             train_dataset = config['training'](
-                dtrain, None, rtrain, patch_size=config['train_batch']
+                dtrain, ltrain, rtrain, patch_size=config['train_batch']
             )
         else:
-            train_dataset = config['training'](dtrain, None, rtrain)
+            train_dataset = config['training'](dtrain, ltrain, rtrain)
 
         if verbose > 1:
             print('Dataloader creation <with validation>')
@@ -220,21 +220,21 @@ def train(config, net, training, validation, model_name, verbose=0):
         if verbose > 1:
             print('< Validation dataset >')
         if training == validation:
-            dval, rval = dtrain, rtrain
+            dval, lval, rval = dtrain, ltrain, rtrain
         else:
-            dval, rval = get_data(config, validation)
+            dval, lval, rval = get_data(config, validation)
         if 'test_patch' in config and 'test_overlap' in config:
             val_dataset = config['validation'](
-                dval, None, rval, patch_size=config['train_batch'],
+                dval, lval, rval, patch_size=config['train_batch'],
                 overlap=config['train_overlap'], balanced=False
             )
         elif 'test_patch' in config:
             val_dataset = config['validation'](
-                dval, None,  rval, patch_size=config['train_batch'],
+                dval, lval, rval, patch_size=config['train_batch'],
                 balanced=False
             )
         else:
-            val_dataset = config['validation'](dval, None, rval, balanced=False)
+            val_dataset = config['validation'](dval, lval, rval, balanced=False)
 
         if verbose > 1:
             print('Dataloader creation <val>')
@@ -271,16 +271,16 @@ def test_images(config, net, subject, session=None):
     )
     if 'test_patch' in config and 'test_overlap' in config:
         val_dataset = config['validation'](
-            images, labels, roi, patch_size=config['train_batch'],
+            [images], [labels], [roi], patch_size=config['train_batch'],
             overlap=config['train_overlap'], balanced=False
         )
     elif 'test_patch' in config:
         val_dataset = config['validation'](
-            images, labels, roi, patch_size=config['train_batch'],
+            [images], [labels], [roi], patch_size=config['train_batch'],
             balanced=False
         )
     else:
-        val_dataset = config['validation'](images, None, roi, balanced=False)
+        val_dataset = config['validation']([images], [labels], [roi], balanced=False)
 
     test_loader = DataLoader(
         val_dataset, config['test_batch'], num_workers=32
@@ -611,17 +611,19 @@ def main(verbose=2):
         )
 
         # Cross-validation loop
-        for i in range(n_folds):
-            subjects_fold = {
-                t_key: {
-                    'list': np.random.permutation([
-                        sub for sub in t_list
-                    ]).tolist(),
-                    'ini': len(t_list) * i // n_folds,
-                    'end': len(t_list) * (i + 1) // n_folds
-                }
-                for t_key, t_list in subjects.items()
+        subjects_fold = {
+            t_key: {
+                'list': np.random.permutation([
+                    sub for sub in t_list
+                ]).tolist()
             }
+            for t_key, t_list in subjects.items()
+        }
+        for i in range(n_folds):
+            for t_key, t_dict in subjects_fold.items():
+                t_list = t_dict['list']
+                subjects_fold[t_key]['ini'] = len(t_list) * i // n_folds
+                subjects_fold[t_key]['end'] = len(t_list) * (i + 1) // n_folds
             # Training
             # Here we'll do the training / validation / testing split...
             # Training and testing split
