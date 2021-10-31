@@ -273,7 +273,6 @@ def test_images(config, mask_name, net, subject, session=None):
     bb = get_bb(roi, 2)
 
     prediction_file = find_file(mask_name, p_path)
-    print(mask_name, p_path)
     if prediction_file is None:
         prediction_file = os.path.join(p_path, mask_name)
         segmentation = np.zeros_like(label)
