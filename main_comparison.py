@@ -273,6 +273,7 @@ def test_images(config, mask_name, net, subject, session=None):
     bb = get_bb(roi, 2)
 
     prediction_file = find_file(mask_name, p_path)
+    print(mask_name, p_path)
     if prediction_file is None:
         prediction_file = os.path.join(p_path, mask_name)
         segmentation = np.zeros_like(label)
@@ -508,7 +509,7 @@ def empty_test_results(config, subjects):
 def get_test_results(
     config, seed, json_name, base_name, net, results, subjects
 ):
-    path = config['masks_path']
+    path = config['json_path']
     json_file = find_file(json_name, path)
     if json_file is None:
         json_file = os.path.join(path, json_name)
@@ -529,7 +530,7 @@ def get_test_results(
 def get_task_results(
     config, json_name, base_name, net, results
 ):
-    path = config['masks_path']
+    path = config['json_path']
     json_file = find_file(json_name, path)
     if json_file is None:
         json_file = os.path.join(path, json_name)
@@ -547,7 +548,7 @@ def get_task_results(
 
 
 def save_results(config, json_name, results):
-    path = config['masks_path']
+    path = config['json_path']
     json_file = os.path.join(path, json_name)
     with open(json_file, 'w') as testing_json:
         json.dump(results, testing_json)
@@ -575,6 +576,9 @@ def main(verbose=2):
     masks_path = config['masks_path']
     if not os.path.isdir(masks_path):
         os.mkdir(masks_path)
+    json_path = config['json_path']
+    if not os.path.isdir(json_path):
+        os.mkdir(json_path)
     model_base = os.path.splitext(os.path.basename(options['config']))[0]
 
     seeds = config['seeds']

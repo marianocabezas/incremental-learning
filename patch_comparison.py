@@ -257,8 +257,8 @@ def train(config, net, training, validation, model_name, verbose=0):
 
 
 def test_images(config, net, subject, session=None):
-    masks_path = config['masks_path']
-    p_path = os.path.join(masks_path, subject)
+    json_path = config['json_path']
+    p_path = os.path.join(json_path, subject)
     if not os.path.isdir(p_path):
         os.mkdir(p_path)
     if session is not None:
@@ -464,7 +464,7 @@ def empty_test_results(config, subjects):
 def get_test_results(
     config, seed, json_name, net, results, subjects
 ):
-    path = config['masks_path']
+    path = config['json_path']
     json_file = find_file(json_name, path)
     if json_file is None:
         json_file = os.path.join(path, json_name)
@@ -485,7 +485,7 @@ def get_test_results(
 def get_task_results(
     config, json_name, net, results
 ):
-    path = config['masks_path']
+    path = config['json_path']
     json_file = find_file(json_name, path)
     if json_file is None:
         json_file = os.path.join(path, json_name)
@@ -503,7 +503,7 @@ def get_task_results(
 
 
 def save_results(config, json_name, results):
-    path = config['masks_path']
+    path = config['json_path']
     json_file = os.path.join(path, json_name)
     with open(json_file, 'w') as testing_json:
         json.dump(results, testing_json)
@@ -528,9 +528,9 @@ def main(verbose=2):
     model_path = config['model_path']
     if not os.path.isdir(model_path):
         os.mkdir(model_path)
-    masks_path = config['masks_path']
-    if not os.path.isdir(masks_path):
-        os.mkdir(masks_path)
+    json_path = config['json_path']
+    if not os.path.isdir(json_path):
+        os.mkdir(json_path)
     model_base = os.path.splitext(os.path.basename(options['config']))[0]
 
     seeds = config['seeds']
