@@ -516,12 +516,12 @@ def get_test_results(
             config, seed, net, base_name, results,
             subjects, verbose=1
         )
-
-        with open(json_file, 'w') as testing_json:
-            json.dump(results, testing_json)
-    else:
-        with open(json_file, 'r') as testing_json:
-            results = json.load(testing_json)
+    #     TODO: Uncomment
+    #     with open(json_file, 'w') as testing_json:
+    #         json.dump(results, testing_json)
+    # else:
+    #     with open(json_file, 'r') as testing_json:
+    #         results = json.load(testing_json)
 
     return results
 
