@@ -267,13 +267,19 @@ def test_images(config, mask_name, net, subject, session=None):
         if not os.path.isdir(p_path):
             os.mkdir(p_path)
 
-    roi, label, images = get_images(
-        config, subject, session
-    )
-    bb = get_bb(roi, 2)
+    # roi, label, images = get_images(
+    #     config, subject, session
+    # )
+    # bb = get_bb(roi, 2)
 
     prediction_file = find_file(mask_name, p_path)
     if prediction_file is None:
+
+        roi, label, images = get_images(
+            config, subject, session
+        )
+        bb = get_bb(roi, 2)
+
         prediction_file = os.path.join(p_path, mask_name)
         segmentation = np.zeros_like(label)
         none_slice = (slice(None, None),)
@@ -295,15 +301,15 @@ def test_images(config, mask_name, net, subject, session=None):
             segmentation, ref_nii.get_qform(), ref_nii.header
         )
         segmentation_nii.to_filename(prediction_file)
-    else:
-        segmentation = nibabel.load(prediction_file).get_fdata()
-        prediction = segmentation[bb].astype(bool)
-
-    try:
-        min_size = config['min_size']
-        # prediction = remove_small_regions(prediction, min_size)
-    except KeyError:
-        pass
+    # else:
+    #     segmentation = nibabel.load(prediction_file).get_fdata()
+    #     prediction = segmentation[bb].astype(bool)
+    #
+    # try:
+    #     min_size = config['min_size']
+    #     # prediction = remove_small_regions(prediction, min_size)
+    # except KeyError:
+    #     pass
 
     results = {}
     # target = label[bb].astype(bool)

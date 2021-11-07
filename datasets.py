@@ -106,42 +106,67 @@ class ImagePatchesDataset(Dataset):
         # is extremely underrepresented, we will filter this preliminary slices
         # to guarantee that we only keep the ones that contain at least one
         # lesion voxel.
-        self.patch_slices = [
+        patch_slices = [
             (s, i) for i, (label, s_i) in enumerate(
                 zip(labels, slices)
             )
             for s in s_i if np.sum(label[s]) > 0
         ]
-        self.bck_slices = [
+        bck_slices = [
             (s, i) for i, (label, s_i) in enumerate(
                 zip(labels, slices)
             )
             for s in s_i if np.sum(label[s]) == 0
         ]
+        n_positives = len(patch_slices)
+        n_negatives = len(bck_slices)
+
+        positive_imbalance = n_positives > n_negatives
+
+        if positive_imbalance:
+            self.majority = patch_slices
+            self.majority_label = np.array([1])
+
+            self.minority = bck_slices
+            self.minority_label = np.array([0])
+        else:
+            self.majority = bck_slices
+            self.majority_label = np.array([0])
+
+            self.minority = patch_slices
+            self.minority_label = np.array([1])
+
         if self.balanced:
-            self.current_bck = deepcopy(self.bck_slices)
+            self.current_majority = deepcopy(self.majority)
+            self.current_minority = deepcopy(self.minority)
 
     def __getitem__(self, index):
-        if index < (2 * len(self.patch_slices)):
-            flip = index >= len(self.patch_slices)
-            if flip:
-                index -= len(self.patch_slices)
-            slice_i, case_idx = self.patch_slices[index]
-            labels = True
-        else:
-            if self.balanced:
-                flip = np.random.random() > 0.5
-                index = np.random.randint(len(self.current_bck))
-                slice_i, case_idx = self.current_bck.pop(index)
-                if len(self.current_bck) == 0:
-                    self.current_bck = deepcopy(self.bck_slices)
+        if self.balanced:
+            if index < (2 * len(self.minority)):
+                flip = index >= len(self.minority)
+                index = np.random.randint(len(self.current_minority))
+                slice_i, case_idx = self.current_minority.pop(index)
+                if len(self.current_minority) == 0:
+                    self.current_minority = deepcopy(self.minority)
+                labels = self.minority_label
             else:
-                index -= 2 * len(self.patch_slices)
-                flip = index >= len(self.bck_slices)
-                if flip:
-                    index -= len(self.bck_slices)
-                slice_i, case_idx = self.bck_slices[index]
-            labels = False
+                index -= 2 * len(self.minority)
+                flip = index >= len(self.majority)
+                index = np.random.randint(len(self.current_majority))
+                slice_i, case_idx = self.current_majority.pop(index)
+                if len(self.current_majority) == 0:
+                    self.current_majority = deepcopy(self.majority)
+                labels = self.majority_label
+
+        else:
+            flip = False
+            if index < len(self.minority):
+                slice_i, case_idx = self.minority[index]
+                labels = self.minority_label
+            else:
+                index -= len(self.minority)
+                slice_i, case_idx = self.majority[index]
+                labels = self.majority_label
 
         data = self.subjects[case_idx]
         none_slice = (slice(None, None),)
@@ -166,9 +191,9 @@ class ImagePatchesDataset(Dataset):
 
     def __len__(self):
         if self.balanced:
-            return len(self.patch_slices) * 4
+            return len(self.minority) * 4
         else:
-            return (len(self.patch_slices) + len(self.bck_slices)) * 2
+            return len(self.minority) + len(self.majority)
 
 
 class ImageCroppingDataset(Dataset):

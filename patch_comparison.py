@@ -257,15 +257,6 @@ def train(config, net, training, validation, model_name, verbose=0):
 
 
 def test_images(config, net, subject, session=None):
-    json_path = config['json_path']
-    p_path = os.path.join(json_path, subject)
-    if not os.path.isdir(p_path):
-        os.mkdir(p_path)
-    if session is not None:
-        p_path = os.path.join(p_path, session)
-        if not os.path.isdir(p_path):
-            os.mkdir(p_path)
-
     roi, labels, images = get_images(
         config, subject, session
     )
@@ -280,7 +271,9 @@ def test_images(config, net, subject, session=None):
             balanced=False
         )
     else:
-        val_dataset = config['validation']([images], [labels], [roi], balanced=False)
+        val_dataset = config['validation'](
+            [images], [labels], [roi], balanced=False
+        )
 
     test_loader = DataLoader(
         val_dataset, config['test_batch'], num_workers=32
