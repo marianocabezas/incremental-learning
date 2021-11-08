@@ -200,12 +200,12 @@ def train(config, net, training, validation, model_name, verbose=0):
         dtrain, ltrain, rtrain = get_data(config, training)
         if 'train_patch' in config and 'train_overlap' in config:
             train_dataset = config['training'](
-                dtrain, ltrain, rtrain, patch_size=config['train_batch'],
+                dtrain, ltrain, rtrain, patch_size=config['train_patch'],
                 overlap=config['train_overlap']
             )
         elif 'train_patch' in config:
             train_dataset = config['training'](
-                dtrain, ltrain, rtrain, patch_size=config['train_batch']
+                dtrain, ltrain, rtrain, patch_size=config['train_patch']
             )
         else:
             train_dataset = config['training'](dtrain, ltrain, rtrain)
@@ -225,12 +225,12 @@ def train(config, net, training, validation, model_name, verbose=0):
             dval, lval, rval = get_data(config, validation)
         if 'test_patch' in config and 'test_overlap' in config:
             val_dataset = config['validation'](
-                dval, lval, rval, patch_size=config['train_batch'],
+                dval, lval, rval, patch_size=config['test_patch'],
                 overlap=config['train_overlap'], balanced=False
             )
         elif 'test_patch' in config:
             val_dataset = config['validation'](
-                dval, lval, rval, patch_size=config['train_batch'],
+                dval, lval, rval, patch_size=config['test_patch'],
                 balanced=False
             )
         else:
@@ -262,12 +262,12 @@ def test_images(config, net, subject, session=None):
     )
     if 'test_patch' in config and 'test_overlap' in config:
         val_dataset = config['validation'](
-            [images], [labels], [roi], patch_size=config['train_batch'],
+            [images], [labels], [roi], patch_size=config['test_patch'],
             overlap=config['train_overlap'], balanced=False
         )
     elif 'test_patch' in config:
         val_dataset = config['validation'](
-            [images], [labels], [roi], patch_size=config['train_batch'],
+            [images], [labels], [roi], patch_size=config['test_patch'],
             balanced=False
         )
     else:
