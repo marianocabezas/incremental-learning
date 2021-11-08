@@ -200,12 +200,12 @@ def train(config, net, training, validation, model_name, verbose=0):
         dtrain, ltrain, rtrain = get_data(config, training)
         if 'train_patch' in config and 'train_overlap' in config:
             train_dataset = config['training'](
-                dtrain, ltrain, rtrain, patch_size=config['patch_size'],
+                dtrain, ltrain, rtrain, patch_size=config['train_patch'],
                 overlap=config['train_overlap']
             )
         elif 'train_patch' in config:
             train_dataset = config['training'](
-                dtrain, ltrain, rtrain , patch_size=config['patch_size']
+                dtrain, ltrain, rtrain, patch_size=config['train_patch']
             )
         else:
             train_dataset = config['training'](dtrain, ltrain, rtrain)
@@ -225,12 +225,12 @@ def train(config, net, training, validation, model_name, verbose=0):
             dval, lval, rval = get_data(config, validation)
         if 'test_patch' in config and 'test_overlap' in config:
             val_dataset = config['validation'](
-                dval, lval, rval, patch_size=config['patch_size'],
+                dval, lval, rval, patch_size=config['test_patch'],
                 overlap=config['train_overlap']
             )
         elif 'test_patch' in config:
             val_dataset = config['validation'](
-                dval, lval, rval, patch_size=config['patch_size']
+                dval, lval, rval, patch_size=config['test_patch']
             )
         else:
             val_dataset = config['validation'](dval, lval, rval)
@@ -295,7 +295,7 @@ def test_images(config, mask_name, net, subject, session=None):
         try:
             prediction = net.inference(data) > 0.5
         except RuntimeError:
-            patch_size = config['patch_size']
+            patch_size = config['test_patch']
             batch_size = config['test_batch']
             prediction = net.patch_inference(
                 data, patch_size, batch_size
