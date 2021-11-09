@@ -125,16 +125,16 @@ class ImagePatchesDataset(Dataset):
 
         if positive_imbalance:
             self.majority = patch_slices
-            self.majority_label = np.array([1])
+            self.majority_label = np.array([1], dtype=np.uint8)
 
             self.minority = bck_slices
-            self.minority_label = np.array([0])
+            self.minority_label = np.array([0], dtype=np.uint8)
         else:
             self.majority = bck_slices
-            self.majority_label = np.array([0])
+            self.majority_label = np.array([0], dtype=np.uint8)
 
             self.minority = patch_slices
-            self.minority_label = np.array([1])
+            self.minority_label = np.array([1], dtype=np.uint8)
 
         if self.balanced:
             self.current_majority = deepcopy(self.majority)
@@ -148,7 +148,7 @@ class ImagePatchesDataset(Dataset):
                 slice_i, case_idx = self.current_minority.pop(index)
                 if len(self.current_minority) == 0:
                     self.current_minority = deepcopy(self.minority)
-                labels = self.minority_label
+                target_data = self.minority_label
             else:
                 index -= 2 * len(self.minority)
                 flip = index >= len(self.majority)
@@ -156,17 +156,17 @@ class ImagePatchesDataset(Dataset):
                 slice_i, case_idx = self.current_majority.pop(index)
                 if len(self.current_majority) == 0:
                     self.current_majority = deepcopy(self.majority)
-                labels = self.majority_label
+                target_data = self.majority_label
 
         else:
             flip = False
             if index < len(self.minority):
                 slice_i, case_idx = self.minority[index]
-                labels = self.minority_label
+                target_data = self.minority_label
             else:
                 index -= len(self.minority)
                 slice_i, case_idx = self.majority[index]
-                labels = self.majority_label
+                target_data = self.majority_label
 
         data = self.subjects[case_idx]
         none_slice = (slice(None, None),)
@@ -178,7 +178,6 @@ class ImagePatchesDataset(Dataset):
             )
         else:
             data = data[none_slice + slice_i].astype(np.float32)
-        target_data = np.array([labels], dtype=np.uint8)
         if flip:
             if isinstance(data, tuple):
                 data = tuple(

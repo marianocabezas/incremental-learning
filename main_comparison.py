@@ -663,13 +663,13 @@ def main(verbose=2):
         )
         # We will save the initial results pre-training
         all_subjects = [p for t_list in subjects.values() for p in t_list]
-        # json_name = '{:}-init_testing.s{:d}.json'.format(
-        #     model_base, seed
-        # )
-        # init_testing = get_test_results(
-        #     config, seed, json_name, 'init', net,
-        #     init_testing, all_subjects
-        # )
+        json_name = '{:}-init_testing.s{:d}.json'.format(
+            model_base, seed
+        )
+        init_testing = get_test_results(
+            config, seed, json_name, 'init.s{:05d}'.format(seed), net,
+            init_testing, all_subjects
+        )
 
         # Cross-validation loop
         subjects_fold = {
