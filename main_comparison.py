@@ -305,7 +305,7 @@ def test_images(config, mask_name, net, subject, session=None):
         segmentation_nii.to_filename(prediction_file)
     else:
         roi = get_mask(find_file(config['roi'], d_path))
-        label = get_mask(find_file(config['labels'], d_path))
+        # label = get_mask(find_file(config['labels'], d_path))
         bb = get_bb(roi, 2)
         segmentation = nibabel.load(prediction_file).get_fdata()
         prediction = segmentation[bb].astype(bool)
@@ -316,17 +316,17 @@ def test_images(config, mask_name, net, subject, session=None):
     except KeyError:
         pass
 
-    target = label[bb].astype(bool)
-    no_target = np.logical_not(target)
-    target_regions, gtr = bwlabeln(target, return_num=True)
-    no_prediction = np.logical_not(prediction)
-    prediction_regions, r = bwlabeln(prediction, return_num=True)
-    true_positive = np.logical_and(target, prediction)
-    no_false_positives = np.unique(prediction_regions[true_positive])
-    false_positive_regions = np.logical_not(
-        np.isin(prediction_regions, no_false_positives.tolist() + [0])
-    )
-    false_positive = np.logical_and(no_target, prediction)
+    # target = label[bb].astype(bool)
+    # no_target = np.logical_not(target)
+    # target_regions, gtr = bwlabeln(target, return_num=True)
+    # no_prediction = np.logical_not(prediction)
+    # prediction_regions, r = bwlabeln(prediction, return_num=True)
+    # true_positive = np.logical_and(target, prediction)
+    # no_false_positives = np.unique(prediction_regions[true_positive])
+    # false_positive_regions = np.logical_not(
+    #     np.isin(prediction_regions, no_false_positives.tolist() + [0])
+    # )
+    # false_positive = np.logical_and(no_target, prediction)
 
     # results = {
     #     'TPV': int(np.sum(true_positive)),
