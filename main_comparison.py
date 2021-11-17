@@ -310,11 +310,11 @@ def test_images(config, mask_name, net, subject, session=None):
         segmentation = nibabel.load(prediction_file).get_fdata()
         prediction = segmentation[bb].astype(bool)
 
-    try:
-        min_size = config['min_size']
-        prediction = remove_small_regions(prediction, min_size)
-    except KeyError:
-        pass
+    # try:
+    #     min_size = config['min_size']
+    #     prediction = remove_small_regions(prediction, min_size)
+    # except KeyError:
+    #     pass
 
     # target = label[bb].astype(bool)
     # no_target = np.logical_not(target)
@@ -862,22 +862,22 @@ def main(verbose=2):
                     config, seed, json_name, 'naive-test.t{:02d}'.format(ti),
                     net, naive_testing, testing_set
                 )
-                # TODO: Uncomment
-                # json_name = '{:}-naive-training.f{:d}.s{:d}.t{:02d}.json'.format(
-                #     model_base, i, seed, ti
-                # )
-                # fold_tr_naive = get_task_results(
-                #     config, json_name, 'naive-train.f{:d}.t{:02d}'.format(i, ti),
-                #     net, fold_tr_naive
-                # )
-                # if fold_val_naive is not None:
-                #     json_name = '{:}-naive-validation.f{:d}.s{:d}.t{:02d}.json'.format(
-                #         model_base, i, seed, ti
-                #     )
-                #     fold_val_naive = get_task_results(
-                #         config, json_name, 'naive-val.f{:d}.t{:02d}'.format(i, ti),
-                #         net, fold_val_naive
-                #     )
+
+                json_name = '{:}-naive-training.f{:d}.s{:d}.t{:02d}.json'.format(
+                    model_base, i, seed, ti
+                )
+                fold_tr_naive = get_task_results(
+                    config, json_name, 'naive-train.f{:d}.t{:02d}'.format(i, ti),
+                    net, fold_tr_naive
+                )
+                if fold_val_naive is not None:
+                    json_name = '{:}-naive-validation.f{:d}.s{:d}.t{:02d}.json'.format(
+                        model_base, i, seed, ti
+                    )
+                    fold_val_naive = get_task_results(
+                        config, json_name, 'naive-val.f{:d}.t{:02d}'.format(i, ti),
+                        net, fold_val_naive
+                    )
 
             # Now it's time to push the results
             baseline_training[str(seed)]['training'].append(fold_tr_baseline)
