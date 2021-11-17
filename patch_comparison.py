@@ -263,7 +263,7 @@ def test_images(config, net, subject, session=None):
     if 'test_patch' in config and 'test_overlap' in config:
         val_dataset = config['validation'](
             [images], [labels], [roi], patch_size=config['test_patch'],
-            overlap=config['train_overlap'], balanced=False
+            overlap=config['test_overlap'], balanced=False
         )
     elif 'test_patch' in config:
         val_dataset = config['validation'](
@@ -542,7 +542,6 @@ def main(verbose=2):
     # and negatives. Most relevant metrics like DSC come from there.
     baseline_testing = empty_test_results(config, subjects)
     naive_testing = empty_test_results(config, subjects)
-    init_testing = empty_test_results(config, subjects)
 
     # We also need dictionaries for the training tasks so we can track their
     # evolution. The main difference here, is that we need different
@@ -599,8 +598,8 @@ def main(verbose=2):
         json_name = '{:}-init_testing.s{:d}.json'.format(
             model_base, seed
         )
-        init_testing = get_test_results(
-            config, seed, json_name, net, init_testing, all_subjects
+        naive_testing = get_test_results(
+            config, seed, json_name, net, naive_testing, all_subjects
         )
 
         # Cross-validation loop
@@ -676,25 +675,12 @@ def main(verbose=2):
 
             # We test ith the initial model to know the starting point for all
             # tasks
-            json_name = '{:}-baseline-init_training.s{:d}.json'.format(
-                model_base, seed
-            )
-            fold_tr_baseline = get_task_results(
-                config, json_name, net, fold_tr_baseline
-            )
             json_name = '{:}-naive-init_training.s{:d}.json'.format(
                 model_base, seed
             )
             fold_tr_naive = get_task_results(
                 config, json_name, net, fold_tr_naive
             )
-            if fold_val_baseline is not None:
-                json_name = '{:}-baseline-init_validation.s{:d}.json'.format(
-                    model_base, seed
-                )
-                fold_val_baseline = get_task_results(
-                    config, json_name,  net, fold_val_baseline
-                )
             if fold_val_naive is not None:
                 json_name = '{:}-naive-init_validation.s{:d}.json'.format(
                     model_base, seed

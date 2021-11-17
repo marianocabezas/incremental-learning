@@ -267,11 +267,6 @@ def test_images(config, mask_name, net, subject, session=None):
         if not os.path.isdir(p_path):
             os.mkdir(p_path)
 
-    # roi, label, images = get_images(
-    #     config, subject, session
-    # )
-    # bb = get_bb(roi, 2)
-
     prediction_file = find_file(mask_name, p_path)
     if prediction_file is None:
 
@@ -308,29 +303,30 @@ def test_images(config, mask_name, net, subject, session=None):
             segmentation, ref_nii.get_qform(), ref_nii.header
         )
         segmentation_nii.to_filename(prediction_file)
-    # else:
-    #     segmentation = nibabel.load(prediction_file).get_fdata()
-    #     prediction = segmentation[bb].astype(bool)
-    #
-    # try:
-    #     min_size = config['min_size']
-    #     # prediction = remove_small_regions(prediction, min_size)
-    # except KeyError:
-    #     pass
+    else:
+        roi = get_mask(find_file(config['roi'], p_path))
+        bb = get_bb(roi, 2)
+        segmentation = nibabel.load(prediction_file).get_fdata()
+        prediction = segmentation[bb].astype(bool)
 
-    results = {}
-    # target = label[bb].astype(bool)
-    # no_target = np.logical_not(target)
-    # target_regions, gtr = bwlabeln(target, return_num=True)
-    # no_prediction = np.logical_not(prediction)
-    # prediction_regions, r = bwlabeln(prediction, return_num=True)
-    # true_positive = np.logical_and(target, prediction)
-    # no_false_positives = np.unique(prediction_regions[true_positive])
-    # false_positive_regions = np.logical_not(
-    #     np.isin(prediction_regions, no_false_positives.tolist() + [0])
-    # )
-    # false_positive = np.logical_and(no_target, prediction)
-    #
+    try:
+        min_size = config['min_size']
+        prediction = remove_small_regions(prediction, min_size)
+    except KeyError:
+        pass
+
+    target = label[bb].astype(bool)
+    no_target = np.logical_not(target)
+    target_regions, gtr = bwlabeln(target, return_num=True)
+    no_prediction = np.logical_not(prediction)
+    prediction_regions, r = bwlabeln(prediction, return_num=True)
+    true_positive = np.logical_and(target, prediction)
+    no_false_positives = np.unique(prediction_regions[true_positive])
+    false_positive_regions = np.logical_not(
+        np.isin(prediction_regions, no_false_positives.tolist() + [0])
+    )
+    false_positive = np.logical_and(no_target, prediction)
+
     # results = {
     #     'TPV': int(np.sum(true_positive)),
     #     'TNV': int(np.sum(np.logical_and(no_target, no_prediction))),
@@ -341,7 +337,8 @@ def test_images(config, mask_name, net, subject, session=None):
     #     'GTR': gtr,
     #     'R': r
     # }
-    return results
+    # return results
+    return {}
 
 
 def test(
@@ -405,7 +402,7 @@ def test_tasks(config, net, base_name, task_results, verbose=0):
     n_subjects = sum(len(task) for task in task_results)
     sub_i = 0
     for task_i, task_list in enumerate(task_results):
-        mask_name = '{:}-{:}.t{:02d}.nii.gz'.format(
+        mask_name = '{:}-{:}.tb{:02d}.nii.gz'.format(
             mask_base, base_name, task_i
         )
         for subject in task_list.keys():
@@ -667,7 +664,7 @@ def main(verbose=2):
             model_base, seed
         )
         init_testing = get_test_results(
-            config, seed, json_name, 'init.s{:05d}'.format(seed), net,
+            config, seed, json_name, 'init', net,
             init_testing, all_subjects
         )
 
@@ -743,7 +740,7 @@ def main(verbose=2):
             net.load_model(starting_model)
 
             # TODO: Uncomment
-            # We test ith the initial model to know the starting point for all
+            # We test with the initial model to know the starting point for all
             # tasks
             # json_name = '{:}-baseline-init_training.s{:d}.json'.format(
             #     model_base, seed
@@ -805,22 +802,22 @@ def main(verbose=2):
                 config, seed, json_name, 'baseline', net,
                 baseline_testing, testing_set
             )
-            # TODO: Uncomment
-            # json_name = '{:}-baseline-training.f{:d}.s{:d}.json'.format(
-            #     model_base, i, seed
-            # )
-            # fold_tr_baseline = get_task_results(
-            #     config, json_name, 'baseline-train.f{:d}'.format(i), net,
-            #     fold_tr_baseline
-            # )
-            # if fold_val_baseline is not None:
-            #     json_name = '{:}-baseline-validation.f{:d}.s{:d}.json'.format(
-            #         model_base, i, seed
-            #     )
-            #     fold_val_baseline = get_task_results(
-            #         config, json_name, 'baseline-val.f{:d}'.format(i), net,
-            #         fold_val_baseline
-            #     )
+
+            json_name = '{:}-baseline-training.f{:d}.s{:d}.json'.format(
+                model_base, i, seed
+            )
+            fold_tr_baseline = get_task_results(
+                config, json_name, 'baseline-train.f{:d}'.format(i), net,
+                fold_tr_baseline
+            )
+            if fold_val_baseline is not None:
+                json_name = '{:}-baseline-validation.f{:d}.s{:d}.json'.format(
+                    model_base, i, seed
+                )
+                fold_val_baseline = get_task_results(
+                    config, json_name, 'baseline-val.f{:d}'.format(i), net,
+                    fold_val_baseline
+                )
 
             # Naive approach. We just partition the data and update the model
             # with each new batch without caring about previous samples

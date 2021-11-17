@@ -150,14 +150,12 @@ class ImagePatchesDataset(Dataset):
                     self.current_minority = deepcopy(self.minority)
                 target_data = self.minority_label
             else:
-                index -= 2 * len(self.minority)
-                flip = index >= len(self.majority)
+                flip = (index - 2 * len(self.minority)) >= len(self.majority)
                 index = np.random.randint(len(self.current_majority))
                 slice_i, case_idx = self.current_majority.pop(index)
                 if len(self.current_majority) == 0:
                     self.current_majority = deepcopy(self.majority)
                 target_data = self.majority_label
-
         else:
             flip = False
             if index < len(self.minority):
