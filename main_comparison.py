@@ -305,6 +305,7 @@ def test_images(config, mask_name, net, subject, session=None):
         segmentation_nii.to_filename(prediction_file)
     else:
         roi = get_mask(find_file(config['roi'], d_path))
+        label = get_mask(find_file(config['labels'], d_path))
         bb = get_bb(roi, 2)
         segmentation = nibabel.load(prediction_file).get_fdata()
         prediction = segmentation[bb].astype(bool)
