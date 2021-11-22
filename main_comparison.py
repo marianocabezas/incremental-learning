@@ -305,41 +305,40 @@ def test_images(config, mask_name, net, subject, session=None):
         segmentation_nii.to_filename(prediction_file)
     else:
         roi = get_mask(find_file(config['roi'], d_path))
-        # label = get_mask(find_file(config['labels'], d_path))
+        label = get_mask(find_file(config['labels'], d_path))
         bb = get_bb(roi, 2)
         segmentation = nibabel.load(prediction_file).get_fdata()
         prediction = segmentation[bb].astype(bool)
 
-    # try:
-    #     min_size = config['min_size']
-    #     prediction = remove_small_regions(prediction, min_size)
-    # except KeyError:
-    #     pass
+    try:
+        min_size = config['min_size']
+        prediction = remove_small_regions(prediction, min_size)
+    except KeyError:
+        pass
 
-    # target = label[bb].astype(bool)
-    # no_target = np.logical_not(target)
-    # target_regions, gtr = bwlabeln(target, return_num=True)
-    # no_prediction = np.logical_not(prediction)
-    # prediction_regions, r = bwlabeln(prediction, return_num=True)
-    # true_positive = np.logical_and(target, prediction)
-    # no_false_positives = np.unique(prediction_regions[true_positive])
-    # false_positive_regions = np.logical_not(
-    #     np.isin(prediction_regions, no_false_positives.tolist() + [0])
-    # )
-    # false_positive = np.logical_and(no_target, prediction)
+    target = label[bb].astype(bool)
+    no_target = np.logical_not(target)
+    target_regions, gtr = bwlabeln(target, return_num=True)
+    no_prediction = np.logical_not(prediction)
+    prediction_regions, r = bwlabeln(prediction, return_num=True)
+    true_positive = np.logical_and(target, prediction)
+    no_false_positives = np.unique(prediction_regions[true_positive])
+    false_positive_regions = np.logical_not(
+        np.isin(prediction_regions, no_false_positives.tolist() + [0])
+    )
+    false_positive = np.logical_and(no_target, prediction)
 
-    # results = {
-    #     'TPV': int(np.sum(true_positive)),
-    #     'TNV': int(np.sum(np.logical_and(no_target, no_prediction))),
-    #     'FPV': int(np.sum(false_positive)),
-    #     'FNV': int(np.sum(np.logical_and(target, no_prediction))),
-    #     'TPR': len(np.unique(target_regions[true_positive])),
-    #     'FPR': len(np.unique(prediction_regions[false_positive_regions])),
-    #     'GTR': gtr,
-    #     'R': r
-    # }
-    # return results
-    return {}
+    results = {
+        'TPV': int(np.sum(true_positive)),
+        'TNV': int(np.sum(np.logical_and(no_target, no_prediction))),
+        'FPV': int(np.sum(false_positive)),
+        'FNV': int(np.sum(np.logical_and(target, no_prediction))),
+        'TPR': len(np.unique(target_regions[true_positive])),
+        'FPR': len(np.unique(prediction_regions[false_positive_regions])),
+        'GTR': gtr,
+        'R': r
+    }
+    return results
 
 
 def test(
@@ -527,12 +526,12 @@ def get_test_results(
             config, seed, net, base_name, results,
             subjects, verbose=1
         )
-    #     TODO: Uncomment
-    #     with open(json_file, 'w') as testing_json:
-    #         json.dump(results, testing_json)
-    # else:
-    #     with open(json_file, 'r') as testing_json:
-    #         results = json.load(testing_json)
+
+        with open(json_file, 'w') as testing_json:
+            json.dump(results, testing_json)
+    else:
+        with open(json_file, 'r') as testing_json:
+            results = json.load(testing_json)
 
     return results
 
@@ -547,12 +546,12 @@ def get_task_results(
         test_tasks(
             config, net, base_name, results, verbose=1
         )
-    #     TODO: Uncomment
-    #     with open(json_file, 'w') as testing_json:
-    #         json.dump(results, testing_json)
-    # else:
-    #     with open(json_file, 'r') as testing_json:
-    #         results = json.load(testing_json)
+
+        with open(json_file, 'w') as testing_json:
+            json.dump(results, testing_json)
+    else:
+        with open(json_file, 'r') as testing_json:
+            results = json.load(testing_json)
 
     return results
 
@@ -691,9 +690,6 @@ def main(verbose=2):
                 for t in subjects_fold.values()
             ]
             if len(training_validation) == 1 or config['shuffling']:
-                # shuffled_subjects = np.random.permutation([
-                #     sub for subs in training_validation for sub in subs
-                # ])
                 shuffled_subjects = np.array([
                     sub for subs in training_validation for sub in subs
                 ])
@@ -740,37 +736,36 @@ def main(verbose=2):
             )
             net.load_model(starting_model)
 
-            # TODO: Uncomment
             # We test with the initial model to know the starting point for all
             # tasks
-            # json_name = '{:}-baseline-init_training.s{:d}.json'.format(
-            #     model_base, seed
-            # )
-            # fold_tr_baseline = get_task_results(
-            #     config, json_name, 'baseline-train.init', net,
-            #     fold_tr_baseline
-            # )
-            # json_name = '{:}-naive-init_training.s{:d}.json'.format(
-            #     model_base, seed
-            # )
-            # fold_tr_naive = get_task_results(
-            #     config, json_name, 'naive-train.init', net, fold_tr_naive
-            # )
-            # if fold_val_baseline is not None:
-            #     json_name = '{:}-baseline-init_validation.s{:d}.json'.format(
-            #         model_base, seed
-            #     )
-            #     fold_val_baseline = get_task_results(
-            #         config, json_name, 'baseline-val.init', net,
-            #         fold_val_baseline
-            #     )
-            # if fold_val_naive is not None:
-            #     json_name = '{:}-naive-init_validation.s{:d}.json'.format(
-            #         model_base, seed
-            #     )
-            #     fold_val_naive = get_task_results(
-            #         config, json_name, 'naive-val.init', net, fold_val_naive
-            #     )
+            json_name = '{:}-baseline-init_training.s{:d}.json'.format(
+                model_base, seed
+            )
+            fold_tr_baseline = get_task_results(
+                config, json_name, 'baseline-train.init', net,
+                fold_tr_baseline
+            )
+            json_name = '{:}-naive-init_training.s{:d}.json'.format(
+                model_base, seed
+            )
+            fold_tr_naive = get_task_results(
+                config, json_name, 'naive-train.init', net, fold_tr_naive
+            )
+            if fold_val_baseline is not None:
+                json_name = '{:}-baseline-init_validation.s{:d}.json'.format(
+                    model_base, seed
+                )
+                fold_val_baseline = get_task_results(
+                    config, json_name, 'baseline-val.init', net,
+                    fold_val_baseline
+                )
+            if fold_val_naive is not None:
+                json_name = '{:}-naive-init_validation.s{:d}.json'.format(
+                    model_base, seed
+                )
+                fold_val_naive = get_task_results(
+                    config, json_name, 'naive-val.init', net, fold_val_naive
+                )
 
             training_set = [
                 p for p_list in training_tasks for p in p_list
@@ -889,23 +884,23 @@ def main(verbose=2):
                 naive_training[str(seed)]['validation'].append(
                     fold_val_naive
                 )
-    # TODO: Uncomment
-    # save_results(
-    #     config, '{:}-baseline_testing.json'.format(model_base),
-    #     baseline_testing
-    # )
-    # save_results(
-    #     config, '{:}-baseline_training.json'.format(model_base),
-    #     baseline_training
-    # )
-    # save_results(
-    #     config, '{:}-naive_testing.json'.format(model_base),
-    #     naive_testing
-    # )
-    # save_results(
-    #     config, '{:}-naive_training.json'.format(model_base),
-    #     naive_training
-    # )
+
+    save_results(
+        config, '{:}-baseline_testing.json'.format(model_base),
+        baseline_testing
+    )
+    save_results(
+        config, '{:}-baseline_training.json'.format(model_base),
+        baseline_training
+    )
+    save_results(
+        config, '{:}-naive_testing.json'.format(model_base),
+        naive_testing
+    )
+    save_results(
+        config, '{:}-naive_training.json'.format(model_base),
+        naive_training
+    )
 
 
 if __name__ == '__main__':
