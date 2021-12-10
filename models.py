@@ -146,6 +146,7 @@ class MetaModel(BaseModel):
         self.init = False
         self.first = True
         self.model = basemodel
+        self.device = basemodel.device
         self.ewc_weight = ewc_weight
         self.ewc_binary = ewc_binary
 
