@@ -224,6 +224,8 @@ class MetaModel(BaseModel):
         self.optimizer_alg = self.model.optimizer_alg
 
     def forward(self, *inputs):
+        for i in inputs:
+            print(i.device)
         return self.model(*inputs)
 
     def fit(
