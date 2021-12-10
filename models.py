@@ -180,7 +180,7 @@ class MetaModel(BaseModel):
             if p.requires_grad
         ]
 
-        return torch.sum(losses)
+        return sum(losses)
 
     def fisher(self, dataloader):
         self.model.eval()
