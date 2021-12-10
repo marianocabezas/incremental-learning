@@ -867,7 +867,7 @@ def main(verbose=2):
                 )
                 model_name = os.path.join(
                     model_path,
-                    '{:}-ewc-t{:02d}.n{:d}.s{:05d}.pt'.format(
+                    '{:}-t{:02d}.n{:d}.s{:05d}.pt'.format(
                         model_base, ti, i, seed
                     )
                 )
@@ -913,7 +913,7 @@ def main(verbose=2):
                 # We train the EWC model on the current task
                 model_name = os.path.join(
                     model_path,
-                    '{:}-t{:02d}.n{:d}.s{:05d}.pt'.format(
+                    '{:}-ewc-t{:02d}.n{:d}.s{:05d}.pt'.format(
                         model_base, ti, i, seed
                     )
                 )
