@@ -721,6 +721,7 @@ def main(verbose=2):
                 training_tasks = validation_tasks = training_validation
                 fold_val_baseline = None
                 fold_val_naive = None
+                fold_val_ewc = None
             fold_tr_baseline = empty_task_results(config, training_tasks)
             fold_tr_naive = empty_task_results(config, training_tasks)
             fold_tr_ewc = empty_task_results(config, training_tasks)
