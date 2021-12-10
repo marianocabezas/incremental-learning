@@ -129,9 +129,117 @@ class SimpleUNet(BaseModel):
                 )
             )
 
+    def reset_optimiser(self):
+        model_params = filter(lambda p: p.requires_grad, self.parameters())
+        self.optimizer_alg = torch.optim.Adam(model_params)
+
     def forward(self, data):
 
         return torch.sigmoid(self.segmenter(data))
+
+
+class MetaModel(BaseModel):
+    def __init__(
+        self, basemodel, ewc_weight=20, ewc_binary=True,
+    ):
+        super().__init__()
+        self.init = False
+        self.first = True
+        self.model = basemodel
+        self.ewc_weight = ewc_weight
+        self.ewc_binary = ewc_binary
+
+        self.train_functions = self.model.train_functions + [
+            {
+                'name': 'ewc',
+                'weight': ewc_weight,
+                'f': lambda p, t: self.ewc_loss()
+            }
+        ]
+
+        self.parameters = {
+            n: {
+                'means': p.data.detach(),
+                'fisher': torch.zeros_like(p.data)
+            }
+            for n, p in self.model.named_parameters()
+            if p.requires_grad
+        }
+
+        self.optimizer_alg = self.model.optimizer_alg
+
+    def ewc_loss(self):
+        losses = [
+            torch.sum(
+                self.parameters[n]['fisher'] * (
+                        p - self.parameters[n]['means']
+                ) ** 2
+            )
+            for n, p in self.model.named_parameters()
+            if p.requires_grad
+        ]
+
+        return torch.sum(losses)
+
+    def fisher(self, dataloader):
+        self.model.eval()
+        for n, p in self.model.named_parameters():
+            if p.requires_grad:
+                self.parameters[n]['fisher'] = torch.zeros_like(p.data)
+
+        for batch_i, (x, y) in enumerate(dataloader):
+            # In case we are training the the gradient to zero.
+            self.model.zero_grad()
+
+            # First, we do a forward pass through the network.
+            if isinstance(x, list) or isinstance(x, tuple):
+                x_cuda = tuple(x_i.to(self.device) for x_i in x)
+                pred_labels = self(*x_cuda)
+            else:
+                pred_labels = self(x.to(self.device))
+            if isinstance(y, list) or isinstance(y, tuple):
+                y_cuda = tuple(y_i.to(self.device) for y_i in y)
+            else:
+                y_cuda = y.to(self.device)
+
+            if self.ewc_binary:
+                loss = F.binary_cross_entropy(
+                    pred_labels, y_cuda
+                )
+            else:
+                loss = F.nll_loss(
+                    torch.log(pred_labels), y_cuda
+                )
+            loss.backward()
+            for n, p in self.model.named_parameters:
+                if p.requires_grad:
+                    grad = p.grad.data.detach() ** 2 / len(dataloader)
+                    self.parameters[n]['fisher'] += grad
+
+    def reset_optimiser(self):
+        self.model.reset_optimiser()
+        self.optimizer_alg = self.model.optimizer_alg
+
+    def forward(self, *inputs):
+        return self.model(*inputs)
+
+    def fit(
+        self,
+        train_loader,
+        val_loader,
+        epochs=50,
+        patience=5,
+        verbose=True
+    ):
+        if self.first:
+            for loss_f in self.train_functions:
+                if loss_f['name'] is 'ewc':
+                    loss_f['weight'] = 0
+        super().fit(train_loader, val_loader, epochs, patience, verbose)
+        self.fisher(train_loader)
+        for loss_f in self.train_functions:
+            if loss_f['name'] is 'ewc':
+                loss_f['weight'] = self.ewc_weight
 
 
 class SimpleResNet(BaseModel):
@@ -225,6 +333,10 @@ class SimpleResNet(BaseModel):
                     ', '.join([vf['name'] for vf in self.val_functions])
                 )
             )
+
+    def reset_optimiser(self):
+        model_params = filter(lambda p: p.requires_grad, self.parameters())
+        self.optimizer_alg = torch.optim.Adam(model_params)
 
     def forward(self, data):
         _, features = self.extractor.encode(data)
@@ -325,6 +437,10 @@ class AttentionUNet(BaseModel):
                 )
             )
 
+    def reset_optimiser(self):
+        model_params = filter(lambda p: p.requires_grad, self.parameters())
+        self.optimizer_alg = torch.optim.Adam(model_params)
+
     def forward(self, data):
 
         return torch.sigmoid(self.segmenter(data))
@@ -418,6 +534,10 @@ class DualHeadedUNet(BaseModel):
                     ', '.join([vf['name'] for vf in self.val_functions])
                 )
             )
+
+    def reset_optimiser(self):
+        model_params = filter(lambda p: p.requires_grad, self.parameters())
+        self.optimizer_alg = torch.optim.Adam(model_params)
 
     def forward(self, source, target):
         features = self.ae(source, target)

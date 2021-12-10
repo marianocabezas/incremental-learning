@@ -416,22 +416,22 @@ class BaseModel(nn.Module):
             with torch.no_grad():
                 if isinstance(data, list) or isinstance(data, tuple):
                     batch_cuda = tuple(
-                        torch.stack([
+                        [
                             torch.from_numpy(
                                 x_i[slice(None), xslice, yslice, zslice]
                             ).type(torch.float32).to(self.device)
                             for xslice, yslice, zslice in slices
-                        ])
+                        ]
                         for x_i in data
                     )
                     seg_out = self(*batch_cuda)
                 else:
-                    batch_cuda = torch.stack([
+                    batch_cuda = [
                         torch.from_numpy(
                             data[slice(None), xslice, yslice, zslice]
                         ).type(torch.float32).to(self.device)
                         for xslice, yslice, zslice in slices
-                    ])
+                    ]
                     seg_out = self(batch_cuda)
                 torch.cuda.empty_cache()
 
@@ -447,6 +447,13 @@ class BaseModel(nn.Module):
         seg /= counts
 
         return seg
+
+    def reset_optimiser(self):
+        """
+        Abstract function to rest the optimizer.
+        :return: Nothing.
+        """
+        return None
 
     def epoch_update(self, epochs):
         """
