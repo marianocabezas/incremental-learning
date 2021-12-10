@@ -158,6 +158,8 @@ class MetaModel(BaseModel):
             }
         ]
 
+        self.val_functions = self.model.val_functions
+
         self.parameters = {
             n: {
                 'means': p.data.detach(),
