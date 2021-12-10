@@ -171,8 +171,8 @@ class MetaModel(BaseModel):
     def ewc_loss(self):
         losses = [
             torch.sum(
-                self.parameters[n]['fisher'] * (
-                        p - self.parameters[n]['means']
+                self.parameters[n]['fisher'].to(self.device) * (
+                        p - self.parameters[n]['means'].to(self.device)
                 ) ** 2
             )
             for n, p in self.model.named_parameters()
@@ -185,7 +185,10 @@ class MetaModel(BaseModel):
         self.model.eval()
         for n, p in self.model.named_parameters():
             if p.requires_grad:
-                self.parameters[n]['fisher'] = torch.zeros_like(p.data)
+                self.parameters[n]['fisher'] = torch.zeros_like(
+                    p.data
+                )
+                self.parameters[n]['means'] = p.data.detach()
 
         for batch_i, (x, y) in enumerate(dataloader):
             # In case we are training the the gradient to zero.
