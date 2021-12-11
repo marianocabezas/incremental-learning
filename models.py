@@ -203,10 +203,8 @@ class MetaModel(BaseModel):
                 pred_labels = self(*x_cuda)
             else:
                 pred_labels = self(x.to(self.device))
-            if isinstance(y, list) or isinstance(y, tuple):
-                y_cuda = tuple(y_i.to(self.device) for y_i in y)
-            else:
-                y_cuda = y.to(self.device)
+
+            y_cuda = y.type_as(pred_labels).to(self.device)
 
             if self.ewc_binary:
                 loss = F.binary_cross_entropy(
