@@ -161,7 +161,7 @@ class MetaModel(BaseModel):
 
         self.val_functions = self.model.val_functions
 
-        self.parameters = {
+        self.ewc_parameters = {
             n: {
                 'means': p.data.detach(),
                 'fisher': torch.zeros_like(p.data)
@@ -175,8 +175,8 @@ class MetaModel(BaseModel):
     def ewc_loss(self):
         losses = [
             torch.sum(
-                self.parameters[n]['fisher'].to(self.device) * (
-                        p - self.parameters[n]['means'].to(self.device)
+                self.ewc_parameters[n]['fisher'].to(self.device) * (
+                        p - self.ewc_parameters[n]['means'].to(self.device)
                 ) ** 2
             )
             for n, p in self.model.named_parameters()
@@ -189,10 +189,10 @@ class MetaModel(BaseModel):
         self.model.eval()
         for n, p in self.model.named_parameters():
             if p.requires_grad:
-                self.parameters[n]['fisher'] = torch.zeros_like(
+                self.ewc_parameters[n]['fisher'] = torch.zeros_like(
                     p.data
                 )
-                self.parameters[n]['means'] = p.data.detach()
+                self.ewc_parameters[n]['means'] = p.data.detach()
 
         for batch_i, (x, y) in enumerate(dataloader):
             # In case we are training the the gradient to zero.
@@ -219,12 +219,26 @@ class MetaModel(BaseModel):
             for n, p in self.model.named_parameters():
                 if p.requires_grad:
                     grad = p.grad.data.detach() ** 2 / len(dataloader)
-                    self.parameters[n]['fisher'] += grad
+                    self.ewc_parameters[n]['fisher'] += grad
 
     def reset_optimiser(self):
         super().reset_optimiser()
         self.model.reset_optimiser()
         self.optimizer_alg = self.model.optimizer_alg
+
+    def save_model(self, net_name):
+        net_state = {
+            'state': self.state_dict(),
+            'ewc_param': self.ewc_parameters,
+            'first': self.first
+        }
+        torch.save(net_state, net_name)
+
+    def load_model(self, net_name):
+        net_state = torch.load(net_name, map_location=self.device)
+        self.ewc_parameters = net_state['ewc_param']
+        self.first = net_state['first']
+        self.load_state_dict(net_state['state'])
 
     def forward(self, *inputs):
         return self.model(*inputs)
