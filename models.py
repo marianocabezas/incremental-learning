@@ -130,6 +130,7 @@ class SimpleUNet(BaseModel):
             )
 
     def reset_optimiser(self):
+        super().reset_optimiser()
         model_params = filter(lambda p: p.requires_grad, self.parameters())
         self.optimizer_alg = torch.optim.Adam(model_params)
 
@@ -339,6 +340,7 @@ class SimpleResNet(BaseModel):
             )
 
     def reset_optimiser(self):
+        super().reset_optimiser()
         model_params = filter(lambda p: p.requires_grad, self.parameters())
         self.optimizer_alg = torch.optim.Adam(model_params)
 
@@ -442,6 +444,7 @@ class AttentionUNet(BaseModel):
             )
 
     def reset_optimiser(self):
+        super().reset_optimiser()
         model_params = filter(lambda p: p.requires_grad, self.parameters())
         self.optimizer_alg = torch.optim.Adam(model_params)
 
@@ -540,6 +543,7 @@ class DualHeadedUNet(BaseModel):
             )
 
     def reset_optimiser(self):
+        super().reset_optimiser()
         model_params = filter(lambda p: p.requires_grad, self.parameters())
         self.optimizer_alg = torch.optim.Adam(model_params)
 
