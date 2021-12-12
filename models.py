@@ -215,7 +215,7 @@ class MetaModel(BaseModel):
                     torch.log(pred_labels), y_cuda
                 )
             loss.backward()
-            for n, p in self.model.named_parameters:
+            for n, p in self.model.named_parameters():
                 if p.requires_grad:
                     grad = p.grad.data.detach() ** 2 / len(dataloader)
                     self.parameters[n]['fisher'] += grad
