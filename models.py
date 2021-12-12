@@ -222,6 +222,7 @@ class MetaModel(BaseModel):
                     self.parameters[n]['fisher'] += grad
 
     def reset_optimiser(self):
+        super().reset_optimiser()
         self.model.reset_optimiser()
         self.optimizer_alg = self.model.optimizer_alg
 

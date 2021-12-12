@@ -922,6 +922,7 @@ def main(verbose=2):
                     model_name, 2
                 )
                 ewc_net.reset_optimiser()
+                ewc_net.first = False
 
                 # Then we test it against all the datasets and tasks
                 json_name = '{:}-ewc_test.f{:d}.s{:d}.t{:02d}.json'.format(
