@@ -93,7 +93,7 @@ def get_subjects(experiment_config):
 
 def load_image_list(path, image_list, roi):
     images = [
-        get_normalised_image(os.path.join(path, image), roi)
+        get_normalised_image(find_file(image, path), roi)
         for image in image_list
     ]
 
@@ -600,7 +600,7 @@ def main(verbose=2):
     # We want a common starting point
     subjects = get_subjects(config)
 
-    # We prepar the dictionaries that will hold the relevant segmentation and
+    # We prepare the dictionaries that will hold the relevant segmentation and
     # detection measures. That includes all positive combinations of positives
     # and negatives. Most relevant metrics like DSC come from there.
     baseline_testing = empty_test_results(config, subjects)
