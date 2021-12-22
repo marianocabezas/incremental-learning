@@ -297,7 +297,7 @@ def test_images(config, mask_name, net, subject, session=None):
         segmentation[bb] = prediction
         segmentation[np.logical_not(roi)] = 0
 
-        ref_nii = nibabel.load(os.path.join(d_path, config['labels']))
+        ref_nii = nibabel.load(find_file(config['labels'], p_path))
         segmentation_nii = nibabel.Nifti1Image(
             segmentation, ref_nii.get_qform(), ref_nii.header
         )
