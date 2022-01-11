@@ -620,6 +620,7 @@ def main(verbose=2):
         for seed in seeds
     }
     naive_training = deepcopy(baseline_training)
+    ewc_training = deepcopy(baseline_training)
 
     if isinstance(config['files'], tuple):
         n_images = len(config['files'][0])
@@ -927,9 +928,9 @@ def main(verbose=2):
                 json_name = '{:}-ewc_test.f{:d}.s{:d}.t{:02d}.json'.format(
                     model_base, i, seed, ti
                 )
-                naive_testing = get_test_results(
+                ewc_testing = get_test_results(
                     config, seed, json_name, 'ewc-test.t{:02d}'.format(ti),
-                    net, naive_testing, testing_set
+                    net, ewc_testing, testing_set
                 )
 
                 json_name = '{:}-ewc-training.f{:d}.s{:d}.t{:02d}.json'.format(
@@ -951,12 +952,16 @@ def main(verbose=2):
             # Now it's time to push the results
             baseline_training[str(seed)]['training'].append(fold_tr_baseline)
             naive_training[str(seed)]['training'].append(fold_tr_naive)
+            ewc_training[str(seed)]['training'].append(fold_tr_ewc)
             if val_split > 0:
                 baseline_training[str(seed)]['validation'].append(
                     fold_val_baseline
                 )
                 naive_training[str(seed)]['validation'].append(
                     fold_val_naive
+                )
+                ewc_training[str(seed)]['validation'].append(
+                    fold_val_ewc
                 )
 
     save_results(
@@ -974,6 +979,14 @@ def main(verbose=2):
     save_results(
         config, '{:}-naive_training.json'.format(model_base),
         naive_training
+    )
+    save_results(
+        config, '{:}-ewc_testing.json'.format(model_base),
+        ewc_testing
+    )
+    save_results(
+        config, '{:}-ewc_training.json'.format(model_base),
+        ewc_training
     )
 
 
