@@ -141,7 +141,7 @@ class SimpleUNet(BaseModel):
 
 class MetaModel(BaseModel):
     def __init__(
-        self, basemodel, ewc_weight=20, ewc_binary=True,
+        self, basemodel, ewc_weight=1e6, ewc_binary=True,
     ):
         super().__init__()
         self.init = False

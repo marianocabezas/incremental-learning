@@ -93,7 +93,7 @@ def get_subjects(experiment_config):
 
 def load_image_list(path, image_list, roi):
     images = [
-        get_normalised_image(os.path.join(path, image), roi)
+        get_normalised_image(find_file(image, path), roi)
         for image in image_list
     ]
 
@@ -106,7 +106,9 @@ def get_images(experiment_config, subject, session=None):
     if session is not None:
         p_path = os.path.join(p_path, session)
     roi = get_mask(find_file(experiment_config['roi'], p_path))
-    label = get_mask(find_file(experiment_config['labels'], p_path))
+    # TODO: fix that
+    label = 0
+    # label = get_mask(find_file(experiment_config['labels'], p_path))
     if isinstance(experiment_config['files'], tuple):
         images = tuple(
             load_image_list(p_path, file_i, roi)
@@ -182,7 +184,6 @@ def train(config, net, training, validation, model_name, verbose=0):
     :param verbose:
     """
     # Init
-    c = color_codes()
     path = config['model_path']
     epochs = config['epochs']
     patience = config['patience']
@@ -255,55 +256,104 @@ def train(config, net, training, validation, model_name, verbose=0):
         net.save_model(os.path.join(path, model_name))
 
 
-def test_images(config, net, subject, session=None):
-    roi, labels, images = get_images(
-        config, subject, session
-    )
-    if 'test_patch' in config and 'test_overlap' in config:
-        val_dataset = config['validation'](
-            [images], [labels], [roi], patch_size=config['test_patch'],
-            overlap=config['test_overlap'], balanced=False
+def test_images(config, mask_name, net, subject, session=None):
+    masks_path = config['masks_path']
+    d_path = os.path.join(config['path'], subject)
+    p_path = os.path.join(masks_path, subject)
+    if not os.path.isdir(p_path):
+        os.mkdir(p_path)
+    if session is not None:
+        p_path = os.path.join(p_path, session)
+        d_path = os.path.join(d_path, session)
+        if not os.path.isdir(p_path):
+            os.mkdir(p_path)
+
+    prediction_file = find_file(mask_name, p_path)
+    if prediction_file is None:
+
+        roi, label, images = get_images(
+            config, subject, session
         )
-    elif 'test_patch' in config:
-        val_dataset = config['validation'](
-            [images], [labels], [roi], patch_size=config['test_patch'],
-            balanced=False
+        bb = get_bb(roi, 2)
+
+        prediction_file = os.path.join(p_path, mask_name)
+        segmentation = np.zeros_like(label)
+        none_slice = (slice(None, None),)
+
+        if isinstance(images, tuple):
+            data = tuple(
+                data_i[none_slice + bb].astype(np.float32)
+                for data_i in images
+            )
+        else:
+            data = images[none_slice + bb].astype(np.float32)
+
+        try:
+            prediction = net.inference(data) > 0.5
+        except RuntimeError:
+            patch_size = config['test_patch']
+            batch_size = config['test_batch']
+            prediction = net.patch_inference(
+                data, patch_size, batch_size
+            ) > 0.5
+        segmentation[bb] = prediction
+        segmentation[np.logical_not(roi)] = 0
+
+        ref_nii = nibabel.load(find_file(config['labels'], d_path))
+        segmentation_nii = nibabel.Nifti1Image(
+            segmentation, ref_nii.get_qform(), ref_nii.header
         )
+        segmentation_nii.to_filename(prediction_file)
     else:
-        val_dataset = config['validation'](
-            [images], [labels], [roi], balanced=False
-        )
+        roi = get_mask(find_file(config['roi'], d_path))
+        label = get_mask(find_file(config['labels'], d_path))
+        bb = get_bb(roi, 2)
+        segmentation = nibabel.load(prediction_file).get_fdata()
+        prediction = segmentation[bb].astype(bool)
 
-    test_loader = DataLoader(
-        val_dataset, config['test_batch'], num_workers=32
+    try:
+        min_size = config['min_size']
+        prediction = remove_small_regions(prediction, min_size)
+    except KeyError:
+        pass
+
+    target = label[bb].astype(bool)
+    no_target = np.logical_not(target)
+    target_regions, gtr = bwlabeln(target, return_num=True)
+    no_prediction = np.logical_not(prediction)
+    prediction_regions, r = bwlabeln(prediction, return_num=True)
+    true_positive = np.logical_and(target, prediction)
+    no_false_positives = np.unique(prediction_regions[true_positive])
+    false_positive_regions = np.logical_not(
+        np.isin(prediction_regions, no_false_positives.tolist() + [0])
     )
-
-    tp = 0
-    tn = 0
-    fp = 0
-    fn = 0
-    for batch_i, (x, y) in enumerate(test_loader):
-        prediction = net.inference(x.cpu().numpy()) > 0.5
-        target = y.cpu().numpy().astype(bool)
-        no_target = np.logical_not(target)
-        no_prediction = np.logical_not(prediction)
-
-        tp += int(np.sum(np.logical_and(target, prediction)))
-        tn += int(np.sum(np.logical_and(target, prediction)))
-        fp += int(np.sum(np.logical_and(no_target, prediction)))
-        fn += int(np.sum(np.logical_and(target, no_prediction)))
+    false_positive = np.logical_and(no_target, prediction)
 
     results = {
-        'TP': tp, 'TN': tn, 'FP': fp, 'FN': fn,
+        'TPV': int(np.sum(true_positive)),
+        'TNV': int(np.sum(np.logical_and(no_target, no_prediction))),
+        'FPV': int(np.sum(false_positive)),
+        'FNV': int(np.sum(np.logical_and(target, no_prediction))),
+        'TPR': len(np.unique(target_regions[true_positive])),
+        'FPR': len(np.unique(prediction_regions[false_positive_regions])),
+        'GTR': gtr,
+        'R': r
     }
     return results
 
 
 def test(
-    config, seed, net, testing_results, testing_subjects,
+    config, seed, net, base_name, testing_results, testing_subjects,
     verbose=0
 ):
+    # Init
+    options = parse_inputs()
+    mask_base = os.path.splitext(os.path.basename(options['config']))[0]
+
     test_start = time.time()
+    mask_name = '{:}-{:}.s{:05d}.nii.gz'.format(
+        mask_base, base_name, seed
+    )
     for sub_i, subject in enumerate(testing_subjects):
         tests = len(testing_subjects) - sub_i
         test_elapsed = time.time() - test_start
@@ -323,7 +373,7 @@ def test(
                             time_to_string(test_eta),
                         ), end='\r'
                     )
-                results = test_images(config, net, subject, session)
+                results = test_images(config, mask_name, net, subject, session)
                 for r_key, r_value in results.items():
                     testing_results[subject][session][str(seed)][r_key].append(
                         r_value
@@ -337,18 +387,25 @@ def test(
                         time_to_string(test_eta),
                     ), end='\r'
                 )
-            results = test_images(config, net, subject)
+            results = test_images(config, mask_name, net, subject)
             for r_key, r_value in results.items():
                 testing_results[subject][str(seed)][r_key].append(
                     r_value
                 )
 
 
-def test_tasks(config, net, task_results, verbose=0):
+def test_tasks(config, net, base_name, task_results, verbose=0):
+    # Init
+    options = parse_inputs()
+    mask_base = os.path.splitext(os.path.basename(options['config']))[0]
+
     test_start = time.time()
     n_subjects = sum(len(task) for task in task_results)
     sub_i = 0
     for task_i, task_list in enumerate(task_results):
+        mask_name = '{:}-{:}.tb{:02d}.nii.gz'.format(
+            mask_base, base_name, task_i
+        )
         for subject in task_list.keys():
             tests = n_subjects - sub_i
             test_elapsed = time.time() - test_start
@@ -369,7 +426,7 @@ def test_tasks(config, net, task_results, verbose=0):
                                 time_to_string(test_eta),
                             ), end='\r'
                         )
-                    results = test_images(config, net, subject, session)
+                    results = test_images(config, mask_name, net, subject, session)
                     for r_key, r_value in results.items():
                         task_list[subject][session][r_key].append(
                             r_value
@@ -386,7 +443,7 @@ def test_tasks(config, net, task_results, verbose=0):
                             time_to_string(test_eta),
                         ), end='\r'
                     )
-                results = test_images(config, net, subject)
+                results = test_images(config, mask_name, net, subject)
                 for r_key, r_value in results.items():
                     task_list[subject][r_key].append(
                         r_value
@@ -396,10 +453,15 @@ def test_tasks(config, net, task_results, verbose=0):
 
 def empty_results_dict():
     results_dict = {
-        'TP': [],
-        'TN': [],
-        'FP': [],
-        'FN': [],
+        'TPV': [],
+        'TNV': [],
+        'FPV': [],
+        'FNV': [],
+        'TPR': [],
+        'FPR': [],
+        'FNR': [],
+        'GTR': [],
+        'R': [],
     }
 
     return results_dict
@@ -455,14 +517,14 @@ def empty_test_results(config, subjects):
 
 
 def get_test_results(
-    config, seed, json_name, net, results, subjects
+    config, seed, json_name, base_name, net, results, subjects
 ):
     path = config['json_path']
     json_file = find_file(json_name, path)
     if json_file is None:
         json_file = os.path.join(path, json_name)
         test(
-            config, seed, net, results,
+            config, seed, net, base_name, results,
             subjects, verbose=1
         )
 
@@ -476,14 +538,14 @@ def get_test_results(
 
 
 def get_task_results(
-    config, json_name, net, results
+    config, json_name, base_name, net, results
 ):
     path = config['json_path']
     json_file = find_file(json_name, path)
     if json_file is None:
         json_file = os.path.join(path, json_name)
         test_tasks(
-            config, net, results, verbose=1
+            config, net, base_name, results, verbose=1
         )
 
         with open(json_file, 'w') as testing_json:
@@ -521,6 +583,9 @@ def main(verbose=2):
     model_path = config['model_path']
     if not os.path.isdir(model_path):
         os.mkdir(model_path)
+    masks_path = config['masks_path']
+    if not os.path.isdir(masks_path):
+        os.mkdir(masks_path)
     json_path = config['json_path']
     if not os.path.isdir(json_path):
         os.mkdir(json_path)
@@ -537,11 +602,13 @@ def main(verbose=2):
     # We want a common starting point
     subjects = get_subjects(config)
 
-    # We prepar the dictionaries that will hold the relevant segmentation and
+    # We prepare the dictionaries that will hold the relevant segmentation and
     # detection measures. That includes all positive combinations of positives
     # and negatives. Most relevant metrics like DSC come from there.
     baseline_testing = empty_test_results(config, subjects)
     naive_testing = empty_test_results(config, subjects)
+    ewc_testing = empty_test_results(config, subjects)
+    init_testing = empty_test_results(config, subjects)
 
     # We also need dictionaries for the training tasks so we can track their
     # evolution. The main difference here, is that we need different
@@ -555,6 +622,7 @@ def main(verbose=2):
         for seed in seeds
     }
     naive_training = deepcopy(baseline_training)
+    ewc_training = deepcopy(baseline_training)
 
     if isinstance(config['files'], tuple):
         n_images = len(config['files'][0])
@@ -598,8 +666,9 @@ def main(verbose=2):
         json_name = '{:}-init_testing.s{:d}.json'.format(
             model_base, seed
         )
-        naive_testing = get_test_results(
-            config, seed, json_name, net, naive_testing, all_subjects
+        init_testing = get_test_results(
+            config, seed, json_name, 'init', net,
+            init_testing, all_subjects
         )
 
         # Cross-validation loop
@@ -624,9 +693,6 @@ def main(verbose=2):
                 for t in subjects_fold.values()
             ]
             if len(training_validation) == 1 or config['shuffling']:
-                # shuffled_subjects = np.random.permutation([
-                #     sub for subs in training_validation for sub in subs
-                # ])
                 shuffled_subjects = np.array([
                     sub for subs in training_validation for sub in subs
                 ])
@@ -653,12 +719,15 @@ def main(verbose=2):
                 ]
                 fold_val_baseline = empty_task_results(config, validation_tasks)
                 fold_val_naive = empty_task_results(config, validation_tasks)
+                fold_val_ewc = empty_task_results(config, validation_tasks)
             else:
                 training_tasks = validation_tasks = training_validation
                 fold_val_baseline = None
                 fold_val_naive = None
+                fold_val_ewc = None
             fold_tr_baseline = empty_task_results(config, training_tasks)
             fold_tr_naive = empty_task_results(config, training_tasks)
+            fold_tr_ewc = empty_task_results(config, training_tasks)
 
             # Testing set for the current fold
             testing_set = [
@@ -673,20 +742,48 @@ def main(verbose=2):
             )
             net.load_model(starting_model)
 
-            # We test ith the initial model to know the starting point for all
+            # We test with the initial model to know the starting point for all
             # tasks
+            json_name = '{:}-baseline-init_training.s{:d}.json'.format(
+                model_base, seed
+            )
+            fold_tr_baseline = get_task_results(
+                config, json_name, 'baseline-train.init', net,
+                fold_tr_baseline
+            )
             json_name = '{:}-naive-init_training.s{:d}.json'.format(
                 model_base, seed
             )
             fold_tr_naive = get_task_results(
-                config, json_name, net, fold_tr_naive
+                config, json_name, 'naive-train.init', net, fold_tr_naive
             )
+            json_name = '{:}-ewc-init_training.s{:d}.json'.format(
+                model_base, seed
+            )
+            fold_tr_ewc = get_task_results(
+                config, json_name, 'ewc-train.init', net, fold_tr_ewc
+            )
+            if fold_val_baseline is not None:
+                json_name = '{:}-baseline-init_validation.s{:d}.json'.format(
+                    model_base, seed
+                )
+                fold_val_baseline = get_task_results(
+                    config, json_name, 'baseline-val.init', net,
+                    fold_val_baseline
+                )
             if fold_val_naive is not None:
                 json_name = '{:}-naive-init_validation.s{:d}.json'.format(
                     model_base, seed
                 )
                 fold_val_naive = get_task_results(
-                    config, json_name, net, fold_val_naive
+                    config, json_name, 'naive-val.init', net, fold_val_naive
+                )
+            if fold_val_ewc is not None:
+                json_name = '{:}-ewc-init_validation.s{:d}.json'.format(
+                    model_base, seed
+                )
+                fold_val_ewc = get_task_results(
+                    config, json_name, 'ewc-val.init', net, fold_val_ewc
                 )
 
             training_set = [
@@ -717,14 +814,15 @@ def main(verbose=2):
                 model_base, i, seed
             )
             baseline_testing = get_test_results(
-                config, seed, json_name, net, baseline_testing, testing_set
+                config, seed, json_name, 'baseline', net,
+                baseline_testing, testing_set
             )
 
             json_name = '{:}-baseline-training.f{:d}.s{:d}.json'.format(
                 model_base, i, seed
             )
             fold_tr_baseline = get_task_results(
-                config, json_name, net,
+                config, json_name, 'baseline-train.f{:d}'.format(i), net,
                 fold_tr_baseline
             )
             if fold_val_baseline is not None:
@@ -732,7 +830,7 @@ def main(verbose=2):
                     model_base, i, seed
                 )
                 fold_val_baseline = get_task_results(
-                    config, json_name, net,
+                    config, json_name, 'baseline-val.f{:d}'.format(i), net,
                     fold_val_baseline
                 )
 
@@ -744,11 +842,26 @@ def main(verbose=2):
             )
             net.load_model(starting_model)
 
+            # EWC approach. We just partition the data and update the model
+            # with each new batch without caring about previous samples
+            try:
+                ewc_weight = config['ewc_weight']
+            except KeyError:
+                ewc_weight = 20
+            try:
+                ewc_binary = config['ewc_binary']
+            except KeyError:
+                ewc_binary = True
+
+            ewc_net = models.MetaModel(
+                deepcopy(net), ewc_weight, ewc_binary
+            )
+
             for ti, (training_set, validation_set) in enumerate(
                 zip(training_tasks, validation_tasks)
             ):
                 print(
-                    '{:}Starting task {:02d} fold {:} - {:02d}/{:02d} '
+                    '{:}Starting task - naive {:02d} fold {:} - {:02d}/{:02d} '
                     '({:} parameters)'.format(
                         c['clr'] + c['c'], ti + 1, c['g'] + str(i) + c['nc'],
                         test_n + 1, len(config['seeds']),
@@ -764,43 +877,93 @@ def main(verbose=2):
 
                 # We train the naive model on the current task
                 train(config, net, training_set, validation_set, model_name, 2)
-                net = config['network'](
-                    conv_filters=config['filters'],
-                    n_images=n_images
-                )
-                net.load_model(model_name)
+                net.reset_optimiser()
 
                 # Then we test it against all the datasets and tasks
                 json_name = '{:}-naive_test.f{:d}.s{:d}.t{:02d}.json'.format(
                     model_base, i, seed, ti
                 )
                 naive_testing = get_test_results(
-                    config, seed, json_name, net, naive_testing, testing_set
+                    config, seed, json_name, 'naive-test.t{:02d}'.format(ti),
+                    net, naive_testing, testing_set
                 )
 
                 json_name = '{:}-naive-training.f{:d}.s{:d}.t{:02d}.json'.format(
                     model_base, i, seed, ti
                 )
                 fold_tr_naive = get_task_results(
-                    config, json_name, net, fold_tr_naive
+                    config, json_name, 'naive-train.f{:d}.t{:02d}'.format(i, ti),
+                    net, fold_tr_naive
                 )
                 if fold_val_naive is not None:
                     json_name = '{:}-naive-validation.f{:d}.s{:d}.t{:02d}.json'.format(
                         model_base, i, seed, ti
                     )
                     fold_val_naive = get_task_results(
-                        config, json_name, net, fold_val_naive
+                        config, json_name, 'naive-val.f{:d}.t{:02d}'.format(i, ti),
+                        net, fold_val_naive
+                    )
+
+                print(
+                    '{:}Starting task - EWC {:02d} fold {:} - {:02d}/{:02d} '
+                    '({:} parameters)'.format(
+                        c['clr'] + c['c'], ti + 1, c['g'] + str(i) + c['nc'],
+                        test_n + 1, len(config['seeds']),
+                        c['b'] + str(n_param) + c['nc']
+                    )
+                )
+
+                # We train the EWC model on the current task
+                model_name = os.path.join(
+                    model_path,
+                    '{:}-ewc-t{:02d}.n{:d}.s{:05d}.pt'.format(
+                        model_base, ti, i, seed
+                    )
+                )
+                train(
+                    config, ewc_net, training_set, validation_set,
+                    model_name, 2
+                )
+                ewc_net.reset_optimiser()
+
+                # Then we test it against all the datasets and tasks
+                json_name = '{:}-ewc_test.f{:d}.s{:d}.t{:02d}.json'.format(
+                    model_base, i, seed, ti
+                )
+                ewc_testing = get_test_results(
+                    config, seed, json_name, 'ewc-test.t{:02d}'.format(ti),
+                    net, ewc_testing, testing_set
+                )
+
+                json_name = '{:}-ewc-training.f{:d}.s{:d}.t{:02d}.json'.format(
+                    model_base, i, seed, ti
+                )
+                fold_tr_ewc = get_task_results(
+                    config, json_name, 'ewc-train.f{:d}.t{:02d}'.format(i, ti),
+                    net, fold_tr_ewc
+                )
+                if fold_val_naive is not None:
+                    json_name = '{:}-ewc-validation.f{:d}.s{:d}.t{:02d}.json'.format(
+                        model_base, i, seed, ti
+                    )
+                    fold_val_ewc = get_task_results(
+                        config, json_name, 'ewc-val.f{:d}.t{:02d}'.format(i, ti),
+                        net, fold_val_ewc
                     )
 
             # Now it's time to push the results
             baseline_training[str(seed)]['training'].append(fold_tr_baseline)
             naive_training[str(seed)]['training'].append(fold_tr_naive)
+            ewc_training[str(seed)]['training'].append(fold_tr_ewc)
             if val_split > 0:
                 baseline_training[str(seed)]['validation'].append(
                     fold_val_baseline
                 )
                 naive_training[str(seed)]['validation'].append(
                     fold_val_naive
+                )
+                ewc_training[str(seed)]['validation'].append(
+                    fold_val_ewc
                 )
 
     save_results(
@@ -818,6 +981,14 @@ def main(verbose=2):
     save_results(
         config, '{:}-naive_training.json'.format(model_base),
         naive_training
+    )
+    save_results(
+        config, '{:}-ewc_testing.json'.format(model_base),
+        ewc_testing
+    )
+    save_results(
+        config, '{:}-ewc_training.json'.format(model_base),
+        ewc_training
     )
 
 
