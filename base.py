@@ -344,16 +344,23 @@ class BaseModel(nn.Module):
         self.epoch = best_e
         self.load_state_dict(self.best_state)
 
-    def inference(self, data):
+    def inference(self, data, nonbatched=True):
         with torch.no_grad():
             if isinstance(data, list) or isinstance(data, tuple):
                 x_cuda = tuple(
-                    torch.from_numpy(x_i).unsqueeze(0).to(self.device)
+                    torch.from_numpy(x_i).to(self.device)
                     for x_i in data
                 )
+                if nonbatched:
+                    x_cuda = tuple(
+                        x_i.unsqueeze(0) for x_i in x_cuda
+                    )
+
                 output = self(*x_cuda)
             else:
-                x_cuda = torch.from_numpy(data).unsqueeze(0).to(self.device)
+                x_cuda = torch.from_numpy(data).to(self.device)
+                if nonbatched:
+                    x_cuda = x_cuda.unsqueeze(0)
                 output = self(x_cuda)
             torch.cuda.empty_cache()
 
