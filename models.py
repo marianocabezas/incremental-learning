@@ -366,6 +366,9 @@ class SimpleResNet(BaseModel):
         logits = self.classifier(final_features)
         return torch.sigmoid(logits)
 
+    def inference(self, data, nonbatched=True):
+        return super().inference(data, nonbatched=False)
+
 
 class AttentionUNet(BaseModel):
     def __init__(
