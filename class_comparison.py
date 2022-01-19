@@ -272,7 +272,7 @@ def test_images(config, net, subject, session=None):
         )
     else:
         data = images.astype(np.float32)
-    prediction = net.inference(data) > 0.5
+    prediction = net.inference(data, nonbatched=True) > 0.5
 
     no_prediction = np.logical_not(prediction)
 
