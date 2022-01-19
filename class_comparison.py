@@ -280,7 +280,7 @@ def test_images(config, net, subject, session=None):
     dx_df = pd.read_csv(label_csv)
     label_dict = dx_df.set_index(dx_df.columns[0])[dx_df.columns[1]].to_dict()
     label = label_dict[subject]
-    target = label.astype(bool)
+    target = np.array(label).astype(bool)
     no_target = np.logical_not(target)
 
     tp = int(np.sum(np.logical_and(target, prediction)))
