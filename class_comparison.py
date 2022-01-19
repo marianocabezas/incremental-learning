@@ -276,7 +276,7 @@ def test_images(config, net, subject, session=None):
 
     no_prediction = np.logical_not(prediction)
 
-    label_csv = os.path.join(d_path, config['labels'])
+    label_csv = os.path.join(config['path'], config['labels'])
     dx_df = pd.read_csv(label_csv)
     label_dict = dx_df.set_index(dx_df.columns[0])[dx_df.columns[1]].to_dict()
     label = label_dict[subject]
