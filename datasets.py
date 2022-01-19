@@ -337,3 +337,39 @@ class ImageDataset(Dataset):
 
     def __len__(self):
         return len(self.labels) * 2
+
+
+class ImageClassDataset(Dataset):
+    """
+    This is a training dataset and we only want patches that
+    actually have lesions since there are lots of non-lesion voxels
+    anyways.
+    """
+    def __init__(self, cases, labels, rois):
+        # Init
+        self.labels = labels
+        self.cases = cases
+        self.rois = rois
+
+    def __getitem__(self, index):
+        flip = index >= len(self.labels)
+        if flip:
+            index -= len(self.labels)
+        data = self.cases[index].astype(np.float32)
+        target = np.array([self.labels[index]], dtype=np.uint8)
+
+        # bb = get_bb(self.masks[index])
+        # data = self.cases[index][(slice(None),) + bb].astype(np.float32)
+
+        if flip:
+            if isinstance(data, tuple):
+                data = tuple(
+                    np.fliplr(data_i).copy() for data_i in data
+                )
+            else:
+                data = np.fliplr(data).copy()
+
+        return data, target
+
+    def __len__(self):
+        return len(self.cases) * 2

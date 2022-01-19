@@ -2,6 +2,7 @@ import argparse
 import os
 import json
 import nibabel
+import pandas as pd
 import numpy as np
 import time
 import datasets
@@ -106,9 +107,11 @@ def get_images(experiment_config, subject, session=None):
     if session is not None:
         p_path = os.path.join(p_path, session)
     roi = get_mask(find_file(experiment_config['roi'], p_path))
-    # TODO: fix that
-    label = 0
-    # label = get_mask(find_file(experiment_config['labels'], p_path))
+
+    label_csv = os.path.join(d_path, experiment_config['labels'])
+    dx_df = pd.read_csv(label_csv)
+    label_dict = dx_df.set_index(dx_df.columns[0])[dx_df.columns[1]].to_dict()
+    label = label_dict[subject]
     if isinstance(experiment_config['files'], tuple):
         images = tuple(
             load_image_list(p_path, file_i, roi)
@@ -256,88 +259,37 @@ def train(config, net, training, validation, model_name, verbose=0):
         net.save_model(os.path.join(path, model_name))
 
 
-def test_images(config, mask_name, net, subject, session=None):
-    masks_path = config['masks_path']
+def test_images(config, net, subject, session=None):
     d_path = os.path.join(config['path'], subject)
-    p_path = os.path.join(masks_path, subject)
-    if not os.path.isdir(p_path):
-        os.mkdir(p_path)
-    if session is not None:
-        p_path = os.path.join(p_path, session)
-        d_path = os.path.join(d_path, session)
-        if not os.path.isdir(p_path):
-            os.mkdir(p_path)
 
-    prediction_file = find_file(mask_name, p_path)
-    if prediction_file is None:
-
-        roi, label, images = get_images(
-            config, subject, session
-        )
-        bb = get_bb(roi, 2)
-
-        prediction_file = os.path.join(p_path, mask_name)
-        segmentation = np.zeros_like(label)
-        none_slice = (slice(None, None),)
-
-        if isinstance(images, tuple):
-            data = tuple(
-                data_i[none_slice + bb].astype(np.float32)
-                for data_i in images
-            )
-        else:
-            data = images[none_slice + bb].astype(np.float32)
-
-        try:
-            prediction = net.inference(data) > 0.5
-        except RuntimeError:
-            patch_size = config['test_patch']
-            batch_size = config['test_batch']
-            prediction = net.patch_inference(
-                data, patch_size, batch_size
-            ) > 0.5
-        segmentation[bb] = prediction
-        segmentation[np.logical_not(roi)] = 0
-
-        ref_nii = nibabel.load(find_file(config['labels'], d_path))
-        segmentation_nii = nibabel.Nifti1Image(
-            segmentation, ref_nii.get_qform(), ref_nii.header
-        )
-        segmentation_nii.to_filename(prediction_file)
-    else:
-        roi = get_mask(find_file(config['roi'], d_path))
-        label = get_mask(find_file(config['labels'], d_path))
-        bb = get_bb(roi, 2)
-        segmentation = nibabel.load(prediction_file).get_fdata()
-        prediction = segmentation[bb].astype(bool)
-
-    try:
-        min_size = config['min_size']
-        prediction = remove_small_regions(prediction, min_size)
-    except KeyError:
-        pass
-
-    target = label[bb].astype(bool)
-    no_target = np.logical_not(target)
-    target_regions, gtr = bwlabeln(target, return_num=True)
-    no_prediction = np.logical_not(prediction)
-    prediction_regions, r = bwlabeln(prediction, return_num=True)
-    true_positive = np.logical_and(target, prediction)
-    no_false_positives = np.unique(prediction_regions[true_positive])
-    false_positive_regions = np.logical_not(
-        np.isin(prediction_regions, no_false_positives.tolist() + [0])
+    roi, label, images = get_images(
+        config, subject, session
     )
-    false_positive = np.logical_and(no_target, prediction)
+    if isinstance(images, tuple):
+        data = tuple(
+            data_i.astype(np.float32)
+            for data_i in images
+        )
+    else:
+        data = images.astype(np.float32)
+    prediction = net.inference(data) > 0.5
+
+    no_prediction = np.logical_not(prediction)
+
+    label_csv = os.path.join(d_path, config['labels'])
+    dx_df = pd.read_csv(label_csv)
+    label_dict = dx_df.set_index(dx_df.columns[0])[dx_df.columns[1]].to_dict()
+    label = label_dict[subject]
+    target = label.astype(bool)
+    no_target = np.logical_not(target)
+
+    tp = int(np.sum(np.logical_and(target, prediction)))
+    tn = int(np.sum(np.logical_and(target, prediction)))
+    fp = int(np.sum(np.logical_and(no_target, prediction)))
+    fn = int(np.sum(np.logical_and(target, no_prediction)))
 
     results = {
-        'TPV': int(np.sum(true_positive)),
-        'TNV': int(np.sum(np.logical_and(no_target, no_prediction))),
-        'FPV': int(np.sum(false_positive)),
-        'FNV': int(np.sum(np.logical_and(target, no_prediction))),
-        'TPR': len(np.unique(target_regions[true_positive])),
-        'FPR': len(np.unique(prediction_regions[false_positive_regions])),
-        'GTR': gtr,
-        'R': r
+        'TP': tp, 'TN': tn, 'FP': fp, 'FN': fn,
     }
     return results
 
@@ -373,7 +325,7 @@ def test(
                             time_to_string(test_eta),
                         ), end='\r'
                     )
-                results = test_images(config, mask_name, net, subject, session)
+                results = test_images(config, net, subject, session)
                 for r_key, r_value in results.items():
                     testing_results[subject][session][str(seed)][r_key].append(
                         r_value
@@ -387,7 +339,7 @@ def test(
                         time_to_string(test_eta),
                     ), end='\r'
                 )
-            results = test_images(config, mask_name, net, subject)
+            results = test_images(config, net, subject)
             for r_key, r_value in results.items():
                 testing_results[subject][str(seed)][r_key].append(
                     r_value
@@ -426,7 +378,7 @@ def test_tasks(config, net, base_name, task_results, verbose=0):
                                 time_to_string(test_eta),
                             ), end='\r'
                         )
-                    results = test_images(config, mask_name, net, subject, session)
+                    results = test_images(config, net, subject, session)
                     for r_key, r_value in results.items():
                         task_list[subject][session][r_key].append(
                             r_value
@@ -443,7 +395,7 @@ def test_tasks(config, net, base_name, task_results, verbose=0):
                             time_to_string(test_eta),
                         ), end='\r'
                     )
-                results = test_images(config, mask_name, net, subject)
+                results = test_images(config, net, subject)
                 for r_key, r_value in results.items():
                     task_list[subject][r_key].append(
                         r_value
