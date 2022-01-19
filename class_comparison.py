@@ -405,15 +405,10 @@ def test_tasks(config, net, base_name, task_results, verbose=0):
 
 def empty_results_dict():
     results_dict = {
-        'TPV': [],
-        'TNV': [],
-        'FPV': [],
-        'FNV': [],
-        'TPR': [],
-        'FPR': [],
-        'FNR': [],
-        'GTR': [],
-        'R': [],
+        'TP': [],
+        'TN': [],
+        'FP': [],
+        'FN': [],
     }
 
     return results_dict
