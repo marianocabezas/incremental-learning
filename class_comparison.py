@@ -535,9 +535,6 @@ def main(verbose=2):
     model_path = config['model_path']
     if not os.path.isdir(model_path):
         os.mkdir(model_path)
-    masks_path = config['masks_path']
-    if not os.path.isdir(masks_path):
-        os.mkdir(masks_path)
     json_path = config['json_path']
     if not os.path.isdir(json_path):
         os.mkdir(json_path)
