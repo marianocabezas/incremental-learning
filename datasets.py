@@ -355,7 +355,7 @@ class ImageClassDataset(Dataset):
         flip = index >= len(self.labels)
         if flip:
             index -= len(self.labels)
-        data = np.expand_dims(self.cases[index].astype(np.float32), axis=0)
+        data = self.cases[index].astype(np.float32)
         target = np.array([self.labels[index]], dtype=np.uint8)
 
         # bb = get_bb(self.masks[index])
