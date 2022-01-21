@@ -94,7 +94,9 @@ def get_subjects(experiment_config):
 
 def load_image_list(path, image_list, roi):
     images = [
-        get_normalised_image(find_file(image, path), roi)
+        get_normalised_image(
+            find_file(image, path), roi, masked=True
+        )
         for image in image_list
     ]
 
