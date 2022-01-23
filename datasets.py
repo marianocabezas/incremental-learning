@@ -339,7 +339,7 @@ class ImageDataset(Dataset):
         return len(self.labels) * 2
 
 
-class ImageClassDataset(Dataset):
+class BinaryImageDataset(Dataset):
     """
     This is a training dataset and we only want patches that
     actually have lesions since there are lots of non-lesion voxels
@@ -351,25 +351,41 @@ class ImageClassDataset(Dataset):
         self.cases = cases
         self.rois = rois
 
+        self.positive_cases = [
+            case for case, label in enumerate(labels) if label
+        ]
+        self.negative_cases = [
+            case for case, label in enumerate(labels) if not label
+        ]
+
+        self.positive = True
+        self.current_positive = deepcopy(self.positive_cases)
+        self.current_negative = deepcopy(self.negative_cases)
+
     def __getitem__(self, index):
-        flip = index >= len(self.labels)
-        if flip:
-            index -= len(self.labels)
-        data = self.cases[index].astype(np.float32)
-        target = np.array([self.labels[index]], dtype=np.uint8)
+        if self.positive:
+            index = np.random.randint(len(self.current_positive))
+            index = self.current_positive.pop(index)
+            if len(self.current_positive) == 0:
+                self.current_positive = deepcopy(self.positive_cases)
+            data = self.cases[index].astype(np.float32)
+            target = np.array([1], dtype=np.uint8)
+
+            self.positive = False
+        else:
+            index = np.random.randint(len(self.current_negative))
+            index = self.current_negative.pop(index)
+            if len(self.current_negative) == 0:
+                self.current_negative = deepcopy(self.negative_cases)
+            data = self.cases[index].astype(np.float32)
+            target = np.array([0], dtype=np.uint8)
+
+            self.positive = True
 
         # bb = get_bb(self.masks[index])
         # data = self.cases[index][(slice(None),) + bb].astype(np.float32)
 
-        if flip:
-            if isinstance(data, tuple):
-                data = tuple(
-                    np.fliplr(data_i).copy() for data_i in data
-                )
-            else:
-                data = np.fliplr(data).copy()
-
         return data, target
 
     def __len__(self):
-        return len(self.cases) * 2
+        return len(self.positive_cases) + len(self.negative_cases)
