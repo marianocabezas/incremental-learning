@@ -9,6 +9,7 @@ from base import Autoencoder, AttentionAutoencoder, DualAttentionAutoencoder
 from utils import time_to_string, to_torch_var
 from criteria import gendsc_loss, similarity_loss, grad_loss, accuracy
 from criteria import tp_binary_loss, tn_binary_loss, dsc_binary_loss
+from criteria import focal_loss
 
 
 def norm_f(n_f):
@@ -341,8 +342,9 @@ class SimpleResNet(BaseModel):
             {
                 'name': 'xentropy',
                 'weight': 1,
-                'f': lambda p, t: F.binary_cross_entropy(
-                    p, t.type_as(p).to(p.device),
+                # 'f': lambda p, t: F.binary_cross_entropy(
+                'f': lambda p, t: focal_loss(
+                    p, t.type_as(p).to(p.device), alpha=0.5
                 )
             }
         ]
