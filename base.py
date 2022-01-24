@@ -111,7 +111,7 @@ class BaseModel(nn.Module):
                 if self.training:
                     batch_loss.backward()
                     self.optimizer_alg.step()
-                    self.batch_update(len(data))
+                    self.batch_update(len(data), x_cuda, y_cuda)
 
             else:
                 # Validation losses (applied to the validation data)
@@ -329,7 +329,7 @@ class BaseModel(nn.Module):
             if no_improv_e == int(patience / (1 - self.dropout)):
                 break
 
-            self.epoch_update(epochs)
+            self.epoch_update(epochs, train_loader)
 
         t_end = time.time() - t_start
         t_end_s = time_to_string(t_end)
@@ -469,20 +469,23 @@ class BaseModel(nn.Module):
         self.best_opt = None
         return None
 
-    def epoch_update(self, epochs):
+    def epoch_update(self, epochs, loader):
         """
         Callback function to update something on the model after the epoch
         is finished. To be reimplemented if necessary.
         :param epochs: Maximum number of epochs
+        :param loader: Dataloader used for training
         :return: Nothing.
         """
         return None
 
-    def batch_update(self, batches):
+    def batch_update(self, batches, x, y):
         """
         Callback function to update something on the model after the batch
         is finished. To be reimplemented if necessary.
         :param batches: Maximum number of epochs
+        :param x: Training data
+        :param y: Training target
         :return: Nothing.
         """
         return None

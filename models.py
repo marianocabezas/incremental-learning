@@ -142,6 +142,7 @@ class SimpleUNet(BaseModel):
 class MetaModel(BaseModel):
     def __init__(
         self, basemodel, ewc_weight=1e6, ewc_binary=True,
+            ewc_alpha=None
     ):
         super().__init__()
         self.init = False
@@ -150,6 +151,7 @@ class MetaModel(BaseModel):
         self.device = basemodel.device
         self.ewc_weight = ewc_weight
         self.ewc_binary = ewc_binary
+        self.ewc_alpha = ewc_alpha
 
         self.train_functions = self.model.train_functions + [
             {
@@ -193,15 +195,11 @@ class MetaModel(BaseModel):
 
     def fisher(self, dataloader):
         self.model.eval()
-        for n, p in self.model.named_parameters():
-            if p.requires_grad:
-                self.ewc_parameters[n]['fisher'].append(
-                    torch.zeros_like(
-                        p.data
-                    )
-                )
-                self.ewc_parameters[n]['means'].append(p.data.detach())
-
+        new_fisher = {
+            n: torch.zeros_like(p.data)
+            for n, p in self.model.named_parameters()
+            if p.requires_grad
+        }
         for batch_i, (x, y) in enumerate(dataloader):
             # In case we are training the the gradient to zero.
             self.model.zero_grad()
@@ -227,7 +225,32 @@ class MetaModel(BaseModel):
             for n, p in self.model.named_parameters():
                 if p.requires_grad:
                     grad = p.grad.data.detach() ** 2 / len(dataloader)
-                    self.ewc_parameters[n]['fisher'][-1] += grad
+                    new_fisher[n] += grad
+
+        if self.ewc_alpha is None:
+            for n, p in self.model.named_parameters():
+                if p.requires_grad:
+                    self.ewc_parameters[n]['fisher'].append(
+                        new_fisher[n]
+                    )
+                    self.ewc_parameters[n]['means'].append(
+                        p.data.detach()
+                    )
+        else:
+            for n, p in self.model.named_parameters():
+                if p.requires_grad:
+                    self.ewc_parameters[n]['means'] = p.data.detach()
+                    if self.first:
+                        self.ewc_parameters[n]['fisher'] = new_fisher[n]
+                    else:
+                        prev_fisher = self.ewc_parameters[n]['fisher']
+                        fisher_t0 = (1 - self.ewc_alpha) * prev_fisher
+                        fisher_t1 = self.ewc_alpha * new_fisher[n]
+                        self.ewc_parameters[n]['fisher'] = (
+                            fisher_t0 + fisher_t1
+                        )
+
+        self.first = False
 
     def reset_optimiser(self):
         super().reset_optimiser()
@@ -264,11 +287,11 @@ class MetaModel(BaseModel):
                 if loss_f['name'] is 'ewc':
                     loss_f['weight'] = 0
         super().fit(train_loader, val_loader, epochs, patience, verbose)
-        self.fisher(train_loader)
+        if self.ewc_alpha is None:
+            self.fisher(train_loader)
         for loss_f in self.train_functions:
             if loss_f['name'] is 'ewc':
                 loss_f['weight'] = self.ewc_weight
-        self.first = False
 
 
 class SimpleResNet(BaseModel):
@@ -281,7 +304,8 @@ class SimpleResNet(BaseModel):
             verbose=0,
     ):
         super().__init__()
-        self.init = False
+        # self.init = False
+        self.init = True
         # Init values
         if conv_filters is None:
             self.conv_filters = [32, 64, 128, 256, 512]
@@ -308,6 +332,7 @@ class SimpleResNet(BaseModel):
             nn.ReLU(),
             norm_f(self.conv_filters[-1] // 4),
             nn.Linear(self.conv_filters[-1] // 4, 1)
+            # nn.Linear(self.conv_filters[-1] // 2, 1)
         )
         self.classifier.to(device)
 

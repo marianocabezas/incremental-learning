@@ -99,7 +99,7 @@ def f1_f(data_dict):
 
 def acc_f(data_dict):
     metric_list = [
-        (tp + tn) / (tp + tn + fp + fn)
+        (tp + tn) / (tp + tn + fp + fn) if (tp + tn + fp + fn) > 0 else 0
         for tp, tn, fp, fn in zip(
             data_dict['TP'],
             data_dict['TN'],
@@ -112,7 +112,7 @@ def acc_f(data_dict):
 
 def t0r_f(data_dict):
     metric_list = [
-        tn / (tn + fp)
+        tn / (tn + fp) if (tn + fp) > 0 else 0
         for tn, fp in zip(
             data_dict['TN'],
             data_dict['FP']
@@ -123,7 +123,7 @@ def t0r_f(data_dict):
 
 def t1r_f(data_dict):
     metric_list = [
-        tp / (tp + fn)
+        tp / (tp + fn) if (tp + fn) > 0 else 0
         for tp, fn in zip(
             data_dict['TP'],
             data_dict['FN']
