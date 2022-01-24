@@ -397,8 +397,8 @@ class SimpleResNet(BaseModel):
 
     def forward(self, data):
         _, features = self.extractor.encode(data)
-        final_features = torch.mean(features.flatten(2), dim=2)
-        # final_features = torch.max(features.flatten(2), dim=2)[0]
+        # final_features = torch.mean(features.flatten(2), dim=2)
+        final_features = torch.max(features.flatten(2), dim=2)[0]
         logits = self.classifier(final_features)
         return torch.sigmoid(logits)
 
