@@ -37,8 +37,6 @@ def focal_loss(pred, target, gamma=2.0):
 
     focal = torch.cat([focal_fg, focal_bg])
 
-    print(target)
-
     return focal.mean()
 
 

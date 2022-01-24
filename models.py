@@ -342,8 +342,8 @@ class SimpleResNet(BaseModel):
             {
                 'name': 'xentropy',
                 'weight': 1,
-                # 'f': lambda p, t: F.binary_cross_entropy(
-                'f': lambda p, t: focal_loss(
+                'f': lambda p, t: F.binary_cross_entropy(
+                # 'f': lambda p, t: focal_loss(
                     p, t.type_as(p).to(p.device)
                 )
             }
@@ -379,7 +379,7 @@ class SimpleResNet(BaseModel):
         # <Optimizer setup>
         # We do this last step after all parameters are defined
         model_params = filter(lambda p: p.requires_grad, self.parameters())
-        self.optimizer_alg = torch.optim.Adam(model_params)
+        self.optimizer_alg = torch.optim.Adam(model_params, lr=1e-4)
         if verbose > 1:
             print(
                 'Network created on device {:} with training losses '
@@ -393,7 +393,7 @@ class SimpleResNet(BaseModel):
     def reset_optimiser(self):
         super().reset_optimiser()
         model_params = filter(lambda p: p.requires_grad, self.parameters())
-        self.optimizer_alg = torch.optim.Adam(model_params)
+        self.optimizer_alg = torch.optim.Adam(model_params, lr=1e-4)
 
     def forward(self, data):
         _, features = self.extractor.encode(data)
