@@ -362,6 +362,11 @@ class BinaryImageDataset(Dataset):
         self.current_positive = deepcopy(self.positive_cases)
         self.current_negative = deepcopy(self.negative_cases)
 
+        print(
+            'Balanced dataset', 'Positives', len(self.positive_cases),
+            'Negatives', len(self.negative_cases),
+        )
+
     def __getitem__(self, index):
         if self.positive:
             index = np.random.randint(len(self.current_positive))
