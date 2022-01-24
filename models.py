@@ -202,7 +202,7 @@ class MetaModel(BaseModel):
             if p.requires_grad
         }
         for batch_i, (x, y) in enumerate(dataloader):
-            # In case we are training the the gradient to zero.
+            # In case we are training the gradient to zero.
             self.model.zero_grad()
 
             # First, we do a forward pass through the network.
@@ -224,7 +224,7 @@ class MetaModel(BaseModel):
                 )
             loss.backward()
             for n, p in self.model.named_parameters():
-                if p.requires_grad:
+                if p.requires_grad and p.grad is not None:
                     grad = p.grad.data.detach() ** 2 / len(dataloader)
                     new_fisher[n] += grad
 
