@@ -94,7 +94,8 @@ class BaseModel(nn.Module):
                 x_cuda = tuple(x_i.to(self.device) for x_i in x)
                 pred_labels = self(*x_cuda)
             else:
-                pred_labels = self(x.to(self.device))
+                x_cuda = x.to(self.device)
+                pred_labels = self(x_cuda)
             if isinstance(y, list) or isinstance(y, tuple):
                 y_cuda = tuple(y_i.to(self.device) for y_i in y)
             else:
