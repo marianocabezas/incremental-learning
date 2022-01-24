@@ -329,11 +329,11 @@ class SimpleResNet(BaseModel):
             nn.Linear(self.conv_filters[-1], self.conv_filters[-1] // 2),
             nn.ReLU(),
             norm_f(self.conv_filters[-1] // 2),
-            nn.Linear(self.conv_filters[-1] // 2, self.conv_filters[-1] // 4),
-            nn.ReLU(),
-            norm_f(self.conv_filters[-1] // 4),
-            nn.Linear(self.conv_filters[-1] // 4, 1)
-            # nn.Linear(self.conv_filters[-1] // 2, 1)
+            # nn.Linear(self.conv_filters[-1] // 2, self.conv_filters[-1] // 4),
+            # nn.ReLU(),
+            # norm_f(self.conv_filters[-1] // 4),
+            # nn.Linear(self.conv_filters[-1] // 4, 1)
+            nn.Linear(self.conv_filters[-1] // 2, 1)
         )
         self.classifier.to(device)
 
