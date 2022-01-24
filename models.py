@@ -342,8 +342,7 @@ class SimpleResNet(BaseModel):
             {
                 'name': 'xentropy',
                 'weight': 1,
-                # 'f': lambda p, t: F.binary_cross_entropy(
-                'f': lambda p, t: focal_loss(
+                'f': lambda p, t: F.binary_cross_entropy(
                     p, t.type_as(p).to(p.device)
                 )
             }
