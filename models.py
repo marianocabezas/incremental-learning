@@ -294,6 +294,10 @@ class MetaModel(BaseModel):
             if loss_f['name'] is 'ewc':
                 loss_f['weight'] = self.ewc_weight
 
+    def epoch_update(self, epochs, loader):
+        if self.ewc_alpha is not None:
+            self.fisher(loader)
+
 
 class SimpleResNet(BaseModel):
     def __init__(

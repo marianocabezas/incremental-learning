@@ -1,15 +1,13 @@
 import argparse
 import os
-import time
 import json
 import nibabel
 import numpy as np
-import pandas as pd
+import time
 import datasets
 import models
 import yaml
 import torch
-from functools import partial
 from torch.utils.data import DataLoader
 from time import strftime
 from copy import deepcopy
@@ -46,7 +44,6 @@ def parse_inputs():
 
 
 def get_subjects(experiment_config):
-    # Init
     d_path = experiment_config['path']
     multitask = False
     task = 'Continuum'
@@ -58,7 +55,6 @@ def get_subjects(experiment_config):
     except KeyError:
         pass
 
-    # Subject listing
     subjects = sorted([
         patient for patient in os.listdir(d_path)
         if os.path.isdir(os.path.join(d_path, patient))
@@ -66,8 +62,8 @@ def get_subjects(experiment_config):
     subject_dicts = {
         task: [] for task in tasks
     }
-    # Task sorting
     for pi, p in enumerate(subjects):
+
         if multitask:
             task_found = False
             for task in tasks:
@@ -104,14 +100,11 @@ def load_image_list(path, image_list, roi):
     return np.stack(images).astype(np.float16)
 
 
-def get_images_seg(experiment_config, subject, session=None):
-    # Init
+def get_images(experiment_config, subject, session=None):
     d_path = experiment_config['path']
     p_path = os.path.join(d_path, subject)
     if session is not None:
         p_path = os.path.join(p_path, session)
-
-    # Data loading
     roi = get_mask(find_file(experiment_config['roi'], p_path))
     label = get_mask(find_file(experiment_config['labels'], p_path))
     if isinstance(experiment_config['files'], tuple):
@@ -126,46 +119,12 @@ def get_images_seg(experiment_config, subject, session=None):
     return roi, label, images
 
 
-def get_images_class(experiment_config, subject, session=None):
-    # Init
-    d_path = experiment_config['path']
-    p_path = os.path.join(d_path, subject)
-
-    # Data loading
-    if session is not None:
-        p_path = os.path.join(p_path, session)
-    roi = get_mask(find_file(experiment_config['roi'], p_path))
-
-    label_csv = os.path.join(d_path, experiment_config['labels'])
-    dx_df = pd.read_csv(label_csv)
-    label_dict = dx_df.set_index(dx_df.columns[0])[dx_df.columns[1]].to_dict()
-    label = label_dict[subject]
-    if isinstance(experiment_config['files'], tuple):
-        images = tuple(
-            load_image_list(p_path, file_i, roi)
-            for file_i in experiment_config['files']
-        )
-    else:
-        images = load_image_list(
-            p_path, experiment_config['files'], roi
-        )
-    return roi, label, images
-
-
 def get_data(experiment_config, subject_list):
-    # Init
     load_start = time.time()
-    type_dict = {
-        'class': get_images_class,
-        'seg': get_images_seg,
-        'patch': get_images_seg
-    }
-    type_tag = experiment_config['type']
+
     subjects = []
     labels = []
     rois = []
-    
-    # Loading
     for pi, p in enumerate(subject_list):
         loads = len(subject_list) - pi
         load_elapsed = time.time() - load_start
@@ -182,7 +141,7 @@ def get_data(experiment_config, subject_list):
                         time_to_string(load_eta),
                     ), end='\r'
                 )
-                roi, label, images = type_dict[type_tag](
+                roi, label, images = get_images(
                     experiment_config, p['subject'], session
                 )
                 rois.append(roi)
@@ -197,7 +156,7 @@ def get_data(experiment_config, subject_list):
                     time_to_string(load_eta),
                 ), end='\r'
             )
-            roi, label, images = type_dict[type_tag](
+            roi, label, images = get_images(
                 experiment_config, p
             )
             rois.append(roi)
@@ -295,84 +254,7 @@ def train(config, net, training, validation, model_name, verbose=0):
         net.save_model(os.path.join(path, model_name))
 
 
-def test_images_class(config, net, subject, session=None):
-    roi, label, images = get_images_class(
-        config, subject, session
-    )
-    if isinstance(images, tuple):
-        data = tuple(
-            data_i.astype(np.float32)
-            for data_i in images
-        )
-    else:
-        data = images.astype(np.float32)
-    prediction = net.inference(data, nonbatched=True) > 0.5
-
-    no_prediction = np.logical_not(prediction)
-
-    label_csv = os.path.join(config['path'], config['labels'])
-    dx_df = pd.read_csv(label_csv)
-    label_dict = dx_df.set_index(dx_df.columns[0])[dx_df.columns[1]].to_dict()
-    label = label_dict[subject]
-    target = np.array(label).astype(bool)
-    no_target = np.logical_not(target)
-
-    tp = int(np.sum(np.logical_and(target, prediction)))
-    tn = int(np.sum(np.logical_and(target, prediction)))
-    fp = int(np.sum(np.logical_and(no_target, prediction)))
-    fn = int(np.sum(np.logical_and(target, no_prediction)))
-
-    results = {
-        'TP': tp, 'TN': tn, 'FP': fp, 'FN': fn,
-    }
-    return results
-
-
-def test_images_patch(config, net, subject, session=None):
-    roi, labels, images = get_images_seg(
-        config, subject, session
-    )
-    if 'test_patch' in config and 'test_overlap' in config:
-        val_dataset = config['validation'](
-            [images], [labels], [roi], patch_size=config['test_patch'],
-            overlap=config['test_overlap'], balanced=False
-        )
-    elif 'test_patch' in config:
-        val_dataset = config['validation'](
-            [images], [labels], [roi], patch_size=config['test_patch'],
-            balanced=False
-        )
-    else:
-        val_dataset = config['validation'](
-            [images], [labels], [roi], balanced=False
-        )
-
-    test_loader = DataLoader(
-        val_dataset, config['test_batch'], num_workers=32
-    )
-
-    tp = 0
-    tn = 0
-    fp = 0
-    fn = 0
-    for batch_i, (x, y) in enumerate(test_loader):
-        prediction = net.inference(x.cpu().numpy()) > 0.5
-        target = y.cpu().numpy().astype(bool)
-        no_target = np.logical_not(target)
-        no_prediction = np.logical_not(prediction)
-
-        tp += int(np.sum(np.logical_and(target, prediction)))
-        tn += int(np.sum(np.logical_and(target, prediction)))
-        fp += int(np.sum(np.logical_and(no_target, prediction)))
-        fn += int(np.sum(np.logical_and(target, no_prediction)))
-
-    results = {
-        'TP': tp, 'TN': tn, 'FP': fp, 'FN': fn,
-    }
-    return results
-
-
-def test_images_seg(config, mask_name, net, subject, session=None):
+def test_images(config, mask_name, net, subject, session=None):
     masks_path = config['masks_path']
     d_path = os.path.join(config['path'], subject)
     p_path = os.path.join(masks_path, subject)
@@ -387,7 +269,7 @@ def test_images_seg(config, mask_name, net, subject, session=None):
     prediction_file = find_file(mask_name, p_path)
     if prediction_file is None:
 
-        roi, label, images = get_images_seg(
+        roi, label, images = get_images(
             config, subject, session
         )
         bb = get_bb(roi, 2)
@@ -465,17 +347,11 @@ def test(
     # Init
     options = parse_inputs()
     mask_base = os.path.splitext(os.path.basename(options['config']))[0]
+
+    test_start = time.time()
     mask_name = '{:}-{:}.s{:05d}.nii.gz'.format(
         mask_base, base_name, seed
     )
-    type_dict = {
-        'class': test_images_class,
-        'seg': partial(test_images_seg, mask_name=mask_name),
-        'patch': test_images_patch
-    }
-    type_tag = config['type']
-
-    test_start = time.time()
     for sub_i, subject in enumerate(testing_subjects):
         tests = len(testing_subjects) - sub_i
         test_elapsed = time.time() - test_start
@@ -495,9 +371,7 @@ def test(
                             time_to_string(test_eta),
                         ), end='\r'
                     )
-                results = type_dict[type_tag](
-                    config, mask_name, net, subject, session
-                )
+                results = test_images(config, mask_name, net, subject, session)
                 for r_key, r_value in results.items():
                     testing_results[subject][session][str(seed)][r_key].append(
                         r_value
@@ -511,7 +385,7 @@ def test(
                         time_to_string(test_eta),
                     ), end='\r'
                 )
-            results = type_dict[type_tag](config, mask_name, net, subject)
+            results = test_images(config, mask_name, net, subject)
             for r_key, r_value in results.items():
                 testing_results[subject][str(seed)][r_key].append(
                     r_value
@@ -530,13 +404,6 @@ def test_tasks(config, net, base_name, task_results, verbose=0):
         mask_name = '{:}-{:}.tb{:02d}.nii.gz'.format(
             mask_base, base_name, task_i
         )
-        type_dict = {
-            'class': test_images_class,
-            'seg': partial(test_images_seg, mask_name=mask_name),
-            'patch': test_images_patch
-        }
-        type_tag = config['type']
-
         for subject in task_list.keys():
             tests = n_subjects - sub_i
             test_elapsed = time.time() - test_start
@@ -557,9 +424,7 @@ def test_tasks(config, net, base_name, task_results, verbose=0):
                                 time_to_string(test_eta),
                             ), end='\r'
                         )
-                    results = type_dict[type_tag](
-                        config, mask_name, net, subject, session
-                    )
+                    results = test_images(config, mask_name, net, subject, session)
                     for r_key, r_value in results.items():
                         task_list[subject][session][r_key].append(
                             r_value
@@ -576,7 +441,7 @@ def test_tasks(config, net, base_name, task_results, verbose=0):
                             time_to_string(test_eta),
                         ), end='\r'
                     )
-                results = type_dict[type_tag](config, mask_name, net, subject)
+                results = test_images(config, mask_name, net, subject)
                 for r_key, r_value in results.items():
                     task_list[subject][r_key].append(
                         r_value
@@ -584,7 +449,7 @@ def test_tasks(config, net, base_name, task_results, verbose=0):
             sub_i += 1
 
 
-def empty_results_dict_seg():
+def empty_results_dict():
     results_dict = {
         'TPV': [],
         'TNV': [],
@@ -600,29 +465,12 @@ def empty_results_dict_seg():
     return results_dict
 
 
-def empty_results_dict_class():
-    results_dict = {
-        'TP': [],
-        'TN': [],
-        'FP': [],
-        'FN': [],
-    }
-
-    return results_dict
-
-
 def empty_task_results(config, tasks):
-    type_dict = {
-        'class': empty_results_dict_class,
-        'seg': empty_results_dict_seg,
-        'patch': empty_results_dict_class
-    }
-    type_tag = config['type']
     if config['multisession']:
         results = [
             {
                 subject['subject']: {
-                    session: type_dict[type_tag]()
+                    session: empty_results_dict()
                     for session in subject['sessions']
                 }
                 for subject in task_list
@@ -632,7 +480,7 @@ def empty_task_results(config, tasks):
     else:
         results = [
             {
-                subject: type_dict[type_tag]()
+                subject: empty_results_dict()
                 for subject in task_list
             }
             for task_list in tasks
@@ -642,18 +490,12 @@ def empty_task_results(config, tasks):
 
 
 def empty_test_results(config, subjects):
-    type_dict = {
-        'class': empty_results_dict_class,
-        'seg': empty_results_dict_seg,
-        'patch': empty_results_dict_class
-    }
-    type_tag = config['type']
     seeds = config['seeds']
     if config['multisession']:
         results = {
             subject['subject']: {
                 session: {
-                    str(seed): type_dict[type_tag]()
+                    str(seed): empty_results_dict()
                     for seed in seeds
                 }
                 for session in subject['sessions']
@@ -663,7 +505,7 @@ def empty_test_results(config, subjects):
     else:
         results = {
             subject: {
-                str(seed): type_dict[type_tag]()
+                str(seed): empty_results_dict()
                 for seed in seeds
             }
             for t_list in subjects.values() for subject in t_list
