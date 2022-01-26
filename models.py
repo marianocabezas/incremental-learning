@@ -178,19 +178,30 @@ class MetaModel(BaseModel):
         self.optimizer_alg = self.model.optimizer_alg
 
     def ewc_loss(self):
-        losses = [
-            torch.sum(
-                fisher.to(self.device) * (
-                        p - means.to(self.device)
-                ) ** 2
-            )
-            for n, p in self.model.named_parameters()
-            for fisher, means in zip(
-                self.ewc_parameters[n]['fisher'],
-                self.ewc_parameters[n]['means']
-            )
-            if p.requires_grad
-        ]
+        if self.ewc_alpha is None:
+            losses = [
+                torch.sum(
+                    fisher.to(self.device) * (
+                            p - means.to(self.device)
+                    ) ** 2
+                )
+                for n, p in self.model.named_parameters()
+                for fisher, means in zip(
+                    self.ewc_parameters[n]['fisher'],
+                    self.ewc_parameters[n]['means']
+                )
+                if p.requires_grad
+            ]
+        else:
+            losses = [
+                torch.sum(
+                    self.ewc_parameters[n]['fisher'].to(self.device) * (
+                            p - self.ewc_parameters[n]['means'].to(self.device)
+                    ) ** 2
+                )
+                for n, p in self.model.named_parameters()
+                if p.requires_grad
+            ]
 
         return sum(losses)
 
