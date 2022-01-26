@@ -1018,7 +1018,11 @@ def main(verbose=2):
                 ewc_binary = True
 
             ewc_net = models.MetaModel(
-                deepcopy(net), ewc_weight, ewc_binary
+                config['network'](
+                    conv_filters=config['filters'],
+                    n_images=n_images
+                ),
+                ewc_weight, ewc_binary
             )
             ewc_net.model.load_model(starting_model)
 
@@ -1030,7 +1034,11 @@ def main(verbose=2):
                 ewc_alpha = 0.9
 
             ewcplus_net = models.MetaModel(
-                deepcopy(net), ewc_weight, ewc_binary, ewc_alpha
+                config['network'](
+                    conv_filters=config['filters'],
+                    n_images=n_images
+                ),
+                ewc_weight, ewc_binary, ewc_alpha
             )
             ewcplus_net.model.load_model(starting_model)
 
@@ -1058,27 +1066,33 @@ def main(verbose=2):
                 net.reset_optimiser()
 
                 # Then we test it against all the datasets and tasks
-                json_name = '{:}-naive_test.f{:d}.s{:d}.t{:02d}.json'.format(
-                    model_base, i, seed, ti
-                )
+                json_name = '{:}-naive_test.' \
+                            'f{:d}.s{:d}.t{:02d}.json'.format(
+                                model_base, i, seed, ti
+                            )
                 naive_testing = get_test_results(
                     config, seed, json_name, 'naive-test.t{:02d}'.format(ti),
                     net, naive_testing, testing_set
                 )
 
-                json_name = '{:}-naive-training.f{:d}.s{:d}.t{:02d}.json'.format(
-                    model_base, i, seed, ti
-                )
+                json_name = '{:}-naive-training.' \
+                            'f{:d}.s{:d}.t{:02d}.json'.format(
+                                model_base, i, seed, ti
+                            )
                 fold_tr_naive = get_task_results(
-                    config, json_name, 'naive-train.f{:d}.t{:02d}'.format(i, ti),
-                    net, fold_tr_naive
+                    config, json_name, 'naive-train.f{:d}.t{:02d}'.format(
+                        i, ti
+                    ), net, fold_tr_naive
                 )
                 if fold_val_naive is not None:
-                    json_name = '{:}-naive-validation.f{:d}.s{:d}.t{:02d}.json'.format(
-                        model_base, i, seed, ti
-                    )
+                    json_name = '{:}-naive-validation.' \
+                                'f{:d}.s{:d}.t{:02d}.json'.format(
+                                    model_base, i, seed, ti
+                                )
                     fold_val_naive = get_task_results(
-                        config, json_name, 'naive-val.f{:d}.t{:02d}'.format(i, ti),
+                        config, json_name, 'naive-val.f{:d}.t{:02d}'.format(
+                            i, ti
+                        ),
                         net, fold_val_naive
                     )
 
@@ -1114,12 +1128,14 @@ def main(verbose=2):
                     ewc_net, ewc_testing, testing_set
                 )
 
-                json_name = '{:}-ewc-training.f{:d}.s{:d}.t{:02d}.json'.format(
-                    model_base, i, seed, ti
-                )
+                json_name = '{:}-ewc-training.' \
+                            'f{:d}.s{:d}.t{:02d}.json'.format(
+                                model_base, i, seed, ti
+                            )
                 fold_tr_ewc = get_task_results(
-                    config, json_name, 'ewc-train.f{:d}.t{:02d}'.format(i, ti),
-                    ewc_net, fold_tr_ewc
+                    config, json_name, 'ewc-train.f{:d}.t{:02d}'.format(
+                        i, ti
+                    ), ewc_net, fold_tr_ewc
                 )
                 if fold_val_naive is not None:
                     json_name = '{:}-ewc-validation.' \
@@ -1165,16 +1181,18 @@ def main(verbose=2):
                     ewcplus_net, ewcplus_testing, testing_set
                 )
 
-                json_name = '{:}-ewc++-training.f{:d}.s{:d}.t{:02d}.json'.format(
-                    model_base, i, seed, ti
-                )
+                json_name = '{:}-ewc++-training.' \
+                            'f{:d}.s{:d}.t{:02d}.json'.format(
+                                model_base, i, seed, ti
+                            )
                 fold_tr_ewcplus = get_task_results(
-                    config, json_name, 'ewc++-train.f{:d}.t{:02d}'.format(i, ti),
-                    ewcplus_net, fold_tr_ewcplus
+                    config, json_name, 'ewc++-train.f{:d}.t{:02d}'.format(
+                        i, ti
+                    ), ewcplus_net, fold_tr_ewcplus
                 )
                 if fold_val_naive is not None:
-                    json_name = '{:}-ewc++-validation' \
-                                '.f{:d}.s{:d}.t{:02d}.json'.format(
+                    json_name = '{:}-ewc++-validation.' \
+                                'f{:d}.s{:d}.t{:02d}.json'.format(
                                     model_base, i, seed, ti
                                 )
                     fold_val_ewcplus = get_task_results(
