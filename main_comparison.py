@@ -498,7 +498,7 @@ def test(
                         ), end='\r'
                     )
                 results = type_dict[type_tag](
-                    config, mask_name, net, subject, session
+                    config, net, subject, session
                 )
                 for r_key, r_value in results.items():
                     testing_results[subject][session][str(seed)][r_key].append(
@@ -513,7 +513,7 @@ def test(
                         time_to_string(test_eta),
                     ), end='\r'
                 )
-            results = type_dict[type_tag](config, mask_name, net, subject)
+            results = type_dict[type_tag](config, net, subject)
             for r_key, r_value in results.items():
                 testing_results[subject][str(seed)][r_key].append(
                     r_value
@@ -560,7 +560,7 @@ def test_tasks(config, net, base_name, task_results, verbose=0):
                             ), end='\r'
                         )
                     results = type_dict[type_tag](
-                        config, mask_name, net, subject, session
+                        config, net, subject, session
                     )
                     for r_key, r_value in results.items():
                         task_list[subject][session][r_key].append(
@@ -578,7 +578,7 @@ def test_tasks(config, net, base_name, task_results, verbose=0):
                             time_to_string(test_eta),
                         ), end='\r'
                     )
-                results = type_dict[type_tag](config, mask_name, net, subject)
+                results = type_dict[type_tag](config, net, subject)
                 for r_key, r_value in results.items():
                     task_list[subject][r_key].append(
                         r_value
