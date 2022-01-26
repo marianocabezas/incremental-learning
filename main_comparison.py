@@ -372,7 +372,7 @@ def test_images_patch(config, net, subject, session=None):
     return results
 
 
-def test_images_seg(config, mask_name, net, subject, session=None):
+def test_images_seg(mask_name, config, net, subject, session=None):
     masks_path = config['masks_path']
     if not os.path.isdir(masks_path):
         os.mkdir(masks_path)
