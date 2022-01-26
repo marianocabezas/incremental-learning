@@ -356,7 +356,7 @@ def test_images_patch(config, net, subject, session=None):
     fp = 0
     fn = 0
     for batch_i, (x, y) in enumerate(test_loader):
-        prediction = net.inference(x.cpu().numpy()) > 0.5
+        prediction = net.inference(x.cpu().numpy(), nonbatched=False) > 0.5
         target = y.cpu().numpy().astype(bool)
         no_target = np.logical_not(target)
         no_prediction = np.logical_not(prediction)
