@@ -1020,6 +1020,7 @@ def main(verbose=2):
             ewc_net = models.MetaModel(
                 deepcopy(net), ewc_weight, ewc_binary
             )
+            ewc_net.model.load_model(starting_model)
 
             # EWC approach. We use a penalty term / regularization loss
             # to ensure previous data isn't forgotten.
@@ -1031,6 +1032,7 @@ def main(verbose=2):
             ewcplus_net = models.MetaModel(
                 deepcopy(net), ewc_weight, ewc_binary, ewc_alpha
             )
+            ewcplus_net.model.load_model(starting_model)
 
             for ti, (training_set, validation_set) in enumerate(
                 zip(training_tasks, validation_tasks)
@@ -1122,10 +1124,12 @@ def main(verbose=2):
                 if fold_val_naive is not None:
                     json_name = '{:}-ewc-validation.' \
                                 'f{:d}.s{:d}.t{:02d}.json'.format(
-                        model_base, i, seed, ti
-                    )
+                                    model_base, i, seed, ti
+                                )
                     fold_val_ewc = get_task_results(
-                        config, json_name, 'ewc-val.f{:d}.t{:02d}'.format(i, ti),
+                        config, json_name, 'ewc-val.f{:d}.t{:02d}'.format(
+                            i, ti
+                        ),
                         ewc_net, fold_val_ewc
                     )
 
@@ -1171,10 +1175,12 @@ def main(verbose=2):
                 if fold_val_naive is not None:
                     json_name = '{:}-ewc++-validation' \
                                 '.f{:d}.s{:d}.t{:02d}.json'.format(
-                        model_base, i, seed, ti
-                    )
+                                    model_base, i, seed, ti
+                                )
                     fold_val_ewcplus = get_task_results(
-                        config, json_name, 'ewc++-val.f{:d}.t{:02d}'.format(i, ti),
+                        config, json_name, 'ewc++-val.f{:d}.t{:02d}'.format(
+                            i, ti
+                        ),
                         ewcplus_net, fold_val_ewcplus
                     )
 
