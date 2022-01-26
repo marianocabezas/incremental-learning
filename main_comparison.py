@@ -372,7 +372,7 @@ def test_images_patch(config, net, subject, session=None):
     return results
 
 
-def test_images_seg(mask_name, config, net, subject, session=None):
+def test_images_seg(config, mask_name, net, subject, session=None):
     masks_path = config['masks_path']
     if not os.path.isdir(masks_path):
         os.mkdir(masks_path)
@@ -498,7 +498,7 @@ def test(
                         ), end='\r'
                     )
                 results = type_dict[type_tag](
-                    config, net, subject, session
+                    config=config, net=net, subject=subject, session=session
                 )
                 for r_key, r_value in results.items():
                     testing_results[subject][session][str(seed)][r_key].append(
@@ -513,7 +513,9 @@ def test(
                         time_to_string(test_eta),
                     ), end='\r'
                 )
-            results = type_dict[type_tag](config, net, subject)
+            results = type_dict[type_tag](
+                config=config, net=net, subject=subject
+            )
             for r_key, r_value in results.items():
                 testing_results[subject][str(seed)][r_key].append(
                     r_value
@@ -560,7 +562,7 @@ def test_tasks(config, net, base_name, task_results, verbose=0):
                             ), end='\r'
                         )
                     results = type_dict[type_tag](
-                        config, net, subject, session
+                        config=config, net=net, subject=subject, session=session
                     )
                     for r_key, r_value in results.items():
                         task_list[subject][session][r_key].append(
@@ -578,7 +580,9 @@ def test_tasks(config, net, base_name, task_results, verbose=0):
                             time_to_string(test_eta),
                         ), end='\r'
                     )
-                results = type_dict[type_tag](config, net, subject)
+                results = type_dict[type_tag](
+                    config=config, net=net, subject=subject
+                )
                 for r_key, r_value in results.items():
                     task_list[subject][r_key].append(
                         r_value
