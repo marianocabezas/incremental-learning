@@ -1011,7 +1011,7 @@ def main(verbose=2):
             try:
                 ewc_weight = config['ewc_weight']
             except KeyError:
-                ewc_weight = 20
+                ewc_weight = 1e6
             try:
                 ewc_binary = config['ewc_binary']
             except KeyError:
