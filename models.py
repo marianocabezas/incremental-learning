@@ -309,8 +309,7 @@ class SimpleResNet(BaseModel):
             verbose=0,
     ):
         super().__init__()
-        # self.init = False
-        self.init = True
+        self.init = False
         # Init values
         if conv_filters is None:
             self.conv_filters = [32, 64, 128, 256, 512]

@@ -1035,6 +1035,7 @@ def main(verbose=2):
             for ti, (training_set, validation_set) in enumerate(
                 zip(training_tasks, validation_tasks)
             ):
+                # < NAIVE >
                 print(
                     '{:}Starting task - naive {:02d} fold {:} - {:02d}/{:02d} '
                     '({:} parameters)'.format(
@@ -1043,15 +1044,14 @@ def main(verbose=2):
                         c['b'] + str(n_param) + c['nc']
                     )
                 )
+
+                # We train the naive model on the current task
                 model_name = os.path.join(
                     model_path,
                     '{:}-t{:02d}.n{:d}.s{:05d}.pt'.format(
                         model_base, ti, i, seed
                     )
                 )
-
-                # < NAIVE >
-                # We train the naive model on the current task
                 train(config, net, training_set, validation_set, model_name, 2)
                 net.reset_optimiser()
 
@@ -1080,6 +1080,7 @@ def main(verbose=2):
                         net, fold_val_naive
                     )
 
+                # < EWC >
                 print(
                     '{:}Starting task - EWC {:02d} fold {:} - {:02d}/{:02d} '
                     '({:} parameters)'.format(
@@ -1089,7 +1090,6 @@ def main(verbose=2):
                     )
                 )
 
-                # < EWC >
                 # We train the EWC model on the current task
                 model_name = os.path.join(
                     model_path,
@@ -1150,7 +1150,7 @@ def main(verbose=2):
                     config, ewcplus_net, training_set, validation_set,
                     model_name, 2
                 )
-                ewc_net.reset_optimiser()
+                ewcplus_net.reset_optimiser()
 
                 # Then we test it against all the datasets and tasks
                 json_name = '{:}-ewc++_test.f{:d}.s{:d}.t{:02d}.json'.format(
