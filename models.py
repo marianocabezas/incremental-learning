@@ -146,7 +146,7 @@ class MetaModel(BaseModel):
             ewc_alpha=None
     ):
         super().__init__()
-        self.init = False
+        self.init = basemodel.init
         self.first = True
         self.model = basemodel
         self.device = basemodel.device
@@ -309,7 +309,7 @@ class SimpleResNet(BaseModel):
             verbose=0,
     ):
         super().__init__()
-        self.init = False
+        self.init = True
         # Init values
         if conv_filters is None:
             self.conv_filters = [32, 64, 128, 256, 512]
