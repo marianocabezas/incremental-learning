@@ -318,7 +318,7 @@ def test_images_class(config, net, subject, session=None):
     no_target = np.logical_not(target)
 
     tp = int(np.sum(np.logical_and(target, prediction)))
-    tn = int(np.sum(np.logical_and(target, prediction)))
+    tn = int(np.sum(np.logical_and(no_target, no_prediction)))
     fp = int(np.sum(np.logical_and(no_target, prediction)))
     fn = int(np.sum(np.logical_and(target, no_prediction)))
 
