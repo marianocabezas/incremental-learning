@@ -374,6 +374,8 @@ def test_images_patch(config, net, subject, session=None):
 
 def test_images_seg(config, mask_name, net, subject, session=None):
     masks_path = config['masks_path']
+    if not os.path.isdir(masks_path):
+        os.mkdir(masks_path)
     d_path = os.path.join(config['path'], subject)
     p_path = os.path.join(masks_path, subject)
     if not os.path.isdir(p_path):
@@ -739,9 +741,6 @@ def main(verbose=2):
     model_path = config['model_path']
     if not os.path.isdir(model_path):
         os.mkdir(model_path)
-    masks_path = config['masks_path']
-    if not os.path.isdir(masks_path):
-        os.mkdir(masks_path)
     json_path = config['json_path']
     if not os.path.isdir(json_path):
         os.mkdir(json_path)
