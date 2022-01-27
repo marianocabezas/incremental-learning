@@ -178,7 +178,7 @@ class MetaModel(BaseModel):
         self.optimizer_alg = self.model.optimizer_alg
 
     def ewc_loss(self):
-        if self.ewc_alpha is None:
+        if self.ewc_alpha is None or self.epoch == 0:
             losses = [
                 torch.sum(
                     fisher.to(self.device) * (
@@ -308,6 +308,10 @@ class MetaModel(BaseModel):
     def epoch_update(self, epochs, loader):
         if self.ewc_alpha is not None and self.epoch > 0:
             self.fisher(loader)
+        else:
+            for loss_f in self.train_functions:
+                if loss_f['name'] is 'ewc':
+                    loss_f['weight'] = self.ewc_weight
 
 
 class SimpleResNet(BaseModel):
