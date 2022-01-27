@@ -311,7 +311,6 @@ class MetaModel(BaseModel):
             if self.epoch == 0:
                 for loss_f in self.train_functions:
                     if loss_f['name'] is 'ewc':
-                        print(loss_f['name'], self.ewc_weight)
                         loss_f['weight'] = self.ewc_weight
 
 
