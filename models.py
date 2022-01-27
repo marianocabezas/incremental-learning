@@ -306,7 +306,7 @@ class MetaModel(BaseModel):
                 loss_f['weight'] = self.ewc_weight
 
     def epoch_update(self, epochs, loader):
-        if self.ewc_alpha is not None:
+        if self.ewc_alpha is not None and self.epoch > 0:
             self.fisher(loader)
 
 
