@@ -253,6 +253,7 @@ class MetaModel(BaseModel):
                 if p.requires_grad:
                     self.ewc_parameters[n]['means'] = p.data.detach()
                     if self.first:
+                        print('test')
                         self.ewc_parameters[n]['fisher'] = new_fisher[n]
                     else:
                         prev_fisher = self.ewc_parameters[n]['fisher']
