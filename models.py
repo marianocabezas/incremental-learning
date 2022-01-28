@@ -178,7 +178,7 @@ class MetaModel(BaseModel):
         self.optimizer_alg = self.model.optimizer_alg
 
     def ewc_loss(self):
-        if self.ewc_alpha is None or self.epoch == 0:
+        if self.ewc_alpha is None:
             losses = [
                 torch.sum(
                     fisher.to(self.device) * (
@@ -193,15 +193,18 @@ class MetaModel(BaseModel):
                 if p.requires_grad
             ]
         else:
-            losses = [
-                torch.sum(
-                    self.ewc_parameters[n]['fisher'].to(self.device) * (
-                            p - self.ewc_parameters[n]['means'].to(self.device)
-                    ) ** 2
-                )
-                for n, p in self.model.named_parameters()
-                if p.requires_grad
-            ]
+            if not self.first:
+                losses = [
+                    torch.sum(
+                        self.ewc_parameters[n]['fisher'].to(self.device) * (
+                                p - self.ewc_parameters[n]['means'].to(self.device)
+                        ) ** 2
+                    )
+                    for n, p in self.model.named_parameters()
+                    if p.requires_grad
+                ]
+            else:
+                losses = []
 
         return sum(losses)
 
