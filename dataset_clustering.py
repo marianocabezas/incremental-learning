@@ -389,9 +389,9 @@ def main(verbose=2):
             )
         )
         print(
-            '{:}Starting data embedding - {:02d}/{:02d} '
+            '{:}Starting data embedding{:} - {:02d}/{:02d} '
             '({:} parameters)'.format(
-                c['clr'] + c['c'], test_n + 1, len(config['seeds']),
+                c['clr'] + c['c'], c['nc'], test_n + 1, len(config['seeds']),
                 c['b'] + str(n_param) + c['nc']
             )
         )
