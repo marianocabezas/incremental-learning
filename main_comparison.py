@@ -25,8 +25,9 @@ from utils import color_codes, time_to_string, remove_small_regions
 
 def parse_inputs():
     parser = argparse.ArgumentParser(
-        description='Do cross-calidation of the ALS/healthy subjects using '
-                    'pre-training, attention gates and other stuff.'
+        description='Train models with incremental learning approaches and '
+                    'test them to obtain timeseries metrics of simple'
+                    'overlap concepts.'
     )
 
     # Mode selector

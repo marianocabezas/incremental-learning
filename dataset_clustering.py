@@ -19,8 +19,8 @@ from utils import color_codes, time_to_string
 
 def parse_inputs():
     parser = argparse.ArgumentParser(
-        description='Do cross-calidation of the ALS/healthy subjects using '
-                    'pre-training, attention gates and other stuff.'
+        description='Train a model and then cluster the images according to '
+                    'their model-based features.'
     )
 
     # Mode selector
@@ -330,7 +330,7 @@ def main(verbose=2):
     # Main loop with all the seeds
     for test_n, seed in enumerate(seeds):
         print(
-            '{:}[{:}] {:}Starting cross-validation (model: {:}){:}'
+            '{:}[{:}] {:}Starting training (model: {:}){:}'
             ' (seed {:d}){:}'.format(
                 c['clr'] + c['c'], strftime("%H:%M:%S"), c['g'], model_base,
                 c['nc'] + c['y'], seed, c['nc']
