@@ -425,6 +425,27 @@ class SimpleResNet(BaseModel):
     def inference(self, data, nonbatched=False):
         return super().inference(data, nonbatched=nonbatched)
 
+    def embeddings(self, data, nonbatched=False):
+        with torch.no_grad():
+            if isinstance(data, list) or isinstance(data, tuple):
+                x_cuda = tuple(
+                    torch.from_numpy(x_i).to(self.device)
+                    for x_i in data
+                )
+                if nonbatched:
+                    x_cuda = tuple(
+                        x_i.unsqueeze(0) for x_i in x_cuda
+                    )
+                _, features = self.extractor.encode(*x_cuda)
+            else:
+                x_cuda = torch.from_numpy(data).to(self.device)
+                if nonbatched:
+                    x_cuda = x_cuda.unsqueeze(0)
+                _, features = self.extractor.encode(x_cuda)
+            torch.cuda.empty_cache()
+
+        return features.cpu().numpy()
+
 
 class AttentionUNet(BaseModel):
     def __init__(

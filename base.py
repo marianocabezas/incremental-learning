@@ -345,6 +345,9 @@ class BaseModel(nn.Module):
         self.epoch = best_e
         self.load_state_dict(self.best_state)
 
+    def embeddings(self, data, nonbatched=True):
+        return self.inference(data, nonbatched)
+
     def inference(self, data, nonbatched=True):
         with torch.no_grad():
             if isinstance(data, list) or isinstance(data, tuple):
