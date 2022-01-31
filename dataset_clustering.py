@@ -218,8 +218,10 @@ def train(config, net, training, validation, model_name, verbose=0):
     """
     # Init
     path = config['model_path']
-    epochs = config['epochs']
-    patience = config['patience']
+    epochs = 10
+    # epochs = config['epochs']
+    patience = epochs
+    # patience = config['patience']
 
     try:
         net.load_model(os.path.join(path, model_name))
