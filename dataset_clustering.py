@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 from time import strftime
 import datasets
 import models
+from main_comparison import get_images_class, get_images_seg
 from utils import find_file, get_mask, get_normalised_image
 from utils import color_codes, time_to_string
 
@@ -96,54 +97,6 @@ def load_image_list(path, image_list, roi):
     ]
 
     return np.stack(images).astype(np.float16)
-
-
-def get_images_seg(experiment_config, subject, session=None):
-    # Init
-    d_path = experiment_config['path']
-    p_path = os.path.join(d_path, subject)
-    if session is not None:
-        p_path = os.path.join(p_path, session)
-
-    # Data loading
-    roi = get_mask(find_file(experiment_config['roi'], p_path))
-    label = get_mask(find_file(experiment_config['labels'], p_path))
-    if isinstance(experiment_config['files'], tuple):
-        images = tuple(
-            load_image_list(p_path, file_i, roi)
-            for file_i in experiment_config['files']
-        )
-    else:
-        images = load_image_list(
-            p_path, experiment_config['files'], roi
-        )
-    return roi, label, images
-
-
-def get_images_class(experiment_config, subject, session=None):
-    # Init
-    d_path = experiment_config['path']
-    p_path = os.path.join(d_path, subject)
-
-    # Data loading
-    if session is not None:
-        p_path = os.path.join(p_path, session)
-    roi = get_mask(find_file(experiment_config['roi'], p_path))
-
-    label_csv = os.path.join(d_path, experiment_config['labels'])
-    dx_df = pd.read_csv(label_csv)
-    label_dict = dx_df.set_index(dx_df.columns[0])[dx_df.columns[1]].to_dict()
-    label = label_dict[subject]
-    if isinstance(experiment_config['files'], tuple):
-        images = tuple(
-            load_image_list(p_path, file_i, roi)
-            for file_i in experiment_config['files']
-        )
-    else:
-        images = load_image_list(
-            p_path, experiment_config['files'], roi
-        )
-    return roi, label, images
 
 
 def get_data(experiment_config, subject_list):
@@ -326,8 +279,10 @@ def main(verbose=2):
 
     if isinstance(config['files'], tuple):
         n_images = len(config['files'][0])
-    else:
+    elif isinstance(config['files'], list):
         n_images = len(config['files'])
+    else:
+        n_images = 1
 
     # Main loop with all the seeds
     for test_n, seed in enumerate(seeds):
