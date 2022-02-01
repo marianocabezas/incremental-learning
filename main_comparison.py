@@ -141,6 +141,7 @@ def get_images_class(experiment_config, subject, session=None):
     dx_df = pd.read_csv(label_csv)
     label_dict = dx_df.set_index(dx_df.columns[0])[dx_df.columns[1]].to_dict()
     label = label_dict[subject]
+    print(subject, experiment_config['files'])
     if isinstance(experiment_config['files'], tuple):
         images = tuple(
             load_image_list(p_path, file_i, roi)
