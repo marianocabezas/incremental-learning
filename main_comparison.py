@@ -788,6 +788,8 @@ def main(verbose=2):
 
     if isinstance(config['files'], tuple):
         n_images = len(config['files'][0])
+    elif isinstance(config['files'], list):
+        n_images = len(config['files'])
     else:
         n_images = 1
 
