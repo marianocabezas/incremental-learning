@@ -300,11 +300,6 @@ def main(verbose=2):
             conv_filters=config['filters'],
             n_images=n_images
         )
-        starting_model = os.path.join(
-            model_path,
-            '{:}-start.s{:05d}.pt'.format(model_base, seed)
-        )
-        net.save_model(starting_model)
         n_param = sum(
             p.numel() for p in net.parameters() if p.requires_grad
         )
