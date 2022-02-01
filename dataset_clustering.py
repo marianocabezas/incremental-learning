@@ -359,7 +359,7 @@ def main(verbose=2):
                 p for p in np.random.permutation([
                     sub for sub in t_list
                 ]).tolist()
-             ]
+            ]
             for t_list in subjects.values()
         ]
 
