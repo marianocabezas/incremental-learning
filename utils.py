@@ -244,6 +244,7 @@ def get_normalised_image(
         # Parameter estimation using the mask provided
         image_mu = np.mean(image[mask_bin])
         image_sigma = np.std(image[mask_bin])
+        print(image_mu, image_sigma, image_name)
         if masked:
             image = image * mask_bin.astype(image.dtype)
 
