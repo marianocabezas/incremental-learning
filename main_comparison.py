@@ -141,7 +141,6 @@ def get_images_class(experiment_config, subject, session=None):
     dx_df = pd.read_csv(label_csv)
     label_dict = dx_df.set_index(dx_df.columns[0])[dx_df.columns[1]].to_dict()
     label = label_dict[subject]
-    print(subject, experiment_config['files'])
     if isinstance(experiment_config['files'], tuple):
         images = tuple(
             load_image_list(p_path, file_i, roi)
@@ -790,7 +789,7 @@ def main(verbose=2):
     if isinstance(config['files'], tuple):
         n_images = len(config['files'][0])
     else:
-        n_images = len(config['files'])
+        n_images = 1
 
     # Main loop with all the seeds
     for test_n, seed in enumerate(seeds):
