@@ -122,7 +122,7 @@ def get_images_seg(experiment_config, subject, session=None):
         )
     else:
         images = load_image_list(
-            p_path, experiment_config['files'], roi
+            p_path, [experiment_config['files']], roi
         )
     return roi, label, images
 
@@ -149,7 +149,7 @@ def get_images_class(experiment_config, subject, session=None):
         )
     else:
         images = load_image_list(
-            p_path, experiment_config['files'], roi
+            p_path, [experiment_config['files']], roi
         )
     return roi, label, images
 
