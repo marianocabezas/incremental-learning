@@ -120,6 +120,10 @@ def get_images_seg(experiment_config, subject, session=None):
             load_image_list(p_path, file_i, roi)
             for file_i in experiment_config['files']
         )
+    elif isinstance(experiment_config['files'], list):
+        images = load_image_list(
+            p_path, experiment_config['files'], roi
+        )
     else:
         images = load_image_list(
             p_path, [experiment_config['files']], roi
@@ -145,6 +149,10 @@ def get_images_class(experiment_config, subject, session=None):
         images = tuple(
             load_image_list(p_path, file_i, roi)
             for file_i in experiment_config['files']
+        )
+    elif isinstance(experiment_config['files'], list):
+        images = load_image_list(
+            p_path, experiment_config['files'], roi
         )
     else:
         images = load_image_list(
