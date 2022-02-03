@@ -260,7 +260,7 @@ class MetaModel(BaseModel):
                     else:
                         prev_fisher = self.ewc_parameters[n]['fisher']
                         fisher_t0 = (1 - self.ewc_alpha) * prev_fisher
-                        fisher_t1 = self.ewc_alpha * new_fisher[n].cpu()
+                        fisher_t1 = self.ewc_alpha * new_fisher[n]
                         self.ewc_parameters[n]['fisher'] = (
                             fisher_t0 + fisher_t1
                         )
@@ -444,7 +444,9 @@ class SimpleResNet(BaseModel):
                 _, features = self.extractor.encode(x_cuda)
             torch.cuda.empty_cache()
 
-        return features.cpu().numpy()
+        embeddings = torch.max(features.flatten(2), dim=2)[0]
+
+        return embeddings.cpu().numpy()
 
 
 class AttentionUNet(BaseModel):
