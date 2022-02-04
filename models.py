@@ -262,7 +262,7 @@ class MetaModel(BaseModel):
                         fisher_t0 = (1 - self.ewc_alpha) * prev_fisher
                         fisher_t1 = self.ewc_alpha * new_fisher[n]
                         self.ewc_parameters[n]['fisher'] = (
-                            fisher_t0 + fisher_t1
+                            fisher_t0.to(fisher_t1.device) + fisher_t1
                         )
 
         self.first = False
