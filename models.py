@@ -302,8 +302,7 @@ class MetaModel(BaseModel):
                 if loss_f['name'] is 'ewc':
                     loss_f['weight'] = 0
         super().fit(train_loader, val_loader, epochs, patience, verbose)
-        if self.ewc_alpha is None:
-            self.fisher(train_loader)
+        self.fisher(train_loader)
         for loss_f in self.train_functions:
             if loss_f['name'] is 'ewc':
                 loss_f['weight'] = self.ewc_weight
