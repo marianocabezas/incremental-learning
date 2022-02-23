@@ -852,7 +852,7 @@ def main(verbose=2):
             }
             for t_key, t_list in subjects.items()
         }
-        json_name = 'subjects-s{:d}.json'.format(seed)
+        json_name = '{:}-subjects-s{:d}.json'.format(model_base, seed)
         json_file = os.path.join(json_path, json_name)
         with open(json_file, 'w') as testing_json:
             json.dump(subjects_fold, testing_json)
