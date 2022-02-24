@@ -775,7 +775,7 @@ def main(verbose=2):
     # and negatives. Most relevant metrics like DSC come from there.
     baseline_testing = empty_test_results(config, subjects)
     naive_testing = empty_test_results(config, subjects)
-    # ewc_testing = empty_test_results(config, subjects)
+    ewc_testing = empty_test_results(config, subjects)
     # ewcplus_testing = empty_test_results(config, subjects)
     init_testing = empty_test_results(config, subjects)
 
@@ -791,7 +791,7 @@ def main(verbose=2):
         for seed in seeds
     }
     naive_training = deepcopy(baseline_training)
-    # ewc_training = deepcopy(baseline_training)
+    ewc_training = deepcopy(baseline_training)
     # ewcplus_training = deepcopy(baseline_training)
 
     if isinstance(config['files'], tuple):
@@ -896,17 +896,17 @@ def main(verbose=2):
                 ]
                 fold_val_baseline = empty_task_results(config, validation_tasks)
                 fold_val_naive = empty_task_results(config, validation_tasks)
-                # fold_val_ewc = empty_task_results(config, validation_tasks)
+                fold_val_ewc = empty_task_results(config, validation_tasks)
                 # fold_val_ewcplus = empty_task_results(config, validation_tasks)
             else:
                 training_tasks = validation_tasks = training_validation
                 fold_val_baseline = None
                 fold_val_naive = None
-                # fold_val_ewc = None
+                fold_val_ewc = None
                 # fold_val_ewcplus = None
             fold_tr_baseline = empty_task_results(config, training_tasks)
             fold_tr_naive = empty_task_results(config, training_tasks)
-            # fold_tr_ewc = empty_task_results(config, training_tasks)
+            fold_tr_ewc = empty_task_results(config, training_tasks)
             # fold_tr_ewcplus = empty_task_results(config, training_tasks)
 
             # Testing set for the current fold
@@ -937,12 +937,12 @@ def main(verbose=2):
             fold_tr_naive = get_task_results(
                 config, json_name, 'naive-train.init', net, fold_tr_naive
             )
-            # json_name = '{:}-ewc-init_training.s{:d}.json'.format(
-            #     model_base, seed
-            # )
-            # fold_tr_ewc = get_task_results(
-            #     config, json_name, 'ewc-train.init', net, fold_tr_ewc
-            # )
+            json_name = '{:}-ewc-init_training.s{:d}.json'.format(
+                model_base, seed
+            )
+            fold_tr_ewc = get_task_results(
+                config, json_name, 'ewc-train.init', net, fold_tr_ewc
+            )
             if fold_val_baseline is not None:
                 json_name = '{:}-baseline-init_validation.s{:d}.json'.format(
                     model_base, seed
@@ -958,13 +958,13 @@ def main(verbose=2):
                 fold_val_naive = get_task_results(
                     config, json_name, 'naive-val.init', net, fold_val_naive
                 )
-            # if fold_val_ewc is not None:
-            #     json_name = '{:}-ewc-init_validation.s{:d}.json'.format(
-            #         model_base, seed
-            #     )
-            #     fold_val_ewc = get_task_results(
-            #         config, json_name, 'ewc-val.init', net, fold_val_ewc
-            #     )
+            if fold_val_ewc is not None:
+                json_name = '{:}-ewc-init_validation.s{:d}.json'.format(
+                    model_base, seed
+                )
+                fold_val_ewc = get_task_results(
+                    config, json_name, 'ewc-val.init', net, fold_val_ewc
+                )
 
             training_set = [
                 p for p_list in training_tasks for p in p_list
@@ -1024,23 +1024,23 @@ def main(verbose=2):
 
             # EWC approach. We use a penalty term / regularization loss
             # to ensure previous data isn't forgotten.
-            # try:
-            #     ewc_weight = config['ewc_weight']
-            # except KeyError:
-            #     ewc_weight = 1e6
-            # try:
-            #     ewc_binary = config['ewc_binary']
-            # except KeyError:
-            #     ewc_binary = True
-            #
-            # ewc_net = models.MetaModel(
-            #     config['network'](
-            #         conv_filters=config['filters'],
-            #         n_images=n_images
-            #     ),
-            #     ewc_weight, ewc_binary
-            # )
-            # ewc_net.model.load_model(starting_model)
+            try:
+                ewc_weight = config['ewc_weight']
+            except KeyError:
+                ewc_weight = 1e6
+            try:
+                ewc_binary = config['ewc_binary']
+            except KeyError:
+                ewc_binary = True
+
+            ewc_net = models.MetaModel(
+                config['network'](
+                    conv_filters=config['filters'],
+                    n_images=n_images
+                ),
+                ewc_weight, ewc_binary
+            )
+            ewc_net.model.load_model(starting_model)
 
             # EWC approach. We use a penalty term / regularization loss
             # to ensure previous data isn't forgotten.
@@ -1113,66 +1113,66 @@ def main(verbose=2):
                     )
 
                 # < EWC >
-                # print(
-                #     '{:}Starting task - EWC {:02d} fold {:} - {:02d}/{:02d} '
-                #     '({:} parameters)'.format(
-                #         c['clr'] + c['c'], ti + 1, c['g'] + str(i) + c['nc'],
-                #         test_n + 1, len(config['seeds']),
-                #         c['b'] + str(n_param) + c['nc']
-                #     )
-                # )
-                #
-                # # We train the EWC model on the current task
-                # model_name = os.path.join(
-                #     model_path,
-                #     '{:}-ewc-t{:02d}.n{:d}.s{:05d}.pt'.format(
-                #         model_base, ti, i, seed
-                #     )
-                # )
-                # train(
-                #     config, ewc_net, training_set, validation_set,
-                #     model_name, 2
-                # )
-                # ewc_net.reset_optimiser()
-                #
-                # # Then we test it against all the datasets and tasks
-                # json_name = '{:}-ewc_test.f{:d}.s{:d}.t{:02d}.json'.format(
-                #     model_base, i, seed, ti
-                # )
-                # ewc_testing = get_test_results(
-                #     config, seed, json_name, 'ewc-test.t{:02d}'.format(ti),
-                #     ewc_net, ewc_testing, testing_set
-                # )
-                #
-                # json_name = '{:}-ewc-training.' \
-                #             'f{:d}.s{:d}.t{:02d}.json'.format(
-                #                 model_base, i, seed, ti
-                #             )
-                # fold_tr_ewc = get_task_results(
-                #     config, json_name, 'ewc-train.f{:d}.t{:02d}'.format(
-                #         i, ti
-                #     ), ewc_net, fold_tr_ewc
-                # )
-                # if fold_val_naive is not None:
-                #     json_name = '{:}-ewc-validation.' \
-                #                 'f{:d}.s{:d}.t{:02d}.json'.format(
-                #                     model_base, i, seed, ti
-                #                 )
-                #     fold_val_ewc = get_task_results(
-                #         config, json_name, 'ewc-val.f{:d}.t{:02d}'.format(
-                #             i, ti
-                #         ),
-                #         ewc_net, fold_val_ewc
-                #     )
-                #
-                # print(
-                #     '{:}Starting task - EWC++ {:02d} fold {:} - {:02d}/{:02d} '
-                #     '({:} parameters)'.format(
-                #         c['clr'] + c['c'], ti + 1, c['g'] + str(i) + c['nc'],
-                #         test_n + 1, len(config['seeds']),
-                #         c['b'] + str(n_param) + c['nc']
-                #     )
-                # )
+                print(
+                    '{:}Starting task - EWC {:02d} fold {:} - {:02d}/{:02d} '
+                    '({:} parameters)'.format(
+                        c['clr'] + c['c'], ti + 1, c['g'] + str(i) + c['nc'],
+                        test_n + 1, len(config['seeds']),
+                        c['b'] + str(n_param) + c['nc']
+                    )
+                )
+
+                # We train the EWC model on the current task
+                model_name = os.path.join(
+                    model_path,
+                    '{:}-ewc-t{:02d}.n{:d}.s{:05d}.pt'.format(
+                        model_base, ti, i, seed
+                    )
+                )
+                train(
+                    config, ewc_net, training_set, validation_set,
+                    model_name, 2
+                )
+                ewc_net.reset_optimiser()
+
+                # Then we test it against all the datasets and tasks
+                json_name = '{:}-ewc_test.f{:d}.s{:d}.t{:02d}.json'.format(
+                    model_base, i, seed, ti
+                )
+                ewc_testing = get_test_results(
+                    config, seed, json_name, 'ewc-test.t{:02d}'.format(ti),
+                    ewc_net, ewc_testing, testing_set
+                )
+
+                json_name = '{:}-ewc-training.' \
+                            'f{:d}.s{:d}.t{:02d}.json'.format(
+                                model_base, i, seed, ti
+                            )
+                fold_tr_ewc = get_task_results(
+                    config, json_name, 'ewc-train.f{:d}.t{:02d}'.format(
+                        i, ti
+                    ), ewc_net, fold_tr_ewc
+                )
+                if fold_val_naive is not None:
+                    json_name = '{:}-ewc-validation.' \
+                                'f{:d}.s{:d}.t{:02d}.json'.format(
+                                    model_base, i, seed, ti
+                                )
+                    fold_val_ewc = get_task_results(
+                        config, json_name, 'ewc-val.f{:d}.t{:02d}'.format(
+                            i, ti
+                        ),
+                        ewc_net, fold_val_ewc
+                    )
+
+                print(
+                    '{:}Starting task - EWC++ {:02d} fold {:} - {:02d}/{:02d} '
+                    '({:} parameters)'.format(
+                        c['clr'] + c['c'], ti + 1, c['g'] + str(i) + c['nc'],
+                        test_n + 1, len(config['seeds']),
+                        c['b'] + str(n_param) + c['nc']
+                    )
+                )
 
                 # < EWC++ >
                 # We train the EWC model on the current task
@@ -1221,7 +1221,7 @@ def main(verbose=2):
             # Now it's time to push the results
             baseline_training[str(seed)]['training'].append(fold_tr_baseline)
             naive_training[str(seed)]['training'].append(fold_tr_naive)
-            # ewc_training[str(seed)]['training'].append(fold_tr_ewc)
+            ewc_training[str(seed)]['training'].append(fold_tr_ewc)
             # ewcplus_training[str(seed)]['training'].append(fold_tr_ewcplus)
             if val_split > 0:
                 baseline_training[str(seed)]['validation'].append(
@@ -1230,9 +1230,9 @@ def main(verbose=2):
                 naive_training[str(seed)]['validation'].append(
                     fold_val_naive
                 )
-                # ewc_training[str(seed)]['validation'].append(
-                #     fold_val_ewc
-                # )
+                ewc_training[str(seed)]['validation'].append(
+                    fold_val_ewc
+                )
                 # ewcplus_training[str(seed)]['validation'].append(
                 #     fold_val_ewcplus
                 # )
@@ -1253,14 +1253,14 @@ def main(verbose=2):
         config, '{:}-naive_training.json'.format(model_base),
         naive_training
     )
-    # save_results(
-    #     config, '{:}-ewc_testing.json'.format(model_base),
-    #     ewc_testing
-    # )
-    # save_results(
-    #     config, '{:}-ewc_training.json'.format(model_base),
-    #     ewc_training
-    # )
+    save_results(
+        config, '{:}-ewc_testing.json'.format(model_base),
+        ewc_testing
+    )
+    save_results(
+        config, '{:}-ewc_training.json'.format(model_base),
+        ewc_training
+    )
     # save_results(
     #     config, '{:}-ewcpp_testing.json'.format(model_base),
     #     ewcplus_testing
