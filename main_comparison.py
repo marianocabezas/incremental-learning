@@ -96,9 +96,9 @@ def get_subjects(experiment_config):
     return subject_dicts
 
 
-def load_image_list(path, image_list, roi):
+def load_image_list(path, image_list, roi, masked):
     images = [
-        get_normalised_image(find_file(image, path), roi)
+        get_normalised_image(find_file(image, path), roi, masked=masked)
         for image in image_list
     ]
 
@@ -117,16 +117,16 @@ def get_images_seg(experiment_config, subject, session=None):
     label = get_mask(find_file(experiment_config['labels'], p_path))
     if isinstance(experiment_config['files'], tuple):
         images = tuple(
-            load_image_list(p_path, file_i, roi)
+            load_image_list(p_path, file_i, roi, False)
             for file_i in experiment_config['files']
         )
     elif isinstance(experiment_config['files'], list):
         images = load_image_list(
-            p_path, experiment_config['files'], roi
+            p_path, experiment_config['files'], roi, False
         )
     else:
         images = load_image_list(
-            p_path, [experiment_config['files']], roi
+            p_path, [experiment_config['files']], roi, False
         )
     return roi, label, images
 
@@ -147,16 +147,16 @@ def get_images_class(experiment_config, subject, session=None):
     label = label_dict[subject]
     if isinstance(experiment_config['files'], tuple):
         images = tuple(
-            load_image_list(p_path, file_i, roi)
+            load_image_list(p_path, file_i, roi, True)
             for file_i in experiment_config['files']
         )
     elif isinstance(experiment_config['files'], list):
         images = load_image_list(
-            p_path, experiment_config['files'], roi
+            p_path, experiment_config['files'], roi, True
         )
     else:
         images = load_image_list(
-            p_path, [experiment_config['files']], roi
+            p_path, [experiment_config['files']], roi, True
         )
     return roi, label, images
 
