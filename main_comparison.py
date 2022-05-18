@@ -14,6 +14,7 @@ from torch.utils.data import DataLoader
 from time import strftime
 from copy import deepcopy
 from skimage.measure import label as bwlabeln
+from continual import EWC
 from utils import find_file, get_mask, get_normalised_image, get_bb
 from utils import color_codes, time_to_string, remove_small_regions
 
@@ -1033,7 +1034,7 @@ def main(verbose=2):
             except KeyError:
                 ewc_binary = True
 
-            ewc_net = models.MetaModel(
+            ewc_net = EWC(
                 config['network'](
                     conv_filters=config['filters'],
                     n_images=n_images

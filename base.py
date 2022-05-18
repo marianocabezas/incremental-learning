@@ -111,6 +111,7 @@ class BaseModel(nn.Module):
                 batch_loss = sum(batch_losses)
                 if self.training:
                     batch_loss.backward()
+                    self.prebatch_update()
                     self.optimizer_alg.step()
                     self.batch_update(len(data), x_cuda, y_cuda)
 
@@ -479,6 +480,17 @@ class BaseModel(nn.Module):
         is finished. To be reimplemented if necessary.
         :param epochs: Maximum number of epochs
         :param loader: Dataloader used for training
+        :return: Nothing.
+        """
+        return None
+
+    def prebatch_update(self, batches, x, y):
+        """
+        Callback function to update something on the model before the batch
+        update is applied. To be reimplemented if necessary.
+        :param batches: Maximum number of epochs
+        :param x: Training data
+        :param y: Training target
         :return: Nothing.
         """
         return None
