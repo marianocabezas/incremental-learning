@@ -110,6 +110,12 @@ def acc_f(data_dict):
     return metric_list
 
 
+def bacc_f(data_dict):
+    t0_list = t0r_f(data_dict)
+    t1_list = t1r_f(data_dict)
+    return np.mean([t0_list, t1_list], axis=0).tolist()
+
+
 def t0r_f(data_dict):
     metric_list = [
         tn / (tn + fp) if (tn + fp) > 0 else 0
