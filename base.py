@@ -351,7 +351,11 @@ class BaseModel(nn.Module):
     def embeddings(self, data, nonbatched=True):
         return self.inference(data, nonbatched)
 
-    def inference(self, data, nonbatched=True):
+    def inference(self, data, nonbatched=True, task=None):
+        temp_task = task
+        if temp_task is not None and hasattr(self, 'current_task'):
+            temp_task = self.current_task
+            self.current_task = task
         with torch.no_grad():
             if isinstance(data, list) or isinstance(data, tuple):
                 x_cuda = tuple(
@@ -375,6 +379,8 @@ class BaseModel(nn.Module):
                 np_output = output.cpu().numpy()
             else:
                 np_output = output[0, 0].cpu().numpy()
+        if temp_task is not None and hasattr(self, 'current_task'):
+            self.current_task = temp_task
 
         return np_output
 

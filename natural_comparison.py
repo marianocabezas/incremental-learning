@@ -120,7 +120,7 @@ def train(
         net.save_model(os.path.join(path, model_name))
 
 
-def test(config, net, testing, n_classes, verbose=0):
+def test(config, net, testing, task, n_classes, verbose=0):
     # Init
     matrix = np.zeros((n_classes, n_classes))
     dataset = config['validation'](testing[0], testing[1])
@@ -141,7 +141,8 @@ def test(config, net, testing, n_classes, verbose=0):
                     time_to_string(test_eta),
                 ), end='\r'
             )
-        prediction = net.inference(x.cpu().numpy(), nonbatched=False)
+        prediction = net.inference(
+            x.cpu().numpy(), nonbatched=False, task=task)
         predicted = np.argmax(prediction, axis=1)
         target = y.cpu().numpy()
         for t_i, p_i in zip(target, predicted):
@@ -156,9 +157,9 @@ def update_results(
 ):
     seed = str(seed)
     for t_i, (tr_i, val_i, tst_i) in enumerate(zip(training, validation, testing)):
-        tr_matrix = test(config, net, tr_i, n_classes, verbose)
-        val_matrix = test(config, net, val_i, n_classes, verbose)
-        tst_matrix = test(config, net, tst_i, n_classes, verbose)
+        tr_matrix = test(config, net, tr_i, t_i, n_classes, verbose)
+        val_matrix = test(config, net, val_i, t_i, n_classes, verbose)
+        tst_matrix = test(config, net, tst_i, t_i, n_classes, verbose)
         if isinstance(results, list):
             for results_i in results:
                 results_i[seed]['training'][step, t_i, ...] = tr_matrix

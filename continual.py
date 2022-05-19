@@ -387,10 +387,8 @@ class GEM(MetaModel):
 
     def update_gradients(self):
         if len(self.observed_tasks) > 1:
-            for tt in range(len(self.observed_tasks) - 1):
+            for past_task in self.observed_tasks[:-1]:
                 self.zero_grad()
-                # fwd/bwd on the examples in the memory
-                past_task = self.observed_tasks[tt]
 
                 if self.split:
                     offset1 = past_task * self.nc_per_task
