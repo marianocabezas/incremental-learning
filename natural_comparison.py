@@ -382,25 +382,25 @@ def main(verbose=2):
         gem_net = GEM(
             config['network'](n_outputs=n_classes), False,
             n_memories=gem_memories, memory_strength=gem_weight,
-            n_tasks=n_tasks
+            n_tasks=n_tasks, n_classes=n_classes, split=True
         )
         gem_net.model.load_model(starting_model)
         agem_net = AGEM(
             config['network'](n_outputs=n_classes), False,
             n_memories=gem_memories, memory_strength=gem_weight,
-            n_tasks=n_tasks
+            n_tasks=n_tasks, n_classes=n_classes, split=True
         )
         agem_net.model.load_model(starting_model)
         sgem_net = SGEM(
             config['network'](n_outputs=n_classes), False,
             n_memories=gem_memories, memory_strength=gem_weight,
-            n_tasks=n_tasks
+            n_tasks=n_tasks, n_classes=n_classes, split=True
         )
         sgem_net.model.load_model(starting_model)
         ngem_net = NGEM(
             config['network'](n_outputs=n_classes), False,
             n_memories=gem_memories, memory_strength=gem_weight,
-            n_tasks=n_tasks
+            n_tasks=n_tasks, n_classes=n_classes, split=True
         )
         ngem_net.model.load_model(starting_model)
 

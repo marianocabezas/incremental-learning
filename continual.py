@@ -8,20 +8,6 @@ from sklearn.decomposition import PCA
 from base import BaseModel
 
 
-def compute_offsets(task, nc_per_task, is_cifar):
-    """
-        Compute offsets for cifar to determine which
-        outputs to select for a given task.
-    """
-    if is_cifar:
-        offset1 = task * nc_per_task
-        offset2 = (task + 1) * nc_per_task
-    else:
-        offset1 = 0
-        offset2 = nc_per_task
-    return offset1, offset2
-
-
 def store_grad(pp, grads, grad_dims, tid):
     """
         This stores parameter gradients of past tasks.
@@ -364,10 +350,13 @@ class EWC(MetaModel):
 class GEM(MetaModel):
     def __init__(
         self, basemodel, best=True, n_memories=256, memory_strength=0.5,
-        n_tasks=None
+        n_classes=100, n_tasks=1, split=False
     ):
         super().__init__(basemodel, best, n_memories)
         self.margin = memory_strength
+        self.n_classes = n_classes
+        self.nc_per_task = n_classes / n_tasks
+        self.split = split
         self.train_functions = self.model.train_functions
         self.val_functions = self.model.val_functions
         self.memory_data = [[None] * n_memories] * n_tasks
@@ -401,9 +390,13 @@ class GEM(MetaModel):
                 # fwd/bwd on the examples in the memory
                 past_task = self.observed_tasks[tt]
 
-                offset1, offset2 = compute_offsets(
-                    past_task, self.nc_per_task,
-                    (self.is_cifar or self.is_imagenet))
+                if self.split:
+                    offset1 = past_task * self.nc_per_task
+                    offset2 = (past_task + 1) * self.nc_per_task
+                else:
+                    offset1 = 0
+                    offset2 = self.n_classes
+
                 output = self.forward(
                     torch.cat(self.memory_data[past_task]),
                     past_task
@@ -452,6 +445,9 @@ class GEM(MetaModel):
             'tasks': self.observed_tasks,
             'task': self.current_task,
             'first': self.first,
+            'n_classes': self.n_classes,
+            'nc_per_task': self.nc_per_task,
+            'split': self.split,
             'state': self.state_dict()
         }
         torch.save(net_state, net_name)
@@ -465,6 +461,9 @@ class GEM(MetaModel):
         self.observed_tasks = net_state['tasks']
         self.current_task = net_state['task']
         self.first = net_state['first']
+        self.n_classes = net_state['n_classes']
+        self.nc_per_task = net_state['nc_per_task']
+        self.split = net_state['split']
         self.load_state_dict(net_state['state'])
 
     def prebatch_update(self, batches, x, y):
@@ -476,9 +475,12 @@ class GEM(MetaModel):
 class AGEM(GEM):
     def __init__(
             self, basemodel, best=True, n_memories=256, memory_strength=0.5,
-            n_tasks=None
+            n_classes=100, n_tasks=1, split=False
     ):
-        super().__init__(basemodel, best, n_memories, memory_strength, n_tasks)
+        super().__init__(
+            basemodel, best, n_memories, memory_strength, n_classes, n_tasks,
+            split
+        )
 
     def get_grad(self, indx):
         return self.grads.index_select(1, indx).mean(dim=1, keepdim=True)
@@ -487,9 +489,12 @@ class AGEM(GEM):
 class SGEM(GEM):
     def __init__(
             self, basemodel, best=True, n_memories=256, memory_strength=0.5,
-            n_tasks=None
+            n_classes=100, n_tasks=1, split=False
     ):
-        super().__init__(basemodel, best, n_memories, memory_strength, n_tasks)
+        super().__init__(
+            basemodel, best, n_memories, memory_strength, n_classes, n_tasks,
+            split
+        )
 
     def get_grad(self, indx):
         random_indx = np.random.randint(len(self.observed_tasks[:-1]))
@@ -501,9 +506,12 @@ class SGEM(GEM):
 class NGEM(GEM):
     def __init__(
             self, basemodel, best=True, n_memories=256, memory_strength=0.5,
-            n_tasks=None
+            n_classes=100, n_tasks=1, split=False
     ):
-        super().__init__(basemodel, best, n_memories, memory_strength, n_tasks)
+        super().__init__(
+            basemodel, best, n_memories, memory_strength, n_classes, n_tasks,
+            split
+        )
         self.block_grad_dims = []
 
         for ind, param in enumerate(self.parameters()):
