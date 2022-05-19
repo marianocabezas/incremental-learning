@@ -410,7 +410,7 @@ class NaturalDataset(Dataset):
     def __getitem__(self, index):
         x = self.data[index]
         width = int(np.sqrt(len(x) / 3))
-        x = x.view(1, 3, width, width)
+        x = x.view(3, width, width)
         y = self.labels[index].view(1, 1)
 
         return x, y
