@@ -126,10 +126,11 @@ def project5cone5(gradient, memories, beg, en, margin=0.5, eps=1e-3):
 
 class MetaModel(BaseModel):
     def __init__(
-        self, basemodel, n_memories=0
+        self, basemodel, best=True, n_memories=0
     ):
         super().__init__()
         self.init = basemodel.init
+        self.best = best
         self.first = True
         self.model = basemodel
         self.device = basemodel.device
@@ -179,10 +180,10 @@ class MetaModel(BaseModel):
 
 class EWC(MetaModel):
     def __init__(
-        self, basemodel, n_memories=0, ewc_weight=1e6, ewc_binary=True,
+        self, basemodel, best=True, n_memories=0, ewc_weight=1e6, ewc_binary=True,
             ewc_alpha=None
     ):
-        super().__init__(basemodel, n_memories)
+        super().__init__(basemodel, best, n_memories)
         self.init = basemodel.init
         self.ewc_weight = ewc_weight
         self.ewc_binary = ewc_binary
@@ -362,11 +363,12 @@ class EWC(MetaModel):
 
 class GEM(MetaModel):
     def __init__(
-        self, basemodel, n_memories=256, n_tasks=None
+        self, basemodel, best=True, n_memories=256, memory_strength=0.5,
+        n_tasks=None
     ):
-        super().__init__(basemodel, n_memories)
+        super().__init__(basemodel, best, n_memories)
         self.init = basemodel.init
-
+        self.margin = memory_strength
         self.train_functions = self.model.train_functions
         self.val_functions = self.model.val_functions
         self.memory_data = [[None] * n_memories] * n_tasks
@@ -475,9 +477,10 @@ class GEM(MetaModel):
 
 class AGEM(GEM):
     def __init__(
-        self, basemodel, n_tasks=1, n_memories=0
+            self, basemodel, best=True, n_memories=256, memory_strength=0.5,
+            n_tasks=None
     ):
-        super().__init__(basemodel, n_tasks, n_memories)
+        super().__init__(basemodel, best, n_memories, memory_strength, n_tasks)
 
     def get_grad(self, indx):
         return self.grads.index_select(1, indx).mean(dim=1, keepdim=True)
@@ -485,9 +488,10 @@ class AGEM(GEM):
 
 class SGEM(GEM):
     def __init__(
-        self, basemodel, n_tasks=1, n_memories=0
+            self, basemodel, best=True, n_memories=256, memory_strength=0.5,
+            n_tasks=None
     ):
-        super().__init__(basemodel, n_tasks, n_memories)
+        super().__init__(basemodel, best, n_memories, memory_strength, n_tasks)
 
     def get_grad(self, indx):
         random_indx = np.random.randint(len(self.observed_tasks[:-1]))
@@ -498,9 +502,10 @@ class SGEM(GEM):
 
 class NGEM(GEM):
     def __init__(
-        self, basemodel, n_tasks=1, n_memories=0
+            self, basemodel, best=True, n_memories=256, memory_strength=0.5,
+            n_tasks=None
     ):
-        super().__init__(basemodel, n_tasks, n_memories)
+        super().__init__(basemodel, best, n_memories, memory_strength, n_tasks)
         self.block_grad_dims = []
 
         for ind, param in enumerate(self.parameters()):
@@ -538,15 +543,15 @@ class NGEM(GEM):
             overwrite_grad(self.parameters, self.grads[:, t], self.grad_dims)
 
 
-class Independent(BaseModel):
+class Independent(MetaModel):
     def __init__(
-        self, basemodel, n_tasks=1
+        self, basemodel, best=True, n_tasks=1
     ):
-        super().__init__()
+        super().__init__(None, best, n_tasks)
         self.init = basemodel.init
         self.first = True
         self.models = [
-            deepcopy(basemodel) for _ in n_tasks
+            deepcopy(basemodel) for _ in range(n_tasks)
         ]
         self.device = basemodel.device
         # Counters
@@ -557,3 +562,17 @@ class Independent(BaseModel):
 
     def forward(self, *inputs):
         return self.models[self.current_task](*inputs)
+
+    def fit(
+        self,
+        train_loader,
+        val_loader,
+        epochs=50,
+        patience=5,
+        verbose=True
+    ):
+        super().fit(train_loader, val_loader, epochs, patience, verbose)
+        if (self.current_task + 1) < len(self.models):
+            self.models[self.current_task + 1].load_state_dict(
+                self.models[self.current_task]
+            )

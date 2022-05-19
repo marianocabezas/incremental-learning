@@ -1039,7 +1039,7 @@ def main(verbose=2):
                     conv_filters=config['filters'],
                     n_images=n_images
                 ),
-                ewc_weight, ewc_binary
+                ewc_weight=ewc_weight, ewc_binary=ewc_binary
             )
             ewc_net.model.load_model(starting_model)
 

@@ -40,6 +40,7 @@ class BaseModel(nn.Module):
         self.ann_rate = 0
         self.best_loss_tr = np.inf
         self.best_loss_val = np.inf
+        self.last_state = None
         self.best_state = None
         self.best_opt = None
         self.train_functions = [
@@ -343,6 +344,7 @@ class BaseModel(nn.Module):
                     )
             )
 
+        self.last_state = deepcopy(self.state_dict())
         self.epoch = best_e
         self.load_state_dict(self.best_state)
 
@@ -593,6 +595,10 @@ class BaseModel(nn.Module):
         """
         for param in self.parameters():
             param.requires_grad = True
+
+    def set_last_state(self):
+        if self.last_state is not None:
+            self.load_state_dict(self.last_state)
 
     def save_model(self, net_name):
         torch.save(self.state_dict(), net_name)

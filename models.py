@@ -1,5 +1,6 @@
 import time
 import itertools
+from torchvision import models
 import torch
 from torch import nn
 import torch.nn.functional as F
@@ -36,6 +37,62 @@ def print_batch(pi, n_patches, i, n_cases, t_in, t_case_in):
     )
     print('\033[K', end='', flush=True)
     print(batch_s, end='\r', flush=True)
+
+
+class ResNet18(BaseModel):
+    def __init__(
+        self, n_classes, pretrained=False, lr=1e-3,
+        device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
+        verbose=True
+    ):
+        super().__init__()
+        # Init
+        self.n_classes = n_classes
+        self.lr = lr
+        self.device = device
+        self.resnet = models.resnet18(pretrained)
+        last_features = self.resnet.fc.in_features
+        self.resnet.fc = nn.Linear(last_features, self.n_classes)
+
+        # <Loss function setup>
+        self.train_functions = [
+            {
+                'name': 'xentropy',
+                'weight': 1,
+                'f': F.cross_entropy
+            }
+        ]
+
+        self.val_functions = [
+            {
+                'name': 'xent',
+                'weight': 1,
+                'f': F.cross_entropy
+            },
+        ]
+
+        # <Optimizer setup>
+        # We do this last step after all parameters are defined
+        model_params = filter(lambda p: p.requires_grad, self.parameters())
+        self.optimizer_alg = torch.optim.SGD(model_params, lr=self.lr)
+        if verbose > 1:
+            print(
+                'Network created on device {:} with training losses '
+                '[{:}] and validation losses [{:}]'.format(
+                    self.device,
+                    ', '.join([tf['name'] for tf in self.train_functions]),
+                    ', '.join([vf['name'] for vf in self.val_functions])
+                )
+            )
+
+    def reset_optimiser(self):
+        super().reset_optimiser()
+        model_params = filter(lambda p: p.requires_grad, self.parameters())
+        self.optimizer_alg = torch.optim.SGD(model_params, lr=self.lr)
+
+    def forward(self, data):
+        self.resnet.to(self.device)
+        return self.resnet(data)
 
 
 class SimpleUNet(BaseModel):
