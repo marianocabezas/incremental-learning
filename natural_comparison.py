@@ -54,7 +54,8 @@ def load_datasets(experiment_config):
 
 
 def train(
-    config, seed, net, training, validation, model_name, epochs, patience, verbose=0
+    config, seed, net, training, validation, model_name, epochs, patience, task,
+    verbose=0
 ):
     """
 
@@ -66,6 +67,7 @@ def train(
     :param model_name:
     :param epochs:
     :param patience:
+    :param: task:
     :param verbose:
     """
     # Init
@@ -114,9 +116,13 @@ def train(
                 )
             )
 
-        net.fit(
-            train_loader, val_loader, epochs=epochs, patience=patience
-        )
+        if task is None:
+            net.fit(train_loader, val_loader, epochs=epochs, patience=patience)
+        else:
+            net.fit(
+                train_loader, val_loader, epochs=epochs, patience=patience,
+                task=task
+            )
         net.save_model(os.path.join(path, model_name))
 
 
@@ -156,6 +162,7 @@ def update_results(
     verbose=0
 ):
     seed = str(seed)
+    test_start = time.time()
     for t_i, (tr_i, val_i, tst_i) in enumerate(zip(training, validation, testing)):
         tr_matrix = test(config, net, tr_i, t_i, n_classes, verbose)
         val_matrix = test(config, net, val_i, t_i, n_classes, verbose)
@@ -169,6 +176,9 @@ def update_results(
             results[seed]['training'][step, t_i, ...] = tr_matrix
             results[seed]['validation'][step, t_i, ...] = val_matrix
             results[seed]['testing'][step, t_i, ...] = tst_matrix
+    test_elapsed = time.time() - test_start
+    if verbose > 0:
+        print('Testing finished {:}'.format(time_to_string(test_elapsed)))
 
 
 def empty_confusion_matrix(n_tasks, n_classes):
@@ -331,7 +341,7 @@ def main(verbose=2):
         # Baseline (all data) training and results
         train(
             config, seed, net, training_set, validation_set,
-            model_name, epochs * 10, 10, 2
+            model_name, epochs * 10, 10, None, 2
         )
         update_results(
             config, net, seed,  0, training_tasks, validation_tasks, testing_tasks,
@@ -431,7 +441,7 @@ def main(verbose=2):
             )
             train(
                 config, seed, net, training_set, validation_set,
-                model_name, epochs, epochs, 2
+                model_name, epochs, epochs, t_i, 2
             )
             net.reset_optimiser()
             update_results(
@@ -458,7 +468,7 @@ def main(verbose=2):
             )
             train(
                 config, seed, ind_net, training_set, validation_set,
-                model_name, epochs, epochs, 2
+                model_name, epochs, epochs, t_i, 2
             )
             update_results(
                 config, ind_net, seed, t_i, training_tasks, validation_tasks,
@@ -512,7 +522,7 @@ def main(verbose=2):
             )
             train(
                 config, seed, gem_net, training_set, validation_set,
-                model_name, epochs, epochs, 2
+                model_name, epochs, epochs, t_i, 2
             )
             gem_net.reset_optimiser()
             update_results(
@@ -539,7 +549,7 @@ def main(verbose=2):
             )
             train(
                 config, seed, agem_net, training_set, validation_set,
-                model_name, epochs, epochs, 2
+                model_name, epochs, epochs, t_i, 2
             )
             agem_net.reset_optimiser()
             update_results(
@@ -566,7 +576,7 @@ def main(verbose=2):
             )
             train(
                 config, seed, sgem_net, training_set, validation_set,
-                model_name, epochs, epochs, 2
+                model_name, epochs, epochs, t_i, 2
             )
             sgem_net.reset_optimiser()
             update_results(
@@ -593,7 +603,7 @@ def main(verbose=2):
             )
             train(
                 config, seed, ngem_net, training_set, validation_set,
-                model_name, epochs, epochs, 2
+                model_name, epochs, epochs, t_i, 2
             )
             ngem_net.reset_optimiser()
             update_results(

@@ -162,9 +162,11 @@ class MetaModel(BaseModel):
         val_loader,
         epochs=50,
         patience=5,
+        task=None,
         verbose=True
     ):
-        self.current_task += 1
+        if task is not None:
+            self.current_task = task
         if self.current_task not in self.observed_tasks:
             self.observed_tasks.append(self.current_task)
         super().fit(train_loader, val_loader, epochs, patience, verbose)
@@ -328,13 +330,14 @@ class EWC(MetaModel):
         val_loader,
         epochs=50,
         patience=5,
+        task=None,
         verbose=True
     ):
         if self.first:
             for loss_f in self.train_functions:
                 if loss_f['name'] is 'ewc':
                     loss_f['weight'] = 0
-        super().fit(train_loader, val_loader, epochs, patience, verbose)
+        super().fit(train_loader, val_loader, epochs, patience, task, verbose)
         self.fisher(train_loader)
         for loss_f in self.train_functions:
             if loss_f['name'] is 'ewc':
@@ -357,7 +360,7 @@ class GEM(MetaModel):
         super().__init__(basemodel, best, n_memories)
         self.margin = memory_strength
         self.n_classes = n_classes
-        self.nc_per_task = n_classes / n_tasks
+        self.nc_per_task = n_classes // n_tasks
         self.split = split
         self.train_functions = self.model.train_functions
         self.val_functions = self.model.val_functions
@@ -569,10 +572,14 @@ class Independent(MetaModel):
         val_loader,
         epochs=50,
         patience=5,
+        task=None,
         verbose=True
     ):
-        self.optimizer_alg = self.model[self.current_task + 1].optimizer_alg
-        super().fit(train_loader, val_loader, epochs, patience, verbose)
+        if task is None:
+            self.optimizer_alg = self.model[self.current_task + 1].optimizer_alg
+        else:
+            self.optimizer_alg = self.model[task].optimizer_alg
+        super().fit(train_loader, val_loader, epochs, patience, task, verbose)
         if (self.current_task + 1) < len(self.model):
             self.model[self.current_task + 1].load_state_dict(
                 self.model[self.current_task].state_dict()
