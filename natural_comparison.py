@@ -556,7 +556,7 @@ def main(verbose=2):
             # We train the naive model on the current task
             model_name = os.path.join(
                 model_path,
-                '{:}-gem-t{:02d}.s{:05d}.pt'.format(
+                '{:}-sgem-t{:02d}.s{:05d}.pt'.format(
                     model_base, t_i, seed
                 )
             )
@@ -583,7 +583,7 @@ def main(verbose=2):
             # We train the naive model on the current task
             model_name = os.path.join(
                 model_path,
-                '{:}-gem-t{:02d}.s{:05d}.pt'.format(
+                '{:}-ngem-t{:02d}.s{:05d}.pt'.format(
                     model_base, t_i, seed
                 )
             )
