@@ -73,6 +73,9 @@ def train(
         net.load_model(os.path.join(path, model_name))
     except IOError:
 
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+
         if verbose > 1:
             print('Preparing the training datasets / dataloaders')
 
@@ -108,8 +111,6 @@ def train(
                 )
             )
 
-        np.random.seed(seed)
-        torch.manual_seed(seed)
         net.fit(
             train_loader, val_loader, epochs=epochs, patience=patience
         )
