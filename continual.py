@@ -547,18 +547,17 @@ class Independent(MetaModel):
     def __init__(
         self, basemodel, best=True, n_tasks=1
     ):
-        super().__init__(None, best, n_tasks)
+        super().__init__(basemodel, best, n_tasks)
+
         self.init = basemodel.init
         self.first = True
-        self.models = [
+        self.model = [
             deepcopy(basemodel) for _ in range(n_tasks)
         ]
         self.device = basemodel.device
         # Counters
         self.observed_tasks = []
         self.current_task = -1
-
-        self.optimizer_alg = self.model.optimizer_alg
 
     def forward(self, *inputs):
         return self.models[self.current_task](*inputs)
@@ -571,6 +570,7 @@ class Independent(MetaModel):
         patience=5,
         verbose=True
     ):
+        self.optimizer_alg = self.model[self.current_task + 1].optimizer_alg
         super().fit(train_loader, val_loader, epochs, patience, verbose)
         if (self.current_task + 1) < len(self.models):
             self.models[self.current_task + 1].load_state_dict(
