@@ -2,6 +2,7 @@ import argparse
 import os
 import time
 import json
+import random
 import numpy as np
 import datasets
 import models
@@ -72,9 +73,11 @@ def train(
     try:
         net.load_model(os.path.join(path, model_name))
     except IOError:
-
+        torch.backends.cudnn.enabled = False
         np.random.seed(seed)
         torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        random.seed(seed)
 
         if verbose > 1:
             print('Preparing the training datasets / dataloaders')
