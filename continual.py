@@ -1,6 +1,7 @@
 from copy import deepcopy
 import torch
 import torch.nn.functional as F
+from torch import nn
 import numpy as np
 import quadprog
 from sklearn.decomposition import PCA
@@ -378,20 +379,6 @@ class GEM(MetaModel):
             if p.requires_grad
         }
 
-    def save_model(self, net_name):
-        net_state = {
-            'mem_data': self.memory_data,
-            'mem_labs': self.memory_labs,
-            'mem_cnt': self.mem_cnt,
-            'grads': self.grads,
-            'tasks': self.observed_tasks,
-            'task': self.current_task,
-            'state': self.state_dict(),
-            'ewc_param': self.ewc_parameters,
-            'first': self.first
-        }
-        torch.save(net_state, net_name)
-
     def update_memory(self, x, y):
         # Update ring buffer storing examples from current task
         t = self.current_task
@@ -455,6 +442,20 @@ class GEM(MetaModel):
                 # copy gradients back
                 overwrite_grad(self.parameters, self.grads[:, t],
                                self.grad_dims)
+
+    def save_model(self, net_name):
+        net_state = {
+            'mem_data': self.memory_data,
+            'mem_labs': self.memory_labs,
+            'mem_cnt': self.mem_cnt,
+            'grads': self.grads,
+            'tasks': self.observed_tasks,
+            'task': self.current_task,
+            'state': self.state_dict(),
+            'ewc_param': self.ewc_parameters,
+            'first': self.first
+        }
+        torch.save(net_state, net_name)
 
     def load_model(self, net_name):
         net_state = torch.load(net_name, map_location=self.device)
@@ -545,19 +546,18 @@ class Independent(MetaModel):
     def __init__(
         self, basemodel, best=True, n_tasks=1
     ):
-        super().__init__(basemodel, best, n_tasks)
+        super().__init__(
+            nn.ModuleList([deepcopy(basemodel) for _ in range(n_tasks)]),
+            best, n_tasks
+        )
         self.first = True
-        self.model = None
-        self.models = [
-            deepcopy(basemodel) for _ in range(n_tasks)
-        ]
         self.device = basemodel.device
         # Counters
         self.observed_tasks = []
         self.current_task = -1
 
     def forward(self, *inputs):
-        return self.models[self.current_task](*inputs)
+        return self.model[self.current_task](*inputs)
 
     def fit(
         self,
@@ -567,9 +567,9 @@ class Independent(MetaModel):
         patience=5,
         verbose=True
     ):
-        self.optimizer_alg = self.models[self.current_task + 1].optimizer_alg
+        self.optimizer_alg = self.model[self.current_task + 1].optimizer_alg
         super().fit(train_loader, val_loader, epochs, patience, verbose)
         if (self.current_task + 1) < len(self.models):
-            self.models[self.current_task + 1].load_state_dict(
-                self.models[self.current_task]
+            self.model[self.current_task + 1].load_state_dict(
+                self.model[self.current_task]
             )
