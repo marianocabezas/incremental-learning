@@ -517,7 +517,7 @@ def main(verbose=2):
 
             # Average GEM
             print(
-                '{:}Starting task - GEM {:02d}/{:02d}{:} - {:02d}/{:02d} '
+                '{:}Starting task - AGEM {:02d}/{:02d}{:} - {:02d}/{:02d} '
                 '({:} parameters)'.format(
                     c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
                     test_n + 1, len(config['seeds']),
@@ -528,7 +528,7 @@ def main(verbose=2):
             # We train the naive model on the current task
             model_name = os.path.join(
                 model_path,
-                '{:}-gem-t{:02d}.s{:05d}.pt'.format(
+                '{:}-agem-t{:02d}.s{:05d}.pt'.format(
                     model_base, t_i, seed
                 )
             )
