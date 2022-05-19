@@ -273,15 +273,13 @@ class EWC(MetaModel):
             else:
                 pred_labels = self(x.to(self.device))
 
-            y_cuda = y.type_as(pred_labels).to(self.device)
-
             if self.ewc_binary:
                 loss = F.binary_cross_entropy(
-                    pred_labels, y_cuda
+                    pred_labels, y.type_as(pred_labels).to(self.device)
                 )
             else:
                 loss = F.cross_entropy(
-                    pred_labels, y_cuda
+                    pred_labels, y.to(self.device)
                 )
             loss.backward()
             for n, p in self.model.named_parameters():
