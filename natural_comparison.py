@@ -337,7 +337,7 @@ def main(verbose=2):
         # Naive approach. We just partition the data and update the model
         # with each new batch without caring about previous samples
         net = MetaModel(
-            config['network'](n_outputs=n_classes), False
+            config['network'](n_outputs=n_classes, lr=lr), best=False
         )
         net.model.load_model(starting_model)
 
@@ -346,7 +346,7 @@ def main(verbose=2):
         # called finetune in the original repo. Here we use it by default for
         # simplicity. Might add the option later.
         ind_net = Independent(
-            config['network'](n_outputs=n_classes), False
+            config['network'](n_outputs=n_classes, lr=lr), best=False
         )
         for net_i in ind_net.model:
             net_i.load_model(starting_model)
@@ -356,14 +356,14 @@ def main(verbose=2):
         try:
             ewc_weight = config['ewc_weight']
         except KeyError:
-            ewc_weight = 1e6
+            ewc_weight = 1
         try:
             ewc_binary = config['ewc_binary']
         except KeyError:
             ewc_binary = False
 
         ewc_net = EWC(
-            config['network'](n_outputs=n_classes), False,
+            config['network'](n_outputs=n_classes, lr=lr), best=False,
             ewc_weight=ewc_weight, ewc_binary=ewc_binary
         )
         ewc_net.model.load_model(starting_model)
@@ -380,25 +380,25 @@ def main(verbose=2):
             gem_memories = 256
 
         gem_net = GEM(
-            config['network'](n_outputs=n_classes), False,
+            config['network'](n_outputs=n_classes, lr=lr), best=False,
             n_memories=gem_memories, memory_strength=gem_weight,
             n_tasks=n_tasks, n_classes=n_classes, split=True
         )
         gem_net.model.load_model(starting_model)
         agem_net = AGEM(
-            config['network'](n_outputs=n_classes), False,
+            config['network'](n_outputs=n_classes, lr=lr), best=False,
             n_memories=gem_memories, memory_strength=gem_weight,
             n_tasks=n_tasks, n_classes=n_classes, split=True
         )
         agem_net.model.load_model(starting_model)
         sgem_net = SGEM(
-            config['network'](n_outputs=n_classes), False,
+            config['network'](n_outputs=n_classes, lr=lr), best=False,
             n_memories=gem_memories, memory_strength=gem_weight,
             n_tasks=n_tasks, n_classes=n_classes, split=True
         )
         sgem_net.model.load_model(starting_model)
         ngem_net = NGEM(
-            config['network'](n_outputs=n_classes), False,
+            config['network'](n_outputs=n_classes, lr=lr), best=False,
             n_memories=gem_memories, memory_strength=gem_weight,
             n_tasks=n_tasks, n_classes=n_classes, split=True
         )

@@ -141,14 +141,16 @@ class MetaModel(BaseModel):
 
     def save_model(self, net_name):
         net_state = {
-            'state': self.state_dict(),
-            'first': self.first
+            'first': self.first,
+            'task': self.current_task,
+            'state': self.state_dict()
         }
         torch.save(net_state, net_name)
 
     def load_model(self, net_name):
         net_state = torch.load(net_name, map_location=self.device)
         self.first = net_state['first']
+        self.current_task = net_state['task']
         self.load_state_dict(net_state['state'])
 
     def forward(self, *inputs):
@@ -162,7 +164,7 @@ class MetaModel(BaseModel):
         patience=5,
         verbose=True
     ):
-        self.current_task = self.current_task + 1
+        self.current_task += 1
         if self.current_task not in self.observed_tasks:
             self.observed_tasks.append(self.current_task)
         super().fit(train_loader, val_loader, epochs, patience, verbose)
