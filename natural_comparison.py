@@ -346,7 +346,8 @@ def main(verbose=2):
         # called finetune in the original repo. Here we use it by default for
         # simplicity. Might add the option later.
         ind_net = Independent(
-            config['network'](n_outputs=n_classes, lr=lr), best=False
+            config['network'](n_outputs=n_classes, lr=lr), best=False,
+            n_tasks=n_tasks
         )
         for net_i in ind_net.model:
             net_i.load_model(starting_model)
