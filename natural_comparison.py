@@ -149,7 +149,7 @@ def test(config, net, testing, n_classes, verbose=0):
 
 def update_results(
     config, net, seed, step, training, validation, testing, results, n_classes,
-        verbose=0
+    verbose=0
 ):
     seed = str(seed)
     for t_i, (tr_i, val_i, tst_i) in enumerate(zip(training, validation, testing)):
@@ -447,18 +447,18 @@ def main(verbose=2):
             # We train the naive model on the current task
             model_name = os.path.join(
                 model_path,
-                '{:}-ewc-t{:02d}.s{:05d}.pt'.format(
+                '{:}-ind-t{:02d}.s{:05d}.pt'.format(
                     model_base, t_i, seed
                 )
             )
             train(
-                config, seed, ewc_net, training_set, validation_set,
+                config, seed, ind_net, training_set, validation_set,
                 model_name, epochs, epochs, 2
             )
             ewc_net.reset_optimiser()
             update_results(
-                config, ewc_net, seed, t_i, training_tasks, validation_tasks,
-                testing_tasks, ewc_results, n_classes, 2
+                config, ind_net, seed, t_i, training_tasks, validation_tasks,
+                testing_tasks, ind_results, n_classes, 2
             )
 
             # < EWC >
