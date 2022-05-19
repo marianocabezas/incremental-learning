@@ -455,7 +455,7 @@ def main(verbose=2):
                 config, seed, ind_net, training_set, validation_set,
                 model_name, epochs, epochs, 2
             )
-            ewc_net.reset_optimiser()
+            ind_net.reset_optimiser()
             update_results(
                 config, ind_net, seed, t_i, training_tasks, validation_tasks,
                 testing_tasks, ind_results, n_classes, 2
@@ -484,7 +484,7 @@ def main(verbose=2):
             )
             ewc_net.reset_optimiser()
             update_results(
-                config, ewc_net, t_i, training_tasks, validation_tasks,
+                config, ewc_net, seed, t_i, training_tasks, validation_tasks,
                 testing_tasks, ewc_results, n_classes, 2
             )
 
