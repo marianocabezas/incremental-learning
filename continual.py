@@ -143,6 +143,9 @@ class MetaModel(BaseModel):
         self.observed_tasks = []
         self.current_task = -1
 
+        self.train_functions = self.model.train_functions
+        self.val_functions = self.model.val_functions
+
         self.optimizer_alg = self.model.optimizer_alg
 
     def reset_optimiser(self):
@@ -198,7 +201,6 @@ class EWC(MetaModel):
                 'f': lambda p, t: self.ewc_loss()
             }
         ]
-
         self.val_functions = self.model.val_functions
 
         # Gradient tensors
