@@ -455,7 +455,6 @@ def main(verbose=2):
                 config, seed, ind_net, training_set, validation_set,
                 model_name, epochs, epochs, 2
             )
-            ind_net.reset_optimiser()
             update_results(
                 config, ind_net, seed, t_i, training_tasks, validation_tasks,
                 testing_tasks, ind_results, n_classes, 2
