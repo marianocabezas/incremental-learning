@@ -184,7 +184,6 @@ class EWC(MetaModel):
             ewc_alpha=None
     ):
         super().__init__(basemodel, best, n_memories)
-        self.init = basemodel.init
         self.ewc_weight = ewc_weight
         self.ewc_binary = ewc_binary
         self.ewc_alpha = ewc_alpha
@@ -367,7 +366,6 @@ class GEM(MetaModel):
         n_tasks=None
     ):
         super().__init__(basemodel, best, n_memories)
-        self.init = basemodel.init
         self.margin = memory_strength
         self.train_functions = self.model.train_functions
         self.val_functions = self.model.val_functions
@@ -548,9 +546,8 @@ class Independent(MetaModel):
         self, basemodel, best=True, n_tasks=1
     ):
         super().__init__(basemodel, best, n_tasks)
-
-        self.init = basemodel.init
         self.first = True
+        self.model = None
         self.model = [
             deepcopy(basemodel) for _ in range(n_tasks)
         ]
