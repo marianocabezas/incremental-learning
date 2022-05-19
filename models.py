@@ -47,7 +47,7 @@ class ResNet18(BaseModel):
     ):
         super().__init__()
         # Init
-        self.n_classes = n_classes
+        self.n_classes = n_outputs
         self.lr = lr
         self.device = device
         self.resnet = models.resnet18(pretrained)
