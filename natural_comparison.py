@@ -150,6 +150,7 @@ def update_results(
     config, net, seed, step, training, validation, testing, results, n_classes,
         verbose=0
 ):
+    seed = str(seed)
     for t_i, (tr_i, val_i, tst_i) in enumerate(zip(training, validation, testing)):
         tr_matrix = test(config, net, tr_i, n_classes, verbose)
         val_matrix = test(config, net, val_i, n_classes, verbose)
