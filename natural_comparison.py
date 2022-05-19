@@ -347,7 +347,7 @@ def main(verbose=2):
             config['network'](n_outputs=n_classes), False
         )
         for net_i in ind_net.model:
-            net_i.model.load_model(starting_model)
+            net_i.load_model(starting_model)
 
         # EWC approach. We use a penalty term / regularization loss
         # to ensure previous data isn't forgotten.
