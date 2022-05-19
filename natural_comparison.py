@@ -358,7 +358,7 @@ def main(verbose=2):
         try:
             ewc_binary = config['ewc_binary']
         except KeyError:
-            ewc_binary = True
+            ewc_binary = False
 
         ewc_net = EWC(
             config['network'](n_outputs=n_classes), False,

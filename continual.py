@@ -280,8 +280,8 @@ class EWC(MetaModel):
                     pred_labels, y_cuda
                 )
             else:
-                loss = F.nll_loss(
-                    torch.log(pred_labels), y_cuda
+                loss = F.cross_entropy(
+                    pred_labels, y_cuda
                 )
             loss.backward()
             for n, p in self.model.named_parameters():
