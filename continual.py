@@ -567,7 +567,7 @@ class Independent(MetaModel):
     ):
         self.optimizer_alg = self.model[self.current_task + 1].optimizer_alg
         super().fit(train_loader, val_loader, epochs, patience, verbose)
-        if (self.current_task + 1) < len(self.models):
+        if (self.current_task + 1) < len(self.model):
             self.model[self.current_task + 1].load_state_dict(
                 self.model[self.current_task].state_dict()
             )
