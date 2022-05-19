@@ -41,7 +41,7 @@ def print_batch(pi, n_patches, i, n_cases, t_in, t_case_in):
 
 class ResNet18(BaseModel):
     def __init__(
-        self, n_classes, pretrained=False, lr=1e-3,
+        self, n_outputs, pretrained=False, lr=1e-3,
         device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
         verbose=True
     ):
