@@ -116,12 +116,10 @@ def train(
         net.save_model(os.path.join(path, model_name))
 
 
-def test(config, net, testing_subjects, n_classes, verbose=0):
+def test(config, net, testing, n_classes, verbose=0):
     # Init
     matrix = np.zeros((n_classes, n_classes))
-    dataset = config['validation'](
-        testing_subjects[1], testing_subjects[2]
-    )
+    dataset = config['validation'](testing[0], testing[1])
     test_loader = DataLoader(
         dataset, config['test_batch'], num_workers=32
     )
