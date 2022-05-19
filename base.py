@@ -102,8 +102,6 @@ class BaseModel(nn.Module):
             else:
                 y_cuda = y.to(self.device)
 
-            print(y_cuda.shape)
-
             # After that, we can compute the relevant losses.
             if train:
                 # Training losses (applied to the training data)
