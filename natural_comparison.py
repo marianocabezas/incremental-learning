@@ -530,86 +530,86 @@ def main(verbose=2):
                 testing_tasks, gem_results, n_classes, 2
             )
 
-            # Average GEM
-            print(
-                '{:}Starting task - AGEM {:02d}/{:02d}{:} - {:02d}/{:02d} '
-                '({:} parameters)'.format(
-                    c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
-                    test_n + 1, len(config['seeds']),
-                    c['b'] + str(n_param) + c['nc']
-                )
-            )
-
-            # We train the naive model on the current task
-            model_name = os.path.join(
-                model_path,
-                '{:}-agem-t{:02d}.s{:05d}.pt'.format(
-                    model_base, t_i, seed
-                )
-            )
-            train(
-                config, seed, agem_net, training_set, validation_set,
-                model_name, epochs, epochs, t_i, 2
-            )
-            agem_net.reset_optimiser()
-            update_results(
-                config, agem_net, seed, t_i, training_tasks, validation_tasks,
-                testing_tasks, agem_results, n_classes, 2
-            )
-
-            # Stochastic GEM
-            print(
-                '{:}Starting task - SGEM {:02d}/{:02d}{:} - {:02d}/{:02d} '
-                '({:} parameters)'.format(
-                    c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
-                    test_n + 1, len(config['seeds']),
-                    c['b'] + str(n_param) + c['nc']
-                )
-            )
-
-            # We train the naive model on the current task
-            model_name = os.path.join(
-                model_path,
-                '{:}-sgem-t{:02d}.s{:05d}.pt'.format(
-                    model_base, t_i, seed
-                )
-            )
-            train(
-                config, seed, sgem_net, training_set, validation_set,
-                model_name, epochs, epochs, t_i, 2
-            )
-            sgem_net.reset_optimiser()
-            update_results(
-                config, sgem_net, seed, t_i, training_tasks, validation_tasks,
-                testing_tasks, sgem_results, n_classes, 2
-            )
-
-            # PCA-based GEM
-            print(
-                '{:}Starting task - NGEM {:02d}/{:02d}{:} - {:02d}/{:02d} '
-                '({:} parameters)'.format(
-                    c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
-                    test_n + 1, len(config['seeds']),
-                    c['b'] + str(n_param) + c['nc']
-                )
-            )
-
-            # We train the naive model on the current task
-            model_name = os.path.join(
-                model_path,
-                '{:}-ngem-t{:02d}.s{:05d}.pt'.format(
-                    model_base, t_i, seed
-                )
-            )
-            train(
-                config, seed, ngem_net, training_set, validation_set,
-                model_name, epochs, epochs, t_i, 2
-            )
-            ngem_net.reset_optimiser()
-            update_results(
-                config, ngem_net, seed, t_i, training_tasks, validation_tasks,
-                testing_tasks, ngem_results, n_classes, 2
-            )
+            # # Average GEM
+            # print(
+            #     '{:}Starting task - AGEM {:02d}/{:02d}{:} - {:02d}/{:02d} '
+            #     '({:} parameters)'.format(
+            #         c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
+            #         test_n + 1, len(config['seeds']),
+            #         c['b'] + str(n_param) + c['nc']
+            #     )
+            # )
+            #
+            # # We train the naive model on the current task
+            # model_name = os.path.join(
+            #     model_path,
+            #     '{:}-agem-t{:02d}.s{:05d}.pt'.format(
+            #         model_base, t_i, seed
+            #     )
+            # )
+            # train(
+            #     config, seed, agem_net, training_set, validation_set,
+            #     model_name, epochs, epochs, t_i, 2
+            # )
+            # agem_net.reset_optimiser()
+            # update_results(
+            #     config, agem_net, seed, t_i, training_tasks, validation_tasks,
+            #     testing_tasks, agem_results, n_classes, 2
+            # )
+            #
+            # # Stochastic GEM
+            # print(
+            #     '{:}Starting task - SGEM {:02d}/{:02d}{:} - {:02d}/{:02d} '
+            #     '({:} parameters)'.format(
+            #         c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
+            #         test_n + 1, len(config['seeds']),
+            #         c['b'] + str(n_param) + c['nc']
+            #     )
+            # )
+            #
+            # # We train the naive model on the current task
+            # model_name = os.path.join(
+            #     model_path,
+            #     '{:}-sgem-t{:02d}.s{:05d}.pt'.format(
+            #         model_base, t_i, seed
+            #     )
+            # )
+            # train(
+            #     config, seed, sgem_net, training_set, validation_set,
+            #     model_name, epochs, epochs, t_i, 2
+            # )
+            # sgem_net.reset_optimiser()
+            # update_results(
+            #     config, sgem_net, seed, t_i, training_tasks, validation_tasks,
+            #     testing_tasks, sgem_results, n_classes, 2
+            # )
+            #
+            # # PCA-based GEM
+            # print(
+            #     '{:}Starting task - NGEM {:02d}/{:02d}{:} - {:02d}/{:02d} '
+            #     '({:} parameters)'.format(
+            #         c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
+            #         test_n + 1, len(config['seeds']),
+            #         c['b'] + str(n_param) + c['nc']
+            #     )
+            # )
+            #
+            # # We train the naive model on the current task
+            # model_name = os.path.join(
+            #     model_path,
+            #     '{:}-ngem-t{:02d}.s{:05d}.pt'.format(
+            #         model_base, t_i, seed
+            #     )
+            # )
+            # train(
+            #     config, seed, ngem_net, training_set, validation_set,
+            #     model_name, epochs, epochs, t_i, 2
+            # )
+            # ngem_net.reset_optimiser()
+            # update_results(
+            #     config, ngem_net, seed, t_i, training_tasks, validation_tasks,
+            #     testing_tasks, ngem_results, n_classes, 2
+            # )
 
     for results_i, results_name in zip(all_results, all_methods):
         save_results(
