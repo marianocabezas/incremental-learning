@@ -569,5 +569,5 @@ class Independent(MetaModel):
         super().fit(train_loader, val_loader, epochs, patience, verbose)
         if (self.current_task + 1) < len(self.models):
             self.model[self.current_task + 1].load_state_dict(
-                self.model[self.current_task]
+                self.model[self.current_task].state_dict()
             )
