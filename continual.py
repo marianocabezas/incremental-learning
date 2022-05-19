@@ -548,7 +548,7 @@ class Independent(MetaModel):
         super().__init__(basemodel, best, n_tasks)
         self.first = True
         self.model = None
-        self.model = [
+        self.models = [
             deepcopy(basemodel) for _ in range(n_tasks)
         ]
         self.device = basemodel.device
@@ -567,7 +567,7 @@ class Independent(MetaModel):
         patience=5,
         verbose=True
     ):
-        self.optimizer_alg = self.model[self.current_task + 1].optimizer_alg
+        self.optimizer_alg = self.models[self.current_task + 1].optimizer_alg
         super().fit(train_loader, val_loader, epochs, patience, verbose)
         if (self.current_task + 1) < len(self.models):
             self.models[self.current_task + 1].load_state_dict(
