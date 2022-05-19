@@ -119,7 +119,7 @@ def train(
 def test(config, net, testing_subjects, n_classes, verbose=0):
     # Init
     matrix = np.zeros((n_classes, n_classes))
-    dataset = config['dataset'](
+    dataset = config['validation'](
         testing_subjects[1], testing_subjects[2]
     )
     test_loader = DataLoader(
