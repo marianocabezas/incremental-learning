@@ -451,8 +451,8 @@ class GEM(MetaModel):
             'grads': self.grads,
             'tasks': self.observed_tasks,
             'task': self.current_task,
-            'state': self.state_dict(),
-            'first': self.first
+            'first': self.first,
+            'state': self.state_dict()
         }
         torch.save(net_state, net_name)
 
