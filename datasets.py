@@ -1,6 +1,7 @@
 import itertools
 from copy import deepcopy
 import numpy as np
+import torch
 from torch.utils.data.dataset import Dataset
 from utils import get_bb
 
@@ -394,3 +395,25 @@ class BinaryImageDataset(Dataset):
 
     def __len__(self):
         return len(self.positive_cases) + len(self.negative_cases)
+
+
+class NaturalDataset(Dataset):
+    """
+    This is a training dataset and we only want patches that
+    actually have lesions since there are lots of non-lesion voxels
+    anyways.
+    """
+    def __init__(self, data, labels):
+        self.data = data
+        self.labels = labels
+
+    def __getitem__(self, index):
+        x = self.data[index]
+        width = int(np.sqrt(len(x) / 3))
+        x = x.view(1, 3, width, width)
+        y = self.labels[index].view(1, 1)
+
+        return x, y
+
+    def __len__(self):
+        return len(self.data)

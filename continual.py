@@ -172,7 +172,8 @@ class MetaModel(BaseModel):
         verbose=True
     ):
         self.current_task = self.current_task + 1
-        self.observed_tasks.append(self.current_task)
+        if self.current_task not in self.observed_tasks:
+            self.observed_tasks.append(self.current_task)
         super().fit(train_loader, val_loader, epochs, patience, verbose)
 
 
@@ -239,8 +240,8 @@ class EWC(MetaModel):
                     torch.sum(
                         self.ewc_parameters[n]['fisher'].to(self.device) * (
                                 p - self.ewc_parameters[n]['means'].to(
-                            self.device
-                        )
+                                    self.device
+                                )
                         ) ** 2
                     )
                     for n, p in self.model.named_parameters()
