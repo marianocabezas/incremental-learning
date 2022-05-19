@@ -112,7 +112,7 @@ class BaseModel(nn.Module):
                 batch_loss = sum(batch_losses)
                 if self.training:
                     batch_loss.backward()
-                    self.prebatch_update()
+                    self.prebatch_update(len(data), x_cuda, y_cuda)
                     self.optimizer_alg.step()
                     self.batch_update(len(data), x_cuda, y_cuda)
 
