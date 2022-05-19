@@ -400,6 +400,8 @@ class GEM(MetaModel):
                     offset1 = 0
                     offset2 = self.n_classes
 
+                print(past_task, self.nc_per_task, offset1, offset2)
+
                 output = self.forward(
                     torch.stack(self.memory_data[past_task])
                 )
