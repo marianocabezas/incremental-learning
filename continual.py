@@ -452,7 +452,6 @@ class GEM(MetaModel):
             'tasks': self.observed_tasks,
             'task': self.current_task,
             'state': self.state_dict(),
-            'ewc_param': self.ewc_parameters,
             'first': self.first
         }
         torch.save(net_state, net_name)
