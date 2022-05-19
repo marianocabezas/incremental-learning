@@ -178,7 +178,7 @@ def update_results(
             results[seed]['testing'][step, t_i, ...] = tst_matrix
     test_elapsed = time.time() - test_start
     if verbose > 0:
-        print('Testing finished {:}'.format(time_to_string(test_elapsed)))
+        print('\033[KTesting finished {:}'.format(time_to_string(test_elapsed)))
 
 
 def empty_confusion_matrix(n_tasks, n_classes):
