@@ -147,7 +147,7 @@ def test(config, net, testing, n_classes, verbose=0):
 
 
 def update_results(
-    config, net, step, training, validation, testing, results, n_classes,
+    config, net, seed, step, training, validation, testing, results, n_classes,
         verbose=0
 ):
     for t_i, (tr_i, val_i, tst_i) in enumerate(zip(training, validation, testing)):
@@ -156,13 +156,13 @@ def update_results(
         tst_matrix = test(config, net, tst_i, n_classes, verbose)
         if isinstance(results, list):
             for results_i in results:
-                results_i['training'][step, t_i, ...] = tr_matrix
-                results_i['validation'][step, t_i, ...] = val_matrix
-                results_i['testing'][step, t_i, ...] = tst_matrix
+                results_i[seed]['training'][step, t_i, ...] = tr_matrix
+                results_i[seed]['validation'][step, t_i, ...] = val_matrix
+                results_i[seed]['testing'][step, t_i, ...] = tst_matrix
         else:
-            results['training'][step, t_i, ...] = tr_matrix
-            results['validation'][step, t_i, ...] = val_matrix
-            results['testing'][step, t_i, ...] = tst_matrix
+            results[seed]['training'][step, t_i, ...] = tr_matrix
+            results[seed]['validation'][step, t_i, ...] = val_matrix
+            results[seed]['testing'][step, t_i, ...] = tst_matrix
 
 
 def empty_confusion_matrix(n_tasks, n_classes):
@@ -267,7 +267,6 @@ def main(verbose=2):
                 )
             )
 
-
         # Training
         # Here we'll do the training / validation split...
         # Training and testing split
@@ -319,7 +318,7 @@ def main(verbose=2):
         )
         # Init results
         update_results(
-            config, net, 1, training_tasks, validation_tasks, testing_tasks,
+            config, net, seed, 1, training_tasks, validation_tasks, testing_tasks,
             all_results, n_classes, 2
         )
         # Baseline (all data) training and results
@@ -328,7 +327,7 @@ def main(verbose=2):
             model_name, 2
         )
         update_results(
-            config, net, 0, training_tasks, validation_tasks, testing_tasks,
+            config, net, seed,  0, training_tasks, validation_tasks, testing_tasks,
             all_results, n_classes, 2
         )
 
@@ -427,7 +426,7 @@ def main(verbose=2):
             )
             net.reset_optimiser()
             update_results(
-                config, net, t_i, training_tasks, validation_tasks,
+                config, net, seed,  t_i, training_tasks, validation_tasks,
                 testing_tasks, naive_results, n_classes, 2
             )
 
@@ -454,7 +453,7 @@ def main(verbose=2):
             )
             ewc_net.reset_optimiser()
             update_results(
-                config, ewc_net, t_i, training_tasks, validation_tasks,
+                config, ewc_net, seed, t_i, training_tasks, validation_tasks,
                 testing_tasks, ewc_results, n_classes, 2
             )
 
@@ -509,7 +508,7 @@ def main(verbose=2):
             )
             gem_net.reset_optimiser()
             update_results(
-                config, gem_net, t_i, training_tasks, validation_tasks,
+                config, gem_net, seed, t_i, training_tasks, validation_tasks,
                 testing_tasks, gem_results, n_classes, 2
             )
 
@@ -536,7 +535,7 @@ def main(verbose=2):
             )
             agem_net.reset_optimiser()
             update_results(
-                config, agem_net, t_i, training_tasks, validation_tasks,
+                config, agem_net, seed, t_i, training_tasks, validation_tasks,
                 testing_tasks, agem_results, n_classes, 2
             )
 
@@ -563,7 +562,7 @@ def main(verbose=2):
             )
             sgem_net.reset_optimiser()
             update_results(
-                config, sgem_net, t_i, training_tasks, validation_tasks,
+                config, sgem_net, seed, t_i, training_tasks, validation_tasks,
                 testing_tasks, sgem_results, n_classes, 2
             )
 
@@ -590,7 +589,7 @@ def main(verbose=2):
             )
             ngem_net.reset_optimiser()
             update_results(
-                config, ngem_net, t_i, training_tasks, validation_tasks,
+                config, ngem_net, seed, t_i, training_tasks, validation_tasks,
                 testing_tasks, ngem_results, n_classes, 2
             )
 
