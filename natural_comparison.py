@@ -52,7 +52,7 @@ def load_datasets(experiment_config):
 
 
 def train(
-    config, seed, net, training, validation, model_name, verbose=0
+    config, seed, net, training, validation, model_name, epochs, patience, verbose=0
 ):
     """
 
@@ -62,12 +62,12 @@ def train(
     :param training:
     :param validation:
     :param model_name:
+    :param epochs:
+    :param patience:
     :param verbose:
     """
     # Init
     path = config['model_path']
-    epochs = config['epochs']
-    patience = config['patience']
 
     try:
         net.load_model(os.path.join(path, model_name))
@@ -201,6 +201,7 @@ def main(verbose=2):
     model_base = os.path.splitext(os.path.basename(options['config']))[0]
 
     seeds = config['seeds']
+    epochs = config['epochs']
 
     print(
         '{:}[{:}] {:}<Incremental learning framework>{:}'.format(
@@ -325,7 +326,7 @@ def main(verbose=2):
         # Baseline (all data) training and results
         train(
             config, seed, net, training_set, validation_set,
-            model_name, 2
+            model_name, epochs * 10, 10, 2
         )
         update_results(
             config, net, seed,  0, training_tasks, validation_tasks, testing_tasks,
@@ -424,7 +425,7 @@ def main(verbose=2):
             )
             train(
                 config, seed, net, training_set, validation_set,
-                model_name, 2
+                model_name, epochs, epochs, 2
             )
             net.reset_optimiser()
             update_results(
@@ -451,7 +452,7 @@ def main(verbose=2):
             )
             train(
                 config, seed, ewc_net, training_set, validation_set,
-                model_name, 2
+                model_name, epochs, epochs, 2
             )
             ewc_net.reset_optimiser()
             update_results(
@@ -478,7 +479,7 @@ def main(verbose=2):
             )
             train(
                 config, seed, ewc_net, training_set, validation_set,
-                model_name, 2
+                model_name, epochs, epochs, 2
             )
             ewc_net.reset_optimiser()
             update_results(
@@ -506,7 +507,7 @@ def main(verbose=2):
             )
             train(
                 config, seed, gem_net, training_set, validation_set,
-                model_name, 2
+                model_name, epochs, epochs, 2
             )
             gem_net.reset_optimiser()
             update_results(
@@ -533,7 +534,7 @@ def main(verbose=2):
             )
             train(
                 config, seed, agem_net, training_set, validation_set,
-                model_name, 2
+                model_name, epochs, epochs, 2
             )
             agem_net.reset_optimiser()
             update_results(
@@ -560,7 +561,7 @@ def main(verbose=2):
             )
             train(
                 config, seed, sgem_net, training_set, validation_set,
-                model_name, 2
+                model_name, epochs, epochs, 2
             )
             sgem_net.reset_optimiser()
             update_results(
@@ -587,7 +588,7 @@ def main(verbose=2):
             )
             train(
                 config, seed, ngem_net, training_set, validation_set,
-                model_name, 2
+                model_name, epochs, epochs, 2
             )
             ngem_net.reset_optimiser()
             update_results(
