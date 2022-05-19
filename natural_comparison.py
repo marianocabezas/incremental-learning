@@ -14,6 +14,7 @@ from copy import deepcopy
 from continual import MetaModel, EWC, GEM, AGEM, SGEM, NGEM, Independent
 from utils import color_codes, time_to_string
 
+
 """
 > Arguments
 """
@@ -73,7 +74,6 @@ def train(
     try:
         net.load_model(os.path.join(path, model_name))
     except IOError:
-        torch.backends.cudnn.enabled = False
         np.random.seed(seed)
         torch.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
@@ -608,4 +608,5 @@ def main(verbose=2):
 
 
 if __name__ == '__main__':
+    torch.backends.cudnn.enabled = False
     main()
