@@ -371,7 +371,12 @@ class BaseModel(nn.Module):
                 output = self(x_cuda)
             torch.cuda.empty_cache()
 
-        return output[0, 0].cpu().numpy()
+            if len(output) > 0:
+                np_output = output.cpu().numpy()
+            else:
+                np_output = output[0, 0].cpu().numpy()
+
+        return np_output
 
     def patch_inference(self, data, patch_size, batch_size,
         case=0, n_cases=1, t_start=None
