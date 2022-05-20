@@ -376,12 +376,6 @@ class GEM(MetaModel):
     def update_memory(self, x, y):
         # Update ring buffer storing examples from current task
         t = self.current_task
-        print(
-            torch.cat(self.memory_labs[t]).shape
-            if len(self.memory_labs[t]) > 0 else None,
-            torch.cat(self.memory_data[t]).shape
-            if len(self.memory_data[t]) > 0 else None,
-        )
         bsz = y.data.size(0)
         endcnt = min(self.mem_cnt + bsz, self.n_memories)
         effbsz = endcnt - self.mem_cnt
@@ -406,19 +400,19 @@ class GEM(MetaModel):
                     offset1 = 0
                     offset2 = self.n_classes
 
-                lab = torch.stack(self.memory_labs[past_task])
+                lab = torch.cat(self.memory_labs[past_task])
                 print(
                     past_task, self.nc_per_task, offset1, offset2,
                     lab.min(), lab.max()
                 )
 
                 output = self.forward(
-                    torch.stack(self.memory_data[past_task])
+                    torch.cat(self.memory_data[past_task])
                 )
                 batch_losses = [
                     l_f['weight'] * l_f['f'](
                         output[:, offset1:offset2],
-                        torch.stack(self.memory_labs[past_task]) - offset1)
+                        torch.cat(self.memory_labs[past_task]) - offset1)
                     for l_f in self.train_functions
                 ]
                 sum(batch_losses).backward()
