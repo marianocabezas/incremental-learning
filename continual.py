@@ -367,6 +367,8 @@ class GEM(MetaModel):
         self.grad_dims = []
         for param in self.model.parameters():
             self.grad_dims.append(param.data.numel())
+        self.grads = torch.Tensor(sum(self.grad_dims), n_tasks)
+        self.grads.to(self.device)
         self.memory_data = [[] for _ in range(n_tasks)]
         self.memory_labs = [[] for _ in range(n_tasks)]
 
