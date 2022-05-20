@@ -403,7 +403,7 @@ class GEM(MetaModel):
                 lab = torch.stack(self.memory_labs[past_task])
                 print(
                     past_task, self.nc_per_task, offset1, offset2,
-                    lab.min(). lab.max()
+                    lab.min(), lab.max()
                 )
 
                 output = self.forward(
