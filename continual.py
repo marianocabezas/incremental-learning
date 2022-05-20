@@ -378,8 +378,10 @@ class GEM(MetaModel):
         t = self.current_task
         print(
             t, y.min(), y.max(),
-            torch.stack(self.memory_labs[t]).min() if self.memory_labs[t] is not None else None,
-            torch.stack(self.memory_labs[t]).max() if self.memory_labs[t] is not None else None
+            torch.stack(self.memory_labs[t]).min()
+            if len(self.memory_labs[t]) > 0 else None,
+            torch.stack(self.memory_labs[t]).max()
+            if len(self.memory_labs[t]) > 0 else None
         )
         bsz = y.data.size(0)
         endcnt = min(self.mem_cnt + bsz, self.n_memories)
