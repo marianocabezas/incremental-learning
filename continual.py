@@ -364,8 +364,8 @@ class GEM(MetaModel):
         self.split = split
         self.train_functions = self.model.train_functions
         self.val_functions = self.model.val_functions
-        self.memory_data = [[None] * n_memories] * n_tasks
-        self.memory_labs = [[None] * n_memories] * n_tasks
+        self.memory_data = [[]] * n_tasks
+        self.memory_labs = [[]] * n_tasks
 
         # Gradient tensors
         self.grads = {
@@ -384,11 +384,11 @@ class GEM(MetaModel):
         bsz = y.data.size(0)
         endcnt = min(self.mem_cnt + bsz, self.n_memories)
         effbsz = endcnt - self.mem_cnt
-        self.memory_data[t][self.mem_cnt:endcnt] = x.detach()[:effbsz]
+        self.memory_data[t].append(x.detach()[:effbsz])
         if bsz == 1:
-            self.memory_labs[t][self.mem_cnt] = y.detach()[0:]
+            self.memory_labs[t].append(y.detach()[0:])
         else:
-            self.memory_labs[t][self.mem_cnt:endcnt] = y.detach()[:effbsz]
+            self.memory_labs[t].append(y.detach()[:effbsz])
         self.mem_cnt += effbsz
         if self.mem_cnt == self.n_memories:
             self.mem_cnt = 0
