@@ -364,6 +364,9 @@ class GEM(MetaModel):
         self.split = split
         self.train_functions = self.model.train_functions
         self.val_functions = self.model.val_functions
+        self.grad_dims = []
+        for param in self.model.parameters():
+            self.grad_dims.append(param.data.numel())
         self.memory_data = [[] for _ in range(n_tasks)]
         self.memory_labs = [[] for _ in range(n_tasks)]
 
@@ -388,9 +391,6 @@ class GEM(MetaModel):
         if self.mem_cnt == self.n_memories:
             self.mem_cnt = 0
         lab = torch.cat(self.memory_labs[t])
-        print(
-            t, self.nc_per_task, lab.min(), lab.max()
-        )
 
     def update_gradients(self):
         if len(self.observed_tasks) > 1:
@@ -403,12 +403,6 @@ class GEM(MetaModel):
                 else:
                     offset1 = 0
                     offset2 = self.n_classes
-
-                lab = torch.cat(self.memory_labs[past_task])
-                print(
-                    past_task, self.nc_per_task, offset1, offset2,
-                    lab.min(), lab.max()
-                )
 
                 output = self.forward(
                     torch.cat(self.memory_data[past_task])
@@ -450,6 +444,7 @@ class GEM(MetaModel):
 
     def save_model(self, net_name):
         net_state = {
+            'grad_dims': self.grad_dims,
             'mem_data': self.memory_data,
             'mem_labs': self.memory_labs,
             'mem_cnt': self.mem_cnt,
@@ -466,6 +461,7 @@ class GEM(MetaModel):
 
     def load_model(self, net_name):
         net_state = torch.load(net_name, map_location=self.device)
+        self.grad_dims = net_state['grad_dims']
         self.memory_data = net_state['mem_data']
         self.memory_labs = net_state['mem_labs']
         self.mem_cnt = net_state['mem_cnt']
@@ -559,6 +555,40 @@ class NGEM(GEM):
                     beg, en, margin=self.margin)
             # copy gradients back
             overwrite_grad(self.parameters, self.grads[:, t], self.grad_dims)
+
+    def save_model(self, net_name):
+        net_state = {
+            'block_dims': self.block_grad_dims,
+            'grad_dims': self.grad_dims,
+            'mem_data': self.memory_data,
+            'mem_labs': self.memory_labs,
+            'mem_cnt': self.mem_cnt,
+            'grads': self.grads,
+            'tasks': self.observed_tasks,
+            'task': self.current_task,
+            'first': self.first,
+            'n_classes': self.n_classes,
+            'nc_per_task': self.nc_per_task,
+            'split': self.split,
+            'state': self.state_dict()
+        }
+        torch.save(net_state, net_name)
+
+    def load_model(self, net_name):
+        net_state = torch.load(net_name, map_location=self.device)
+        self.block_grad_dims = net_state['block_dims']
+        self.grad_dims = net_state['grad_dims']
+        self.memory_data = net_state['mem_data']
+        self.memory_labs = net_state['mem_labs']
+        self.mem_cnt = net_state['mem_cnt']
+        self.grads = net_state['grads']
+        self.observed_tasks = net_state['tasks']
+        self.current_task = net_state['task']
+        self.first = net_state['first']
+        self.n_classes = net_state['n_classes']
+        self.nc_per_task = net_state['nc_per_task']
+        self.split = net_state['split']
+        self.load_state_dict(net_state['state'])
 
 
 class Independent(MetaModel):
