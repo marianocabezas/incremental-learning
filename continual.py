@@ -429,8 +429,7 @@ class GEM(MetaModel):
         if len(self.observed_tasks) > 1:
             # copy gradient
             store_grad(self.parameters, self.grads, self.grad_dims, t)
-            indx = torch.cuda.LongTensor(self.observed_tasks[:-1]) if self.gpu \
-                else torch.LongTensor(self.observed_tasks[:-1])
+            indx = torch.LongTensor(self.observed_tasks[:-1]).to(self.device)
 
             grad = self.get_grad(indx)
 
@@ -543,8 +542,7 @@ class NGEM(GEM):
         if len(self.observed_tasks) > 1:
             # copy gradient
             store_grad(self.parameters, self.grads, self.grad_dims, t)
-            indx = torch.cuda.LongTensor(self.observed_tasks[:-1]) if self.gpu \
-                else torch.LongTensor(self.observed_tasks[:-1])
+            indx = torch.LongTensor(self.observed_tasks[:-1]).to(self.device)
 
             for cnt in range(len(self.block_grad_dims)):
                 beg = 0 if cnt == 0 else sum(self.block_grad_dims[:cnt])
