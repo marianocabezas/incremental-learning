@@ -376,7 +376,7 @@ class GEM(MetaModel):
     def update_memory(self, x, y):
         # Update ring buffer storing examples from current task
         t = self.current_task
-        print(t)
+        print(t, x.min(), y.min())
         bsz = y.data.size(0)
         endcnt = min(self.mem_cnt + bsz, self.n_memories)
         effbsz = endcnt - self.mem_cnt
