@@ -387,6 +387,10 @@ class GEM(MetaModel):
         self.mem_cnt += effbsz
         if self.mem_cnt == self.n_memories:
             self.mem_cnt = 0
+        lab = torch.cat(self.memory_labs[t])
+        print(
+            t, self.nc_per_task, lab.min(), lab.max()
+        )
 
     def update_gradients(self):
         if len(self.observed_tasks) > 1:
