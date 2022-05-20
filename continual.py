@@ -364,8 +364,8 @@ class GEM(MetaModel):
         self.split = split
         self.train_functions = self.model.train_functions
         self.val_functions = self.model.val_functions
-        self.memory_data = [[]] * n_tasks
-        self.memory_labs = [[]] * n_tasks
+        self.memory_data = [[] for _ in range(n_tasks)]
+        self.memory_labs = [[] for _ in range(n_tasks)]
 
         # Gradient tensors
         self.grads = {
