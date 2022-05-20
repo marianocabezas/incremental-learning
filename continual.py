@@ -386,7 +386,6 @@ class GEM(MetaModel):
         self.mem_cnt += effbsz
         if self.mem_cnt == self.n_memories:
             self.mem_cnt = 0
-        lab = torch.cat(self.memory_labs[t])
 
     def update_gradients(self):
         if len(self.observed_tasks) > 1:
@@ -501,8 +500,9 @@ class SGEM(GEM):
 
     def get_grad(self, indx):
         random_indx = np.random.randint(len(self.observed_tasks[:-1]))
-        indx = indx.index_select(0,
-                                 torch.Tensor([random_indx]).cuda().long())
+        indx = indx.index_select(
+            0, torch.Tensor([random_indx]).cuda().long()
+        )
         return self.grads.index_select(1, indx)
 
 
