@@ -333,20 +333,20 @@ def main(verbose=2):
                 c['b'] + str(n_param) + c['nc']
             )
         )
-        # # Init results
-        # update_results(
-        #     config, net, seed, 1, training_tasks, validation_tasks, testing_tasks,
-        #     all_results, n_classes, 2
-        # )
-        # # Baseline (all data) training and results
-        # train(
-        #     config, seed, net, training_set, validation_set,
-        #     model_name, epochs * n_tasks, n_tasks, None, 2
-        # )
-        # update_results(
-        #     config, net, seed,  0, training_tasks, validation_tasks, testing_tasks,
-        #     all_results, n_classes, 2
-        # )
+        # Init results
+        update_results(
+            config, net, seed, 1, training_tasks, validation_tasks, testing_tasks,
+            all_results, n_classes, 2
+        )
+        # Baseline (all data) training and results
+        train(
+            config, seed, net, training_set, validation_set,
+            model_name, epochs * n_tasks, n_tasks, None, 2
+        )
+        update_results(
+            config, net, seed,  0, training_tasks, validation_tasks, testing_tasks,
+            all_results, n_classes, 2
+        )
 
         # Naive approach. We just partition the data and update the model
         # with each new batch without caring about previous samples
@@ -422,85 +422,85 @@ def main(verbose=2):
         for t_i, (training_set, validation_set) in enumerate(
                 zip(training_tasks, validation_tasks)
         ):
-            # # < NAIVE >
-            # print(
-            #     '{:}Starting task - naive {:02d}/{:02d}{:} - {:02d}/{:02d} '
-            #     '({:} parameters)'.format(
-            #         c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
-            #         test_n + 1, len(config['seeds']),
-            #         c['b'] + str(n_param) + c['nc']
-            #     )
-            # )
-            #
-            # # We train the naive model on the current task
-            # model_name = os.path.join(
-            #     model_path,
-            #     '{:}-naive-t{:02d}.s{:05d}.pt'.format(
-            #         model_base, t_i, seed
-            #     )
-            # )
-            # train(
-            #     config, seed, net, training_set, validation_set,
-            #     model_name, epochs, epochs, t_i, 2
-            # )
-            # net.reset_optimiser()
-            # update_results(
-            #     config, net, seed,  t_i, training_tasks, validation_tasks,
-            #     testing_tasks, naive_results, n_classes, 2
-            # )
-            #
-            # # < Independent >
-            # print(
-            #     '{:}Starting task - Independent {:02d}/{:02d}{:} - '
-            #     '{:02d}/{:02d} ({:} parameters)'.format(
-            #         c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
-            #         test_n + 1, len(config['seeds']),
-            #         c['b'] + str(n_param) + c['nc']
-            #     )
-            # )
-            #
-            # # We train the naive model on the current task
-            # model_name = os.path.join(
-            #     model_path,
-            #     '{:}-ind-t{:02d}.s{:05d}.pt'.format(
-            #         model_base, t_i, seed
-            #     )
-            # )
-            # train(
-            #     config, seed, ind_net, training_set, validation_set,
-            #     model_name, epochs, epochs, t_i, 2
-            # )
-            # update_results(
-            #     config, ind_net, seed, t_i, training_tasks, validation_tasks,
-            #     testing_tasks, ind_results, n_classes, 2
-            # )
-            #
-            # # < EWC >
-            # print(
-            #     '{:}Starting task - EWC {:02d}/{:02d}{:} - {:02d}/{:02d} '
-            #     '({:} parameters)'.format(
-            #         c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
-            #         test_n + 1, len(config['seeds']),
-            #         c['b'] + str(n_param) + c['nc']
-            #     )
-            # )
-            #
-            # # We train the naive model on the current task
-            # model_name = os.path.join(
-            #     model_path,
-            #     '{:}-ewc-t{:02d}.s{:05d}.pt'.format(
-            #         model_base, t_i, seed
-            #     )
-            # )
-            # train(
-            #     config, seed, ewc_net, training_set, validation_set,
-            #     model_name, epochs, epochs, 2
-            # )
-            # ewc_net.reset_optimiser()
-            # update_results(
-            #     config, ewc_net, seed, t_i, training_tasks, validation_tasks,
-            #     testing_tasks, ewc_results, n_classes, 2
-            # )
+            # < NAIVE >
+            print(
+                '{:}Starting task - naive {:02d}/{:02d}{:} - {:02d}/{:02d} '
+                '({:} parameters)'.format(
+                    c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
+                    test_n + 1, len(config['seeds']),
+                    c['b'] + str(n_param) + c['nc']
+                )
+            )
+
+            # We train the naive model on the current task
+            model_name = os.path.join(
+                model_path,
+                '{:}-naive-t{:02d}.s{:05d}.pt'.format(
+                    model_base, t_i, seed
+                )
+            )
+            train(
+                config, seed, net, training_set, validation_set,
+                model_name, epochs, epochs, t_i, 2
+            )
+            net.reset_optimiser()
+            update_results(
+                config, net, seed,  t_i, training_tasks, validation_tasks,
+                testing_tasks, naive_results, n_classes, 2
+            )
+
+            # < Independent >
+            print(
+                '{:}Starting task - Independent {:02d}/{:02d}{:} - '
+                '{:02d}/{:02d} ({:} parameters)'.format(
+                    c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
+                    test_n + 1, len(config['seeds']),
+                    c['b'] + str(n_param) + c['nc']
+                )
+            )
+
+            # We train the naive model on the current task
+            model_name = os.path.join(
+                model_path,
+                '{:}-ind-t{:02d}.s{:05d}.pt'.format(
+                    model_base, t_i, seed
+                )
+            )
+            train(
+                config, seed, ind_net, training_set, validation_set,
+                model_name, epochs, epochs, t_i, 2
+            )
+            update_results(
+                config, ind_net, seed, t_i, training_tasks, validation_tasks,
+                testing_tasks, ind_results, n_classes, 2
+            )
+
+            # < EWC >
+            print(
+                '{:}Starting task - EWC {:02d}/{:02d}{:} - {:02d}/{:02d} '
+                '({:} parameters)'.format(
+                    c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
+                    test_n + 1, len(config['seeds']),
+                    c['b'] + str(n_param) + c['nc']
+                )
+            )
+
+            # We train the naive model on the current task
+            model_name = os.path.join(
+                model_path,
+                '{:}-ewc-t{:02d}.s{:05d}.pt'.format(
+                    model_base, t_i, seed
+                )
+            )
+            train(
+                config, seed, ewc_net, training_set, validation_set,
+                model_name, epochs, epochs, 2
+            )
+            ewc_net.reset_optimiser()
+            update_results(
+                config, ewc_net, seed, t_i, training_tasks, validation_tasks,
+                testing_tasks, ewc_results, n_classes, 2
+            )
 
             # < GEM >
             # Original GEM
@@ -525,91 +525,91 @@ def main(verbose=2):
                 model_name, epochs, epochs, t_i, 2
             )
             gem_net.reset_optimiser()
-            # update_results(
-            #     config, gem_net, seed, t_i, training_tasks, validation_tasks,
-            #     testing_tasks, gem_results, n_classes, 2
-            # )
+            update_results(
+                config, gem_net, seed, t_i, training_tasks, validation_tasks,
+                testing_tasks, gem_results, n_classes, 2
+            )
 
-            # # Average GEM
-            # print(
-            #     '{:}Starting task - AGEM {:02d}/{:02d}{:} - {:02d}/{:02d} '
-            #     '({:} parameters)'.format(
-            #         c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
-            #         test_n + 1, len(config['seeds']),
-            #         c['b'] + str(n_param) + c['nc']
-            #     )
-            # )
-            #
-            # # We train the naive model on the current task
-            # model_name = os.path.join(
-            #     model_path,
-            #     '{:}-agem-t{:02d}.s{:05d}.pt'.format(
-            #         model_base, t_i, seed
-            #     )
-            # )
-            # train(
-            #     config, seed, agem_net, training_set, validation_set,
-            #     model_name, epochs, epochs, t_i, 2
-            # )
-            # agem_net.reset_optimiser()
-            # update_results(
-            #     config, agem_net, seed, t_i, training_tasks, validation_tasks,
-            #     testing_tasks, agem_results, n_classes, 2
-            # )
-            #
-            # # Stochastic GEM
-            # print(
-            #     '{:}Starting task - SGEM {:02d}/{:02d}{:} - {:02d}/{:02d} '
-            #     '({:} parameters)'.format(
-            #         c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
-            #         test_n + 1, len(config['seeds']),
-            #         c['b'] + str(n_param) + c['nc']
-            #     )
-            # )
-            #
-            # # We train the naive model on the current task
-            # model_name = os.path.join(
-            #     model_path,
-            #     '{:}-sgem-t{:02d}.s{:05d}.pt'.format(
-            #         model_base, t_i, seed
-            #     )
-            # )
-            # train(
-            #     config, seed, sgem_net, training_set, validation_set,
-            #     model_name, epochs, epochs, t_i, 2
-            # )
-            # sgem_net.reset_optimiser()
-            # update_results(
-            #     config, sgem_net, seed, t_i, training_tasks, validation_tasks,
-            #     testing_tasks, sgem_results, n_classes, 2
-            # )
-            #
-            # # PCA-based GEM
-            # print(
-            #     '{:}Starting task - NGEM {:02d}/{:02d}{:} - {:02d}/{:02d} '
-            #     '({:} parameters)'.format(
-            #         c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
-            #         test_n + 1, len(config['seeds']),
-            #         c['b'] + str(n_param) + c['nc']
-            #     )
-            # )
-            #
-            # # We train the naive model on the current task
-            # model_name = os.path.join(
-            #     model_path,
-            #     '{:}-ngem-t{:02d}.s{:05d}.pt'.format(
-            #         model_base, t_i, seed
-            #     )
-            # )
-            # train(
-            #     config, seed, ngem_net, training_set, validation_set,
-            #     model_name, epochs, epochs, t_i, 2
-            # )
-            # ngem_net.reset_optimiser()
-            # update_results(
-            #     config, ngem_net, seed, t_i, training_tasks, validation_tasks,
-            #     testing_tasks, ngem_results, n_classes, 2
-            # )
+            # Average GEM
+            print(
+                '{:}Starting task - AGEM {:02d}/{:02d}{:} - {:02d}/{:02d} '
+                '({:} parameters)'.format(
+                    c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
+                    test_n + 1, len(config['seeds']),
+                    c['b'] + str(n_param) + c['nc']
+                )
+            )
+
+            # We train the naive model on the current task
+            model_name = os.path.join(
+                model_path,
+                '{:}-agem-t{:02d}.s{:05d}.pt'.format(
+                    model_base, t_i, seed
+                )
+            )
+            train(
+                config, seed, agem_net, training_set, validation_set,
+                model_name, epochs, epochs, t_i, 2
+            )
+            agem_net.reset_optimiser()
+            update_results(
+                config, agem_net, seed, t_i, training_tasks, validation_tasks,
+                testing_tasks, agem_results, n_classes, 2
+            )
+
+            # Stochastic GEM
+            print(
+                '{:}Starting task - SGEM {:02d}/{:02d}{:} - {:02d}/{:02d} '
+                '({:} parameters)'.format(
+                    c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
+                    test_n + 1, len(config['seeds']),
+                    c['b'] + str(n_param) + c['nc']
+                )
+            )
+
+            # We train the naive model on the current task
+            model_name = os.path.join(
+                model_path,
+                '{:}-sgem-t{:02d}.s{:05d}.pt'.format(
+                    model_base, t_i, seed
+                )
+            )
+            train(
+                config, seed, sgem_net, training_set, validation_set,
+                model_name, epochs, epochs, t_i, 2
+            )
+            sgem_net.reset_optimiser()
+            update_results(
+                config, sgem_net, seed, t_i, training_tasks, validation_tasks,
+                testing_tasks, sgem_results, n_classes, 2
+            )
+
+            # PCA-based GEM
+            print(
+                '{:}Starting task - NGEM {:02d}/{:02d}{:} - {:02d}/{:02d} '
+                '({:} parameters)'.format(
+                    c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
+                    test_n + 1, len(config['seeds']),
+                    c['b'] + str(n_param) + c['nc']
+                )
+            )
+
+            # We train the naive model on the current task
+            model_name = os.path.join(
+                model_path,
+                '{:}-ngem-t{:02d}.s{:05d}.pt'.format(
+                    model_base, t_i, seed
+                )
+            )
+            train(
+                config, seed, ngem_net, training_set, validation_set,
+                model_name, epochs, epochs, t_i, 2
+            )
+            ngem_net.reset_optimiser()
+            update_results(
+                config, ngem_net, seed, t_i, training_tasks, validation_tasks,
+                testing_tasks, ngem_results, n_classes, 2
+            )
 
     for results_i, results_name in zip(all_results, all_methods):
         save_results(
