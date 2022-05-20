@@ -333,20 +333,20 @@ def main(verbose=2):
                 c['b'] + str(n_param) + c['nc']
             )
         )
-        # Init results
-        update_results(
-            config, net, seed, 1, training_tasks, validation_tasks, testing_tasks,
-            all_results, n_classes, 2
-        )
-        # Baseline (all data) training and results
-        train(
-            config, seed, net, training_set, validation_set,
-            model_name, epochs * n_tasks, n_tasks, None, 2
-        )
-        update_results(
-            config, net, seed,  0, training_tasks, validation_tasks, testing_tasks,
-            all_results, n_classes, 2
-        )
+        # # Init results
+        # update_results(
+        #     config, net, seed, 1, training_tasks, validation_tasks, testing_tasks,
+        #     all_results, n_classes, 2
+        # )
+        # # Baseline (all data) training and results
+        # train(
+        #     config, seed, net, training_set, validation_set,
+        #     model_name, epochs * n_tasks, n_tasks, None, 2
+        # )
+        # update_results(
+        #     config, net, seed,  0, training_tasks, validation_tasks, testing_tasks,
+        #     all_results, n_classes, 2
+        # )
 
         # Naive approach. We just partition the data and update the model
         # with each new batch without caring about previous samples
