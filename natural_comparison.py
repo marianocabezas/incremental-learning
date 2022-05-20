@@ -525,10 +525,10 @@ def main(verbose=2):
                 model_name, epochs, epochs, t_i, 2
             )
             gem_net.reset_optimiser()
-            update_results(
-                config, gem_net, seed, t_i, training_tasks, validation_tasks,
-                testing_tasks, gem_results, n_classes, 2
-            )
+            # update_results(
+            #     config, gem_net, seed, t_i, training_tasks, validation_tasks,
+            #     testing_tasks, gem_results, n_classes, 2
+            # )
 
             # # Average GEM
             # print(
