@@ -205,11 +205,6 @@ class EWC(MetaModel):
             if p.requires_grad
         }
 
-        self.grads = {
-            n: [] for n, p in self.model.named_parameters()
-            if p.requires_grad
-        }
-
         self.optimizer_alg = self.model.optimizer_alg
 
     def ewc_loss(self):
@@ -367,8 +362,7 @@ class GEM(MetaModel):
         self.grad_dims = []
         for param in self.model.parameters():
             self.grad_dims.append(param.data.numel())
-        self.grads = torch.Tensor(sum(self.grad_dims), n_tasks)
-        self.grads.to(self.device)
+        self.grads = torch.Tensor(sum(self.grad_dims), n_tasks).to(self.device)
         self.memory_data = [[] for _ in range(n_tasks)]
         self.memory_labs = [[] for _ in range(n_tasks)]
 
