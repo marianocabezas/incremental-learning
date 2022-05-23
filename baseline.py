@@ -303,7 +303,10 @@ def train(config, net, training, validation, model_name, verbose=0):
         net.save_model(os.path.join(path, model_name))
 
 
-def test_images_seg(config, mask_name, net, subject, session=None):
+def test_images_seg(
+    config, mask_name, net, subject, session=None, case=0, n_cases=1,
+    t_start=time.time()
+):
     masks_path = config['masks_path']
     if not os.path.isdir(masks_path):
         os.mkdir(masks_path)
@@ -343,7 +346,8 @@ def test_images_seg(config, mask_name, net, subject, session=None):
             patch_size = config['test_patch']
             batch_size = config['test_batch']
             prediction = net.patch_inference(
-                data, patch_size, batch_size
+                data, patch_size, batch_size, case=case, n_cases=n_cases,
+                t_start=t_start
             ) > 0.5
         segmentation[bb] = prediction
         segmentation[np.logical_not(roi)] = 0
@@ -394,7 +398,9 @@ def test(
                 if type_dict[type_tag] is not None:
                     type_dict[type_tag](
                         config=config, net=net, subject=subject,
-                        session=session
+                        session=session, case=sub_i,
+                        n_cases=len(testing_subjects),
+                        t_start=test_start
                     )
         else:
             if verbose > 0:
@@ -407,7 +413,9 @@ def test(
                 )
             if type_dict[type_tag] is not None:
                 type_dict[type_tag](
-                    config=config, net=net, subject=subject
+                    config=config, net=net, subject=subject,
+                    case=sub_i, n_cases=len(testing_subjects),
+                    t_start=test_start
                 )
 
 
