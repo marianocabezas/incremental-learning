@@ -1,6 +1,7 @@
 import argparse
 import os
 import time
+import importlib
 import nibabel
 import numpy as np
 import pandas as pd
@@ -237,21 +238,25 @@ def train(config, net, training, validation, model_name, verbose=0):
         if verbose > 1:
             print('Preparing the training datasets / dataloaders')
 
+        datasets = importlib.import_module('datasets')
+        training_class = getattr(datasets, config['training'])
+        validation_class = getattr(datasets, config['validation'])
+
         # Training
         if verbose > 1:
             print('< Training dataset >')
         dtrain, ltrain, rtrain = get_data(config, training)
         if 'train_patch' in config and 'train_overlap' in config:
-            train_dataset = config['training'](
+            train_dataset = training_class(
                 dtrain, ltrain, rtrain, patch_size=config['train_patch'],
                 overlap=config['train_overlap']
             )
         elif 'train_patch' in config:
-            train_dataset = config['training'](
+            train_dataset = training_class(
                 dtrain, ltrain, rtrain, patch_size=config['train_patch']
             )
         else:
-            train_dataset = config['training'](dtrain, ltrain, rtrain)
+            train_dataset =training_class(dtrain, ltrain, rtrain)
 
         if verbose > 1:
             print('Dataloader creation <with validation>')
@@ -267,16 +272,16 @@ def train(config, net, training, validation, model_name, verbose=0):
         else:
             dval, lval, rval = get_data(config, validation)
         if 'test_patch' in config and 'test_overlap' in config:
-            val_dataset = config['validation'](
+            val_dataset = validation_class(
                 dval, lval, rval, patch_size=config['test_patch'],
                 overlap=config['train_overlap']
             )
         elif 'test_patch' in config:
-            val_dataset = config['validation'](
+            val_dataset = validation_class(
                 dval, lval, rval, patch_size=config['test_patch']
             )
         else:
-            val_dataset = config['validation'](dval, lval, rval)
+            val_dataset = validation_class(dval, lval, rval)
 
         if verbose > 1:
             print('Dataloader creation <val>')
@@ -426,7 +431,8 @@ def main(verbose=2):
     if not os.path.isdir(model_path):
         os.mkdir(model_path)
     model_base = os.path.splitext(os.path.basename(options['config']))[0]
-
+    models = importlib.import_module('models')
+    network_class = getattr(models, config['net'])
     seeds = config['seeds']
 
     print(
@@ -457,7 +463,7 @@ def main(verbose=2):
         # Network init (random weights)
         np.random.seed(seed)
         torch.manual_seed(seed)
-        net = config['network'](
+        net = network_class(
             conv_filters=config['filters'],
             n_images=n_images
         )
@@ -540,7 +546,7 @@ def main(verbose=2):
             ]
 
             # Baseline model (full continuum access)
-            net = config['network'](
+            net = network_class(
                 conv_filters=config['filters'],
                 n_images=n_images
             )
