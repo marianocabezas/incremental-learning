@@ -432,7 +432,7 @@ def main(verbose=2):
         os.mkdir(model_path)
     model_base = os.path.splitext(os.path.basename(options['config']))[0]
     models = importlib.import_module('models')
-    network_class = getattr(models, config['net'])
+    network_class = getattr(models, config['network'])
     seeds = config['seeds']
 
     print(
