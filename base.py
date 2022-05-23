@@ -835,6 +835,7 @@ class AttentionAutoencoder(BaseModel):
         # connections.
         for c in self.down:
             c.to(self.device)
+            print(input_x)
             input_x = F.dropout3d(
                 c(input_x), self.dropout, self.training
             )
