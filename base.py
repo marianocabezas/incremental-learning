@@ -32,6 +32,7 @@ class BaseModel(nn.Module):
         self.device = None
         self.init = True
         self.optimizer_alg = None
+        self.current_task = -1
         self.epoch = 0
         self.t_train = 0
         self.t_val = 0
@@ -384,8 +385,8 @@ class BaseModel(nn.Module):
 
         return np_output
 
-    def patch_inference(self, data, patch_size, batch_size,
-        case=0, n_cases=1, t_start=None
+    def patch_inference(
+        self, data, patch_size, batch_size, case=0, n_cases=1, t_start=None
     ):
         # Init
         self.eval()
@@ -1146,5 +1147,3 @@ class AttentionGate3D(nn.Module):
             return x * alpha, alpha
         else:
             return x * alpha
-
-
