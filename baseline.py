@@ -433,7 +433,6 @@ def main(verbose=2):
     model_base = os.path.splitext(os.path.basename(options['config']))[0]
     models = importlib.import_module('models')
     network_class = getattr(models, config['network'])
-    print(network_class)
     seeds = config['seeds']
 
     print(
@@ -487,7 +486,7 @@ def main(verbose=2):
         # We will save the initial results pre-training
         all_subjects = [p for t_list in subjects.values() for p in t_list]
         test(
-            config, seed, 'init', net, all_subjects, verbose=1
+            config, seed, net, 'init', all_subjects, verbose=1
         )
 
         # Cross-validation loop
@@ -578,7 +577,7 @@ def main(verbose=2):
             # Testing for the baseline. We want to reduce repeating the same
             # experiments to save time if the algorithm crashes.
             test(
-                config, seed, 'baseline', net, testing_set, verbose=1
+                config, seed, net, 'baseline', all_subjects, verbose=1
             )
 
 
