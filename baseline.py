@@ -423,6 +423,8 @@ def main(verbose=2):
     n_folds = config['folds']
     val_split = config['val_split']
     model_path = config['model_path']
+    if not os.path.isdir(model_path):
+        os.mkdir(model_path)
     model_base = os.path.splitext(os.path.basename(options['config']))[0]
 
     seeds = config['seeds']
