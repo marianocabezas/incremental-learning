@@ -417,3 +417,76 @@ class NaturalDataset(Dataset):
 
     def __len__(self):
         return len(self.data)
+
+
+class DiffusionDataset(Dataset):
+    def __init__(
+            self, dmri, rois, directions, bvalues, patch_size=32,
+            overlap=0, min_lr=22, max_lr=22
+    ):
+        # Init
+        if type(patch_size) is not tuple:
+            self.patch_size = (patch_size,) * 3
+        else:
+            self.patch_size = patch_size
+        if type(overlap) is not tuple:
+            self.overlap = (overlap,) * 3
+        else:
+            self.overlap = overlap
+
+        self.images = dmri
+        self.rois = rois
+        self.directions = directions
+        self.bvalues = bvalues
+        n_directions = [len(bvalue) > 7 for bvalue in self.bvalues]
+        assert np.all(n_directions), 'The inputs are already low resolution'
+        if min_lr < 7:
+            self.min_lr = 7
+        else:
+            self.min_lr = min_lr
+        if max_lr < self.min_lr:
+            self.max_lr = self.min_lr
+        else:
+            self.max_lr = max_lr
+
+        # We get the preliminary patch slices (inside the bounding box)...
+        slices = get_slices(self.rois, self.patch_size, self.overlap)
+
+        # ... however, being inside the bounding box doesn't guarantee that the
+        # patch itself will contain any lesion voxels. Since, the lesion class
+        # is extremely underrepresented, we will filter this preliminary slices
+        # to guarantee that we only keep the ones that contain at least one
+        # lesion voxel.
+        self.patch_slices = [
+            (s, i) for i, s_i in enumerate(slices) for s in s_i
+        ]
+
+    def __getitem__(self, index):
+        slice_i, case_idx = self.patch_slices[index]
+        none_slice = (slice(None),)
+
+        dmri = self.images[case_idx][none_slice + slice_i].astype(np.float32)
+        dirs = self.directions[case_idx].transpose().astype(np.float32)
+        bvalues = self.bvalues[case_idx].astype(np.float32)
+        if self.min_lr == self.max_lr:
+            lr_end = self.min_lr
+        else:
+            lr_end = np.random.randint(self.min_lr, self.max_lr, 1)
+
+        hr_dmri = np.expand_dims(dmri, axis=0)
+        hr_dir = np.broadcast_to(
+            np.expand_dims(dirs, axis=(2, 3, 4)),
+            dirs.shape + hr_dmri.shape[2:]
+        )
+        hr_bvalues = np.broadcast_to(
+            np.expand_dims(bvalues, axis=(2, 3, 4)),
+            bvalues.shape + hr_dmri.shape[2:]
+        )
+        hr_data = np.concatenate([hr_bvalues, hr_dir, hr_dmri])
+        input_data = hr_data[:lr_end, ...]
+        target_data = hr_data[lr_end:, ...]
+
+        return input_data, target_data
+
+    def __len__(self):
+        return len(self.patch_slices)

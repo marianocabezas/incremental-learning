@@ -197,7 +197,7 @@ class SimpleUNet(BaseModel):
         return torch.sigmoid(self.segmenter(data))
 
 
-class XentrUNet(BaseModel):
+class XentrUNet(SimpleUNet):
     def __init__(
             self,
             conv_filters=None,
@@ -206,28 +206,7 @@ class XentrUNet(BaseModel):
             dropout=0,
             verbose=0,
     ):
-        super().__init__()
-        self.init = False
-        # Init values
-        if conv_filters is None:
-            self.conv_filters = [32, 64, 128, 256, 512]
-        else:
-            self.conv_filters = conv_filters
-        self.epoch = 0
-        self.t_train = 0
-        self.t_val = 0
-        self.device = device
-        self.dropout = dropout
-
-        # <Parameter setup>
-        self.segmenter = nn.Sequential(
-            Autoencoder(
-                self.conv_filters, device, n_images, block=ResConv3dBlock,
-                norm=norm_f
-            ),
-            nn.Conv3d(self.conv_filters[0], 1, 1)
-        )
-        self.segmenter.to(device)
+        super().__init__(conv_filters, device, n_images, dropout)
 
         # <Loss function setup>
         self.train_functions = [
@@ -283,15 +262,6 @@ class XentrUNet(BaseModel):
                     ', '.join([vf['name'] for vf in self.val_functions])
                 )
             )
-
-    def reset_optimiser(self):
-        super().reset_optimiser()
-        model_params = filter(lambda p: p.requires_grad, self.parameters())
-        self.optimizer_alg = torch.optim.Adam(model_params)
-
-    def forward(self, data):
-
-        return torch.sigmoid(self.segmenter(data))
 
 
 class SimpleResNet(BaseModel):
