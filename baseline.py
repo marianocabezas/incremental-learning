@@ -341,15 +341,21 @@ def test_images_seg(
         else:
             data = images[none_slice + bb].astype(np.float32)
 
-        try:
-            prediction = net.inference(data, nonbatched=True)
-        except RuntimeError:
-            patch_size = config['test_patch']
-            batch_size = config['test_batch']
-            prediction = net.patch_inference(
-                data, patch_size, batch_size, case=case, n_cases=n_cases,
-                t_start=t_start
-            )
+        # try:
+        #     prediction = net.inference(data, nonbatched=True)
+        # except RuntimeError:
+        #     patch_size = config['test_patch']
+        #     batch_size = config['test_batch']
+        #     prediction = net.patch_inference(
+        #         data, patch_size, batch_size, case=case, n_cases=n_cases,
+        #         t_start=t_start
+        #     )
+        patch_size = config['test_patch']
+        batch_size = config['test_batch']
+        prediction = net.patch_inference(
+            data, patch_size, batch_size, case=case, n_cases=n_cases,
+            t_start=t_start
+        )
         segmentation[bb] = prediction > 0.5
         segmentation[np.logical_not(roi)] = 0.
 
