@@ -342,7 +342,7 @@ def test_images_seg(
             data = images[none_slice + bb].astype(np.float32)
 
         try:
-            prediction = net.inference(data)
+            prediction = net.inference(data, nonbatched=True)
         except RuntimeError:
             patch_size = config['test_patch']
             batch_size = config['test_batch']
