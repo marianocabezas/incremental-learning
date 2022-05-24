@@ -349,12 +349,17 @@ def test_images_seg(
                 data, patch_size, batch_size, case=case, n_cases=n_cases,
                 t_start=t_start
             )
-        segmentation[bb] = prediction
+        segmentation[bb] = prediction > 0.5
         segmentation[np.logical_not(roi)] = 0.
 
         ref_nii = nibabel.load(find_file(config['labels'], d_path))
         segmentation_nii = nibabel.Nifti1Image(
             segmentation, ref_nii.get_qform(), ref_nii.header
+        )
+        segmentation_nii.to_filename(prediction_file)
+        ref_nii = nibabel.load(find_file(config['labels'], d_path))
+        segmentation_nii = nibabel.Nifti1Image(
+            prediction, ref_nii.get_qform(), ref_nii.header
         )
         segmentation_nii.to_filename(prediction_file)
 
