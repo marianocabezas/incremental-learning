@@ -329,7 +329,7 @@ def test_images_seg(
         bb = get_bb(roi, 2)
 
         prediction_file = os.path.join(p_path, mask_name)
-        segmentation = np.zeros_like(label)
+        segmentation = np.zeros_like(label, dtype=np.float32)
         none_slice = (slice(None, None),)
 
         if isinstance(images, tuple):
@@ -350,7 +350,7 @@ def test_images_seg(
                 t_start=t_start
             )
         segmentation[bb] = prediction
-        segmentation[np.logical_not(roi)] = 0
+        segmentation[np.logical_not(roi)] = 0.
 
         ref_nii = nibabel.load(find_file(config['labels'], d_path))
         segmentation_nii = nibabel.Nifti1Image(
