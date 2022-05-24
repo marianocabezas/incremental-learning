@@ -341,14 +341,14 @@ def test_images_seg(
             data = images[none_slice + bb].astype(np.float32)
 
         try:
-            prediction = net.inference(data) > 0.5
+            prediction = net.inference(data)
         except RuntimeError:
             patch_size = config['test_patch']
             batch_size = config['test_batch']
             prediction = net.patch_inference(
                 data, patch_size, batch_size, case=case, n_cases=n_cases,
                 t_start=t_start
-            ) > 0.5
+            )
         segmentation[bb] = prediction
         segmentation[np.logical_not(roi)] = 0
 
