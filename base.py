@@ -376,8 +376,7 @@ class BaseModel(nn.Module):
                 output = self(x_cuda)
             torch.cuda.empty_cache()
 
-            print(output.shape)
-            if len(output) > 0:
+            if len(output) > 1:
                 np_output = output.cpu().numpy()
             else:
                 np_output = output[0, 0].cpu().numpy()
