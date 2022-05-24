@@ -329,6 +329,7 @@ def test_images_seg(
         bb = get_bb(roi, 2)
 
         prediction_file = os.path.join(p_path, mask_name)
+        pr_prediction_file = os.path.join(p_path, 'pr.' + mask_name)
         segmentation = np.zeros_like(label, dtype=np.float32)
         none_slice = (slice(None, None),)
 
@@ -361,7 +362,7 @@ def test_images_seg(
         segmentation_nii = nibabel.Nifti1Image(
             prediction, ref_nii.get_qform(), ref_nii.header
         )
-        segmentation_nii.to_filename(prediction_file)
+        segmentation_nii.to_filename(pr_prediction_file)
 
 
 def test(
