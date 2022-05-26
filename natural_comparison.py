@@ -190,14 +190,10 @@ def save_results(config, json_name, results):
     seeds = config['seeds']
     json_file = os.path.join(path, json_name)
     results_tmp = deepcopy(results)
-    for i, results_i in enumerate(results.items()):
-        for seed in seeds:
-            list_results = results_i[seed]['training'].tolist()
-            results_tmp[i][seed]['training'] = list_results
-            list_results = results_i[seed]['validation'].tolist()
-            results_tmp[i][seed]['validation'] = list_results
-            list_results = results_i[seed]['testing'].tolist()
-            results_tmp[i][seed]['testing'] = list_results
+    for seed in seeds:
+        results_tmp[seed]['training'] = results[seed]['training'].tolist()
+        results_tmp[seed]['validation'] = results[seed]['validation'].tolist()
+        results_tmp[seed]['testing'] = results[seed]['testing'].tolist()
     with open(json_file, 'w') as testing_json:
         json.dump(results_tmp, testing_json)
 
