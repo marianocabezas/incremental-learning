@@ -187,9 +187,19 @@ def empty_confusion_matrix(n_tasks, n_classes):
 
 def save_results(config, json_name, results):
     path = config['json_path']
+    seeds = config['seeds']
     json_file = os.path.join(path, json_name)
+    results_tmp = deepcopy(results)
+    for i, results_i in enumerate(results.items()):
+        for seed in seeds:
+            list_results = results_i[seed]['training'].tolist()
+            results_tmp[i][seed]['training'] = list_results
+            list_results = results_i[seed]['validation'].tolist()
+            results_tmp[i][seed]['validation'] = list_results
+            list_results = results_i[seed]['testing'].tolist()
+            results_tmp[i][seed]['testing'] = list_results
     with open(json_file, 'w') as testing_json:
-        json.dump(results, testing_json)
+        json.dump(results_tmp, testing_json)
 
 
 """
