@@ -335,6 +335,12 @@ def main(verbose=2):
                 model_base, seed
             )
         )
+
+        # Init results
+        update_results(
+            config, net, seed, 1, training_tasks, validation_tasks, testing_tasks,
+            all_results, n_classes, 2
+        )
         print(
             '{:}Starting baseline{:} - {:02d}/{:02d} '
             '({:} parameters)'.format(
@@ -342,11 +348,6 @@ def main(verbose=2):
                 test_n + 1, len(config['seeds']),
                 c['b'] + str(n_param) + c['nc']
             )
-        )
-        # Init results
-        update_results(
-            config, net, seed, 1, training_tasks, validation_tasks, testing_tasks,
-            all_results, n_classes, 2
         )
         # Baseline (all data) training and results
         train(
