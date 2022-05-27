@@ -187,7 +187,7 @@ def empty_confusion_matrix(n_tasks, n_classes):
 
 def save_results(config, json_name, results):
     path = config['json_path']
-    seeds = config['seeds']
+    seeds = [str(seed) for seed in config['seeds']]
     json_file = os.path.join(path, json_name)
     results_tmp = deepcopy(results)
     for seed in seeds:
