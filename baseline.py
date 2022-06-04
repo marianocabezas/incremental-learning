@@ -13,6 +13,7 @@ from time import strftime
 from utils import find_file, get_mask, get_normalised_image, get_bb
 from utils import color_codes, time_to_string
 
+
 """
 > Arguments
 """
@@ -181,7 +182,7 @@ def get_data(experiment_config, subject_list):
                     '\033[KLoading subject {:} [{:}] ({:d}/{:d} - {:d}/{:d}) '
                     '{:} ETA {:}'.format(
                         p['subject'], session, pi + 1, len(subject_list),
-                                               si + 1, len(sessions),
+                        si + 1, len(sessions),
                         time_to_string(load_elapsed),
                         time_to_string(load_eta),
                     ), end='\r'
@@ -256,7 +257,7 @@ def train(config, net, training, validation, model_name, verbose=0):
                 dtrain, ltrain, rtrain, patch_size=config['train_patch']
             )
         else:
-            train_dataset =training_class(dtrain, ltrain, rtrain)
+            train_dataset = training_class(dtrain, ltrain, rtrain)
 
         if verbose > 1:
             print('Dataloader creation <with validation>')
@@ -436,7 +437,7 @@ def test(
 """
 
 
-def main(verbose=2):
+def main():
     # Init
     c = color_codes()
     options = parse_inputs()
