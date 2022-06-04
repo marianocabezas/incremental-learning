@@ -597,7 +597,7 @@ def main(verbose=2):
             # Testing for the baseline. We want to reduce repeating the same
             # experiments to save time if the algorithm crashes.
             test(
-                config, seed, net, 'baseline', all_subjects, verbose=1
+                config, seed, net, 'baseline', testing_set, verbose=1
             )
 
 
