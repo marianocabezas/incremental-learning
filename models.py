@@ -118,10 +118,10 @@ class ViT(BaseModel):
             3, self.features, patch_size, patch_size
         )
         self.class_embedding = nn.Parameter(
-            torch.rand((1, 1, self.features * 2))
+            torch.rand((1, self.features * 2, 1))
         )
         self.pos_embeddings = nn.Parameter(
-            torch.rand((1, tokens ** 2, self.features))
+            torch.rand((1, self.features, tokens ** 2))
         )
 
         self.encoders = nn.ModuleList([
@@ -174,10 +174,10 @@ class ViT(BaseModel):
         patch_embedding = self.projector(data).flatten(2).transpose(-2, -1)
         data_tensor = torch.cat([
             patch_embedding, pos_tensor.to(self.device)
-        ], axis=-1)
+        ], axis=1)
         input_tensor = torch.cat([
             class_tensor.to(self.device), data_tensor
-        ], axis=1)
+        ], axis=-1)
         for transformer in self.encoders:
             transformer.to(self.device)
             input_tensor = transformer(input_tensor)
