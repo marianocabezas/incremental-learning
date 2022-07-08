@@ -1163,15 +1163,15 @@ class SelfAttention(nn.Module):
     ):
         super().__init__()
         self.features = att_features
-        self.map_key = nn.Conv3d(
+        self.map_key = nn.Conv1d(
             in_channels=features, out_channels=att_features,
             kernel_size=1
         )
-        self.map_query = nn.Conv3d(
+        self.map_query = nn.Conv1d(
             in_channels=features, out_channels=att_features,
             kernel_size=1
         )
-        self.map_value = nn.Conv3d(
+        self.map_value = nn.Conv1d(
             in_channels=features, out_channels=att_features,
             kernel_size=1
         )
