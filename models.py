@@ -1,16 +1,13 @@
 import time
-import itertools
 from torchvision import models
 import torch
 from torch import nn
 import torch.nn.functional as F
-import numpy as np
-from base import BaseModel, ResConv3dBlock
+from base import BaseModel, ResConv3dBlock, ViTEncoder
 from base import Autoencoder, AttentionAutoencoder, DualAttentionAutoencoder
-from utils import time_to_string, to_torch_var
+from utils import time_to_string
 from criteria import gendsc_loss, similarity_loss, grad_loss, accuracy
 from criteria import tp_binary_loss, tn_binary_loss, dsc_binary_loss
-from criteria import focal_loss
 
 
 def norm_f(n_f):
@@ -93,6 +90,93 @@ class ResNet18(BaseModel):
     def forward(self, data):
         self.resnet.to(self.device)
         return self.resnet(data)
+
+
+def vit_cifar(n_outputs, lr=1e-3):
+    return ViT(1024, 32, 2, n_outputs, 24, lr)
+
+
+def vit_imagenet(n_outputs, lr=1e-3):
+    return ViT(1024, 64, 4, n_outputs, 24, lr)
+
+
+class ViT(BaseModel):
+    def __init__(
+        self, att_features, image_size, patch_size, heads, n_encoders,
+        n_outputs, lr=1e-3,
+        device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
+        verbose=True
+    ):
+        super().__init__()
+        # Init
+        self.features = patch_size ** 2
+        tokens = image_size / patch_size
+        self.n_classes = n_outputs
+        self.lr = lr
+        self.device = device
+        self.projector = nn.Conv2d(
+            3, self.features, patch_size, patch_size
+        )
+        self.class_embedding = nn.Parameter(torch.rand(1, 1, self.features * 2))
+        self.pos_embeddings = nn.Parameter(torch.rand(1, tokens ** 2, self.features))
+
+        self.encoders = nn.ModuleList([
+            ViTEncoder(self.features * 2, att_features, heads)
+            for _ in range(n_encoders)
+        ])
+        self.mlp = nn.Linear(self.features * 2, self.n_classes)
+
+        # <Loss function setup>
+        self.train_functions = [
+            {
+                'name': 'xentropy',
+                'weight': 1,
+                'f': F.cross_entropy
+            }
+        ]
+
+        self.val_functions = [
+            {
+                'name': 'xent',
+                'weight': 1,
+                'f': F.cross_entropy
+            },
+        ]
+
+        # <Optimizer setup>
+        # We do this last step after all parameters are defined
+        model_params = filter(lambda p: p.requires_grad, self.parameters())
+        self.optimizer_alg = torch.optim.SGD(model_params, lr=self.lr)
+        if verbose > 1:
+            print(
+                'Network created on device {:} with training losses '
+                '[{:}] and validation losses [{:}]'.format(
+                    self.device,
+                    ', '.join([tf['name'] for tf in self.train_functions]),
+                    ', '.join([vf['name'] for vf in self.val_functions])
+                )
+            )
+
+    def reset_optimiser(self):
+        super().reset_optimiser()
+        model_params = filter(lambda p: p.requires_grad, self.parameters())
+        self.optimizer_alg = torch.optim.SGD(model_params, lr=self.lr)
+
+    def forward(self, data):
+        batch_size = len(data)
+        class_tensor = self.class_embedding.expand(batch_size, -1, -1)
+        pos_tensor = self.pos_embeddings.expand(batch_size, -1, -1)
+        self.projector.to(self.device)
+        patch_embedding = self.projector(data).flatten(2).transpose(-2, -1)
+        data_tensor = torch.cat([patch_embedding, pos_tensor], axis=-1)
+        input_tensor = torch.cat([class_tensor, data_tensor], axis=1)
+        for transformer in self.encoders:
+            transformer.to(self.device)
+            input_tensor = transformer(input_tensor)
+
+        self.mlp.to(self.device)
+        class_tensor = input_tensor[:, 0, ...]
+        return self.mlp(class_tensor)
 
 
 class SimpleUNet(BaseModel):
