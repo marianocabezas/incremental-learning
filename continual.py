@@ -87,10 +87,7 @@ def project5cone5(gradient, memories, beg, en, margin=0.5, eps=1e-3):
              memories_np_sum.transpose().dot(memories_np_sum)), -margin
         ]) * memories_np_sum
     else:
-        # memories_np_pca = orth(memories_np_del_mean.transpose()).transpose()
-
         memories_np_orth = memories_np_pca.components_
-        # memories_np_orth = memories_np_pca
         Pg = gradient_np - memories_np_orth.transpose().dot(
             memories_np_orth.dot(gradient_np))
         Pg_bar = memories_np_sum - memories_np_orth.transpose().dot(
