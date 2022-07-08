@@ -172,6 +172,7 @@ class ViT(BaseModel):
         pos_tensor = self.pos_embeddings.expand(batch_size, -1, -1)
         self.projector.to(self.device)
         patch_embedding = self.projector(data).flatten(2).transpose(-2, -1)
+        print(patch_embedding.shape, pos_tensor.shape)
         data_tensor = torch.cat([
             patch_embedding, pos_tensor.to(self.device)
         ], axis=1)
