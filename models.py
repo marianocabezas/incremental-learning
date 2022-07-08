@@ -183,8 +183,7 @@ class ViT(BaseModel):
             input_tensor = transformer(input_tensor)
 
         self.mlp.to(self.device)
-        class_tensor = input_tensor[:, 0, ...]
-        print(class_tensor.shape)
+        class_tensor = input_tensor[..., 0]
         return self.mlp(class_tensor)
 
 
