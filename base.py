@@ -1226,5 +1226,5 @@ class ViTEncoder(nn.Module):
         norm_x = self.norm(x)
         sa = torch.cat([sa_i(norm_x) for sa_i in self.sa_blocks], dim=1)
         msa = self.projector(sa)
-        x += msa
+        x = x + msa
         return self.final_block(x) + x

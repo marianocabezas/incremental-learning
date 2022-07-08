@@ -109,6 +109,38 @@ def project5cone5(gradient, memories, beg, en, margin=0.5, eps=1e-3):
 
     gradient[beg:en].copy_(torch.Tensor(x).view(-1, 1))
 
+    # memories_tensor = memories[beg:en].t()
+    # gradient_tensor = gradient[beg:en].contiguous().view(-1)
+    # memories_mean = torch.mean(memories_tensor, axis=0)
+    # memories_sum = torch.sum(memories_tensor, axis=0)
+    # memories_del_mean = memories_tensor - memories_mean.reshape(1, -1)
+    #
+    # if len(memories_tensor) == 1:
+    #     x = gradient_tensor - np.min([
+    #         (memories_sum.transpose().dot(gradient_tensor) /
+    #          memories_sum.transpose().dot(memories_sum)), - margin
+    #     ]) * memories_sum
+    # else:
+    #     memories_orth, _, _ = torch.pca_lowrank(memories_del_mean, q=min(3, len(memories)))
+    #     memories_orth = memories_orth.transpose()
+    #     Pg = gradient_tensor - memories_orth.transpose().dot(
+    #         memories_orth.dot(gradient_tensor))
+    #     Pg_bar = memories_sum - memories_orth.transpose().dot(
+    #         memories_orth.dot(memories_sum))
+    #     if memories_sum.transpose().dot(Pg) > 0:
+    #         x = Pg
+    #     else:
+    #         x = gradient_tensor - np.min([
+    #             memories_sum.transpose().dot(Pg) /
+    #             memories_sum.transpose().dot(Pg_bar), -margin
+    #         ]) * memories_sum - memories_orth.transpose().dot(
+    #             memories_orth.dot(gradient_tensor)) + memories_sum.transpose(
+    #         ).dot(Pg) / memories_sum.transpose().dot(
+    #             Pg_bar) * memories_orth.transpose().dot(
+    #             memories_orth.dot(memories_sum))
+    #
+    # gradient[beg:en].copy_(x.view(-1, 1))
+
 
 class MetaModel(BaseModel):
     def __init__(
