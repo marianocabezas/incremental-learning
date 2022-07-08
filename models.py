@@ -111,6 +111,10 @@ class ViT(BaseModel):
         # Init
         self.features = patch_size * patch_size
         tokens = image_size // patch_size
+        print(
+            type(patch_size ** 2), type(tokens ** 2),
+            type(self.features), type(self.features * 2)
+        )
         self.n_classes = n_outputs
         self.lr = lr
         self.device = device
