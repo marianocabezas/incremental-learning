@@ -110,7 +110,7 @@ class ViT(BaseModel):
         super().__init__()
         # Init
         self.features = patch_size ** 2
-        tokens = image_size / patch_size
+        tokens = image_size // patch_size
         self.n_classes = n_outputs
         self.lr = lr
         self.device = device
