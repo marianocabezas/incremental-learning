@@ -1183,6 +1183,7 @@ class SelfAttention(nn.Module):
         value = self.map_value(x)
 
         att = torch.matmul(key, query.transpose(-1, -2))
+        print(att.shape)
         att_map = self.norm(att / np.sqrt(self.features))
         features = torch.matmul(
             value.transpose(-1, -2), att_map
