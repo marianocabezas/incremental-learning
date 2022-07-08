@@ -412,7 +412,6 @@ class NaturalDataset(Dataset):
         width = int(np.sqrt(len(x) / 3))
         x = x.view(3, width, width)
         y = self.labels[index]
-        print(y.shape)
 
         return x, y
 
