@@ -109,7 +109,7 @@ class ViT(BaseModel):
     ):
         super().__init__()
         # Init
-        self.features = patch_size ** 2
+        self.features = patch_size * patch_size
         tokens = image_size // patch_size
         self.n_classes = n_outputs
         self.lr = lr
@@ -121,7 +121,7 @@ class ViT(BaseModel):
             torch.rand((1, 1, self.features * 2))
         )
         self.pos_embeddings = nn.Parameter(
-            torch.rand((1, tokens ** 2, self.features))
+            torch.rand((1, tokens * tokens, self.features))
         )
 
         self.encoders = nn.ModuleList([
