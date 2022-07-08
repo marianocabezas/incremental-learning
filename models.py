@@ -93,11 +93,11 @@ class ResNet18(BaseModel):
 
 
 def vit_cifar(n_outputs, lr=1e-3):
-    return ViT(1024, 32, 2, n_outputs, 24, lr)
+    return ViT(1024, 32, 2, 16, 24, n_outputs, lr)
 
 
 def vit_imagenet(n_outputs, lr=1e-3):
-    return ViT(1024, 64, 4, n_outputs, 24, lr)
+    return ViT(1024, 64, 4, 16, 24, n_outputs, lr)
 
 
 class ViT(BaseModel):
@@ -128,7 +128,6 @@ class ViT(BaseModel):
             ViTEncoder(self.features * 2, att_features, heads)
             for _ in range(n_encoders)
         ])
-        print(type(self.features), type(self.features * 2), type(self.n_classes))
         self.mlp = nn.Linear(self.features * 2, self.n_classes)
 
         # <Loss function setup>
