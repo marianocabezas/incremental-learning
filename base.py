@@ -1147,3 +1147,104 @@ class AttentionGate3D(nn.Module):
             return x * alpha, alpha
         else:
             return x * alpha
+
+
+class SelfAttention(nn.Module):
+    """
+        Non-local self-attention block based on
+        X. Wang, R. Girshick, A.Gupta, K. He
+        "Non-local Neural Networks"
+        https://arxiv.org/abs/1711.07971
+    """
+
+    def __init__(
+            self, features, att_features, kernel=1,
+            norm=partial(torch.softmax, dim=1)
+    ):
+        super().__init__()
+        self.features = att_features
+        self.map_key = nn.Conv3d(
+            in_channels=features, out_channels=att_features,
+            kernel_size=kernel
+        )
+        self.map_query = nn.Conv3d(
+            in_channels=features, out_channels=att_features,
+            kernel_size=kernel
+        )
+        self.map_value = nn.Conv3d(
+            in_channels=features, out_channels=att_features,
+            kernel_size=kernel
+        )
+        self.norm = norm
+
+    def forward(self, x):
+        key = self.map_key(x)
+        query = self.map_query(x)
+        value = self.map_value(x)
+
+        att = torch.matmul(key, query.transpose(-1, -2))
+        att_map = self.norm(att / np.sqrt(self.features))
+        features = torch.matmul(
+            value.transpose(-1, -2), att_map
+        ).transpose(-1, -2)
+
+        return features
+
+
+class MultiheadedAttention(nn.Module):
+    """
+        Mmulti-headed attention based on
+        A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, Ll. Jones, A.N. Gomez,
+        L. Kaiser, I. Polosukhin
+        "Attention Is All You Need"
+        https://arxiv.org/abs/1706.03762
+    """
+
+    def __init__(
+        self, features, att_features, heads=32, kernel=1,
+        norm=partial(torch.softmax, dim=1),
+    ):
+        super().__init__()
+        self.blocks = heads
+        self.norm = nn.GroupNorm(1, features)
+        self.sa_blocks = nn.ModuleList([
+            SelfAttention(
+                features, att_features, kernel, norm
+            )
+            for _ in range(self.blocks)
+        ])
+        self.final_block = nn.Sequential(
+            nn.ReLU(),
+            nn.InstanceNorm3d(heads, query_features * heads),
+            # nn.GroupNorm(heads, att_features * heads),
+            # nn.BatchNorm1d(in_features * heads),
+            # nn.GroupNorm(1, in_features * heads),
+            nn.Conv3d(query_features * heads, query_features, 1),
+            nn.ReLU(),
+            nn.InstanceNorm3d(query_features),
+            # nn.GroupNorm(heads, att_features * heads),
+            # nn.BatchNorm1d(in_features * heads),
+            # nn.GroupNorm(1, in_features * heads),
+            nn.Conv3d(query_features, query_features, 1)
+        )
+
+    def forward(self, x):
+        key_batched = key.flatten(0, 1)
+        norm_key = self.key_norm(key_batched).view(key.shape)
+        query_batched = query.flatten(0, 1)
+        norm_query = self.query_norm(query_batched).view(query.shape)
+        sa = torch.cat([
+            sa_i(norm_key, norm_query, positional).flatten(0, 1)
+            for sa_i in self.sa_blocks
+        ], dim=1)
+        features = self.final_block(sa)
+        if features.shape != query_batched.shape:
+            crop = tuple(
+                slice((d_x - d_feat) // 2, -(d_x - d_feat) // 2)
+                for d_feat, d_x in zip(
+                    features.size()[2:], query_batched.size()[2:]
+                )
+            )
+            query_batched = query_batched[(slice(None),) * 2 + crop]
+        residual = features + query_batched
+        return residual.view(query.shape[:3] + residual.shape[2:])
