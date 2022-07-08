@@ -109,12 +109,8 @@ class ViT(BaseModel):
     ):
         super().__init__()
         # Init
-        self.features = patch_size * patch_size
+        self.features = patch_size ** 2
         tokens = image_size // patch_size
-        print(
-            type(patch_size ** 2), type(tokens ** 2),
-            type(self.features), type(self.features * 2)
-        )
         self.n_classes = n_outputs
         self.lr = lr
         self.device = device
@@ -125,13 +121,14 @@ class ViT(BaseModel):
             torch.rand((1, 1, self.features * 2))
         )
         self.pos_embeddings = nn.Parameter(
-            torch.rand((1, tokens * tokens, self.features))
+            torch.rand((1, tokens ** 2, self.features))
         )
 
         self.encoders = nn.ModuleList([
             ViTEncoder(self.features * 2, att_features, heads)
             for _ in range(n_encoders)
         ])
+        print(type(self.features), type(self.features * 2), type(self.n_classes))
         self.mlp = nn.Linear(self.features * 2, self.n_classes)
 
         # <Loss function setup>
