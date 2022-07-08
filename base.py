@@ -1184,10 +1184,9 @@ class SelfAttention(nn.Module):
 
         att = torch.matmul(key.transpose(-1, -2), query)
         att_map = self.norm(att / np.sqrt(self.features))
-        print(att_map.shape, value.shape)
         features = torch.matmul(
             value, att_map
-        ).transpose(-1, -2)
+        )
 
         return features
 
@@ -1216,7 +1215,7 @@ class ViTEncoder(nn.Module):
         ])
         self.projector = nn.Conv1d(att_features * heads, features, 1)
         self.final_block = nn.Sequential(
-            nn.InstanceNorm1d(heads, features),
+            nn.InstanceNorm1d(features),
             nn.Conv1d(features, features, 1),
             nn.ReLU(),
             nn.InstanceNorm1d(features),
