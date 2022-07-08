@@ -117,8 +117,12 @@ class ViT(BaseModel):
         self.projector = nn.Conv2d(
             3, self.features, patch_size, patch_size
         )
-        self.class_embedding = nn.Parameter(torch.rand(1, 1, self.features * 2))
-        self.pos_embeddings = nn.Parameter(torch.rand(1, tokens ** 2, self.features))
+        self.class_embedding = nn.Parameter(
+            torch.rand((1, 1, self.features * 2))
+        )
+        self.pos_embeddings = nn.Parameter(
+            torch.rand((1, tokens ** 2, self.features))
+        )
 
         self.encoders = nn.ModuleList([
             ViTEncoder(self.features * 2, att_features, heads)
