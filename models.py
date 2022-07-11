@@ -47,7 +47,13 @@ class ResNet18(BaseModel):
         self.n_classes = n_outputs
         self.lr = lr
         self.device = device
-        self.resnet = models.resnet18(pretrained)
+        if pretrained:
+            try:
+                self.resnet18(weights='IMAGENET1K_V2')
+            except TypeError:
+                self.resnet = models.resnet18(pretrained)
+        else:
+            self.resnet = models.resnet18()
         last_features = self.resnet.fc.in_features
         self.resnet.fc = nn.Linear(last_features, self.n_classes)
 
