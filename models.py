@@ -154,9 +154,8 @@ class ViT_B_16(BaseModel):
 
     def forward(self, data):
         data_vit = models.ViT_B_16_Weights.IMAGENET1K_V1.transforms()(data.cpu())
-        data_vit.to(data.device)
         self.vit.to(self.device)
-        return self.vit(data_vit)
+        return self.vit(data_vit.to(data.device))
 
 
 def vit_cifar(n_outputs, lr=1e-3):
