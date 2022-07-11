@@ -109,6 +109,7 @@ class ViT_B_16(BaseModel):
         self.n_classes = n_outputs
         self.lr = lr
         self.device = device
+        self.vit_input = models.ViT_B_16_Weights.IMAGENET1K_V1.transforms()
         if pretrained:
             self.vit = self.vit_b_16(weights='IMAGENET1K_V1')
         else:
@@ -153,9 +154,10 @@ class ViT_B_16(BaseModel):
         self.optimizer_alg = torch.optim.SGD(model_params, lr=self.lr)
 
     def forward(self, data):
-        data_vit = models.ViT_B_16_Weights.IMAGENET1K_V1.transforms()(data.cpu())
+        self.vit_input.to(self.device)
+        data = self.vit_input(data)
         self.vit.to(self.device)
-        return self.vit(data_vit.to(data.device))
+        return self.vit(data)
 
 
 def vit_cifar(n_outputs, lr=1e-3):
