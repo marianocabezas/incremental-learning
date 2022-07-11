@@ -153,11 +153,10 @@ class ViT_B_16(BaseModel):
         self.optimizer_alg = torch.optim.SGD(model_params, lr=self.lr)
 
     def forward(self, data):
-        input_tf = models.ViT_B_16_Weights.IMAGENET1K_V1.transforms
-        input_tf.to(self.device)
-        data = input_tf(data)
+        data_vit = models.ViT_B_16_Weights.IMAGENET1K_V1.transforms(data.cpu())
+        data_vit.to(data.device)
         self.vit.to(self.device)
-        return self.vit(data)
+        return self.vit(data_vit)
 
 
 def vit_cifar(n_outputs, lr=1e-3):
