@@ -361,6 +361,7 @@ def main(verbose=2):
             config['network'](n_outputs=n_classes, lr=lr), best=False
         )
         net.model.load_model(starting_model)
+        net.to(torch.device('cpu'))
 
         # Independent approach. We have a duplicate model for each task.
         # We also use the previously learned blocks for future tasks. This is
@@ -372,6 +373,7 @@ def main(verbose=2):
         )
         for net_i in ind_net.model:
             net_i.load_model(starting_model)
+        ind_net.to(torch.device('cpu'))
 
         # EWC approach. We use a penalty term / regularization loss
         # to ensure previous data isn't forgotten.
@@ -389,6 +391,7 @@ def main(verbose=2):
             ewc_weight=ewc_weight, ewc_binary=ewc_binary
         )
         ewc_net.model.load_model(starting_model)
+        ewc_net.to(torch.device('cpu'))
 
         # GEM approaches. We group all the GEM-related approaches here for
         # simplicity. All parameters should be shared for a fair comparison.
@@ -407,24 +410,28 @@ def main(verbose=2):
             n_tasks=n_tasks, n_classes=n_classes, split=True
         )
         gem_net.model.load_model(starting_model)
+        gem_net.to(torch.device('cpu'))
         agem_net = AGEM(
             config['network'](n_outputs=n_classes, lr=lr), best=False,
             n_memories=gem_memories, memory_strength=gem_weight,
             n_tasks=n_tasks, n_classes=n_classes, split=True
         )
         agem_net.model.load_model(starting_model)
+        agem_net.to(torch.device('cpu'))
         sgem_net = SGEM(
             config['network'](n_outputs=n_classes, lr=lr), best=False,
             n_memories=gem_memories, memory_strength=gem_weight,
             n_tasks=n_tasks, n_classes=n_classes, split=True
         )
         sgem_net.model.load_model(starting_model)
+        sgem_net.to(torch.device('cpu'))
         ngem_net = NGEM(
             config['network'](n_outputs=n_classes, lr=lr), best=False,
             n_memories=gem_memories, memory_strength=gem_weight,
             n_tasks=n_tasks, n_classes=n_classes, split=True
         )
         ngem_net.model.load_model(starting_model)
+        ngem_net.to(torch.device('cpu'))
 
         for t_i, (training_set, validation_set) in enumerate(
                 zip(training_tasks, validation_tasks)
