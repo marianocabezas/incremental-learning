@@ -399,9 +399,8 @@ class BinaryImageDataset(Dataset):
 
 class NaturalDataset(Dataset):
     """
-    This is a training dataset and we only want patches that
-    actually have lesions since there are lots of non-lesion voxels
-    anyways.
+    Dataset that uses a preloaded tensor with natural images, including
+    classification labels.
     """
     def __init__(self, data, labels):
         self.data = data
