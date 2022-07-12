@@ -440,6 +440,7 @@ def main(verbose=2):
             )
 
             # We train the naive model on the current task
+            net.to(net.device)
             model_name = os.path.join(
                 model_path,
                 '{:}-naive-t{:02d}.s{:05d}.pt'.format(
@@ -455,6 +456,7 @@ def main(verbose=2):
                 config, net, seed,  t_i, training_tasks, validation_tasks,
                 testing_tasks, naive_results, n_classes, 2
             )
+            net.to(torch.device('cpu'))
 
             # < Independent >
             print(
@@ -467,6 +469,7 @@ def main(verbose=2):
             )
 
             # We train the naive model on the current task
+            ind_net.to(ind_net.device)
             model_name = os.path.join(
                 model_path,
                 '{:}-ind-t{:02d}.s{:05d}.pt'.format(
@@ -481,6 +484,7 @@ def main(verbose=2):
                 config, ind_net, seed, t_i, training_tasks, validation_tasks,
                 testing_tasks, ind_results, n_classes, 2
             )
+            ind_net.to(torch.device('cpu'))
 
             # < EWC >
             print(
@@ -493,6 +497,7 @@ def main(verbose=2):
             )
 
             # We train the naive model on the current task
+            ewc_net.to(ewc_net.device)
             model_name = os.path.join(
                 model_path,
                 '{:}-ewc-t{:02d}.s{:05d}.pt'.format(
@@ -508,6 +513,7 @@ def main(verbose=2):
                 config, ewc_net, seed, t_i, training_tasks, validation_tasks,
                 testing_tasks, ewc_results, n_classes, 2
             )
+            ewc_net.to(torch.device('cpu'))
 
             # < GEM >
             # Original GEM
@@ -521,6 +527,7 @@ def main(verbose=2):
             )
 
             # We train the naive model on the current task
+            gem_net.to(gem_net.device)
             model_name = os.path.join(
                 model_path,
                 '{:}-gem-t{:02d}.s{:05d}.pt'.format(
@@ -536,6 +543,7 @@ def main(verbose=2):
                 config, gem_net, seed, t_i, training_tasks, validation_tasks,
                 testing_tasks, gem_results, n_classes, 2
             )
+            gem_net.to(torch.device('cpu'))
 
             # Average GEM
             print(
@@ -548,6 +556,7 @@ def main(verbose=2):
             )
 
             # We train the naive model on the current task
+            agem_net.to(agem_net.device)
             model_name = os.path.join(
                 model_path,
                 '{:}-agem-t{:02d}.s{:05d}.pt'.format(
@@ -563,6 +572,7 @@ def main(verbose=2):
                 config, agem_net, seed, t_i, training_tasks, validation_tasks,
                 testing_tasks, agem_results, n_classes, 2
             )
+            agem_net.to(torch.device('cpu'))
 
             # Stochastic GEM
             print(
@@ -575,6 +585,7 @@ def main(verbose=2):
             )
 
             # We train the naive model on the current task
+            sgem_net.to(sgem_net.device)
             model_name = os.path.join(
                 model_path,
                 '{:}-sgem-t{:02d}.s{:05d}.pt'.format(
@@ -590,6 +601,7 @@ def main(verbose=2):
                 config, sgem_net, seed, t_i, training_tasks, validation_tasks,
                 testing_tasks, sgem_results, n_classes, 2
             )
+            sgem_net.to(torch.device('cpu'))
 
             # PCA-based GEM
             print(
@@ -602,6 +614,7 @@ def main(verbose=2):
             )
 
             # We train the naive model on the current task
+            ngem_net.to(ngem_net.device)
             model_name = os.path.join(
                 model_path,
                 '{:}-ngem-t{:02d}.s{:05d}.pt'.format(
@@ -617,6 +630,7 @@ def main(verbose=2):
                 config, ngem_net, seed, t_i, training_tasks, validation_tasks,
                 testing_tasks, ngem_results, n_classes, 2
             )
+            ngem_net.to(torch.device('cpu'))
 
     for results_i, results_name in zip(all_results, all_methods):
         save_results(

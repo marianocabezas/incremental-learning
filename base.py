@@ -1159,7 +1159,7 @@ class SelfAttention(nn.Module):
 
     def __init__(
             self, features, att_features,
-            norm=partial(torch.softmax, dim=1)
+            norm=partial(torch.softmax, dim=-1)
     ):
         super().__init__()
         self.features = att_features
@@ -1182,11 +1182,9 @@ class SelfAttention(nn.Module):
         query = self.map_query(x)
         value = self.map_value(x)
 
-        att = torch.matmul(key.transpose(-1, -2), query)
+        att = torch.bmm(key.transpose(-1, -2), query)
         att_map = self.norm(att / np.sqrt(self.features))
-        features = torch.matmul(
-            value, att_map
-        )
+        features = torch.bmm(value, att_map)
 
         return features
 
