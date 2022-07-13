@@ -362,6 +362,8 @@ def main(verbose=2):
         )
         net.model.load_model(starting_model)
         net.to(torch.device('cpu'))
+        torch.cuda.empty_cache()
+        torch.cuda.ipc_collect()
 
         # Independent approach. We have a duplicate model for each task.
         # We also use the previously learned blocks for future tasks. This is
