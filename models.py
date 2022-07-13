@@ -112,7 +112,7 @@ class ViT_B_16(BaseModel):
         self.device = device
         # self.vit_input = models.ViT_B_16_Weights.IMAGENET1K_V1.transforms()
         if pretrained:
-            self.vit = self.vit_b_16(
+            self.vit = models.vit_b_16(
                 image_size=image_size, patch_size=patch_size,
                 weights='IMAGENET1K_V1'
             )
