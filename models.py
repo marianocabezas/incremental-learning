@@ -177,11 +177,11 @@ def vit_imagenet(n_outputs, lr=1e-3):
 
 
 def vitb_cifar(n_outputs, lr=1e-3):
-    return ViT_B_16(1024, 32, 2, n_outputs, lr)
+    return ViT_B_16(32, 2, n_outputs, lr=lr)
 
 
 def vitb_imagenet(n_outputs, lr=1e-3):
-    return ViT_B_16(1024, 64, 4, n_outputs, lr)
+    return ViT_B_16(64, 4, n_outputs, lr=lr)
 
 
 class ViT(BaseModel):
