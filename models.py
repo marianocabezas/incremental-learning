@@ -169,6 +169,70 @@ class ViT_B_16(BaseModel):
         return self.vit(data)
 
 
+class ViT_S_16(BaseModel):
+    def __init__(
+        self, image_size, patch_size,
+        n_outputs, pretrained=False, lr=1e-3,
+        device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
+        verbose=True
+    ):
+        super().__init__()
+        # Init
+        self.n_classes = n_outputs
+        self.lr = lr
+        self.device = device
+        # self.vit_input = models.ViT_B_16_Weights.IMAGENET1K_V1.transforms()
+        self.vit = models.vision_transformer._vision_transformer(
+            num_layers=12, num_heads=12, hidden_dim=384, mlp_dim=1536,
+            image_size=image_size, patch_size=patch_size, progress=True,
+            weights=None
+        )
+        last_features = self.vit.heads[0].in_features
+        self.vit.heads[0] = nn.Linear(last_features, self.n_classes)
+
+        # <Loss function setup>
+        self.train_functions = [
+            {
+                'name': 'xentropy',
+                'weight': 1,
+                'f': F.cross_entropy
+            }
+        ]
+
+        self.val_functions = [
+            {
+                'name': 'xent',
+                'weight': 1,
+                'f': F.cross_entropy
+            },
+        ]
+
+        # <Optimizer setup>
+        # We do this last step after all parameters are defined
+        model_params = filter(lambda p: p.requires_grad, self.parameters())
+        self.optimizer_alg = torch.optim.SGD(model_params, lr=self.lr)
+        if verbose > 1:
+            print(
+                'Network created on device {:} with training losses '
+                '[{:}] and validation losses [{:}]'.format(
+                    self.device,
+                    ', '.join([tf['name'] for tf in self.train_functions]),
+                    ', '.join([vf['name'] for vf in self.val_functions])
+                )
+            )
+
+    def reset_optimiser(self):
+        super().reset_optimiser()
+        model_params = filter(lambda p: p.requires_grad, self.parameters())
+        self.optimizer_alg = torch.optim.SGD(model_params, lr=self.lr)
+
+    def forward(self, data):
+        # self.vit_input.to(self.device)
+        # data = self.vit_input(data)
+        self.vit.to(self.device)
+        return self.vit(data)
+
+
 def vit_cifar(n_outputs, lr=1e-3):
     return ViT(1024, 32, 2, 16, 24, n_outputs, lr)
 
@@ -183,6 +247,14 @@ def vitb_cifar(n_outputs, lr=1e-3):
 
 def vitb_imagenet(n_outputs, lr=1e-3):
     return ViT_B_16(64, 4, n_outputs, lr=lr)
+
+
+def vits_cifar(n_outputs, lr=1e-3):
+    return ViT_S_16(32, 2, n_outputs, lr=lr)
+
+
+def vits_imagenet(n_outputs, lr=1e-3):
+    return ViT_S_16(64, 4, n_outputs, lr=lr)
 
 
 class ViT(BaseModel):
