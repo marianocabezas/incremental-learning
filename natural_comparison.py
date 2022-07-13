@@ -397,43 +397,43 @@ def main(verbose=2):
 
         # GEM approaches. We group all the GEM-related approaches here for
         # simplicity. All parameters should be shared for a fair comparison.
-        try:
-            gem_weight = config['gem_weight']
-        except KeyError:
-            gem_weight = 0.5
-        try:
-            gem_memories = config['gem_memories']
-        except KeyError:
-            gem_memories = 256
-
-        gem_net = GEM(
-            config['network'](n_outputs=n_classes, lr=lr), best=False,
-            n_memories=gem_memories, memory_strength=gem_weight,
-            n_tasks=n_tasks, n_classes=n_classes, split=True
-        )
-        gem_net.model.load_model(starting_model)
-        gem_net.to(torch.device('cpu'))
-        agem_net = AGEM(
-            config['network'](n_outputs=n_classes, lr=lr), best=False,
-            n_memories=gem_memories, memory_strength=gem_weight,
-            n_tasks=n_tasks, n_classes=n_classes, split=True
-        )
-        agem_net.model.load_model(starting_model)
-        agem_net.to(torch.device('cpu'))
-        sgem_net = SGEM(
-            config['network'](n_outputs=n_classes, lr=lr), best=False,
-            n_memories=gem_memories, memory_strength=gem_weight,
-            n_tasks=n_tasks, n_classes=n_classes, split=True
-        )
-        sgem_net.model.load_model(starting_model)
-        sgem_net.to(torch.device('cpu'))
-        ngem_net = NGEM(
-            config['network'](n_outputs=n_classes, lr=lr), best=False,
-            n_memories=gem_memories, memory_strength=gem_weight,
-            n_tasks=n_tasks, n_classes=n_classes, split=True
-        )
-        ngem_net.model.load_model(starting_model)
-        ngem_net.to(torch.device('cpu'))
+        # try:
+        #     gem_weight = config['gem_weight']
+        # except KeyError:
+        #     gem_weight = 0.5
+        # try:
+        #     gem_memories = config['gem_memories']
+        # except KeyError:
+        #     gem_memories = 256
+        #
+        # gem_net = GEM(
+        #     config['network'](n_outputs=n_classes, lr=lr), best=False,
+        #     n_memories=gem_memories, memory_strength=gem_weight,
+        #     n_tasks=n_tasks, n_classes=n_classes, split=True
+        # )
+        # gem_net.model.load_model(starting_model)
+        # gem_net.to(torch.device('cpu'))
+        # agem_net = AGEM(
+        #     config['network'](n_outputs=n_classes, lr=lr), best=False,
+        #     n_memories=gem_memories, memory_strength=gem_weight,
+        #     n_tasks=n_tasks, n_classes=n_classes, split=True
+        # )
+        # agem_net.model.load_model(starting_model)
+        # agem_net.to(torch.device('cpu'))
+        # sgem_net = SGEM(
+        #     config['network'](n_outputs=n_classes, lr=lr), best=False,
+        #     n_memories=gem_memories, memory_strength=gem_weight,
+        #     n_tasks=n_tasks, n_classes=n_classes, split=True
+        # )
+        # sgem_net.model.load_model(starting_model)
+        # sgem_net.to(torch.device('cpu'))
+        # ngem_net = NGEM(
+        #     config['network'](n_outputs=n_classes, lr=lr), best=False,
+        #     n_memories=gem_memories, memory_strength=gem_weight,
+        #     n_tasks=n_tasks, n_classes=n_classes, split=True
+        # )
+        # ngem_net.model.load_model(starting_model)
+        # ngem_net.to(torch.device('cpu'))
 
         for t_i, (training_set, validation_set) in enumerate(
                 zip(training_tasks, validation_tasks)
@@ -611,35 +611,35 @@ def main(verbose=2):
             #     testing_tasks, sgem_results, n_classes, 2
             # )
             # sgem_net.to(torch.device('cpu'))
-
-            # PCA-based GEM
-            print(
-                '{:}Starting task - NGEM {:02d}/{:02d}{:} - {:02d}/{:02d} '
-                '({:} parameters)'.format(
-                    c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
-                    test_n + 1, len(config['seeds']),
-                    c['b'] + str(n_param) + c['nc']
-                )
-            )
-
-            # We train the naive model on the current task
-            ngem_net.to(ngem_net.device)
-            model_name = os.path.join(
-                model_path,
-                '{:}-ngem-t{:02d}.s{:05d}.pt'.format(
-                    model_base, t_i, seed
-                )
-            )
-            train(
-                config, seed, ngem_net, training_set, validation_set,
-                model_name, epochs, epochs, t_i, 2
-            )
-            ngem_net.reset_optimiser()
-            update_results(
-                config, ngem_net, seed, t_i, training_tasks, validation_tasks,
-                testing_tasks, ngem_results, n_classes, 2
-            )
-            ngem_net.to(torch.device('cpu'))
+            #
+            # # PCA-based GEM
+            # print(
+            #     '{:}Starting task - NGEM {:02d}/{:02d}{:} - {:02d}/{:02d} '
+            #     '({:} parameters)'.format(
+            #         c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
+            #         test_n + 1, len(config['seeds']),
+            #         c['b'] + str(n_param) + c['nc']
+            #     )
+            # )
+            #
+            # # We train the naive model on the current task
+            # ngem_net.to(ngem_net.device)
+            # model_name = os.path.join(
+            #     model_path,
+            #     '{:}-ngem-t{:02d}.s{:05d}.pt'.format(
+            #         model_base, t_i, seed
+            #     )
+            # )
+            # train(
+            #     config, seed, ngem_net, training_set, validation_set,
+            #     model_name, epochs, epochs, t_i, 2
+            # )
+            # ngem_net.reset_optimiser()
+            # update_results(
+            #     config, ngem_net, seed, t_i, training_tasks, validation_tasks,
+            #     testing_tasks, ngem_results, n_classes, 2
+            # )
+            # ngem_net.to(torch.device('cpu'))
 
     for results_i, results_name in zip(all_results, all_methods):
         save_results(
