@@ -114,7 +114,7 @@ class ViT_B_16(BaseModel):
         if pretrained:
             self.vit = models.vision_transformer._vision_transformer(
                 num_layers=12, num_heads=12, hidden_dim=768, mlp_dim=3072,
-                image_size=image_size, patch_size=patch_size, nprogress=True,
+                image_size=image_size, patch_size=patch_size, progress=True,
                 weights='IMAGENET1K_V1'
             )
         else:
