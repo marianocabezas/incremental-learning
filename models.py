@@ -100,7 +100,8 @@ class ResNet18(BaseModel):
 
 class ViT_B_16(BaseModel):
     def __init__(
-        self, n_outputs, pretrained=False, lr=1e-3,
+        self, image_size, patch_size,
+        n_outputs, pretrained=False, lr=1e-3,
         device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
         verbose=True
     ):
@@ -109,11 +110,16 @@ class ViT_B_16(BaseModel):
         self.n_classes = n_outputs
         self.lr = lr
         self.device = device
-        self.vit_input = models.ViT_B_16_Weights.IMAGENET1K_V1.transforms()
+        # self.vit_input = models.ViT_B_16_Weights.IMAGENET1K_V1.transforms()
         if pretrained:
-            self.vit = self.vit_b_16(weights='IMAGENET1K_V1')
+            self.vit = self.vit_b_16(
+                image_size=image_size, patch_size=patch_size,
+                weights='IMAGENET1K_V1'
+            )
         else:
-            self.vit = models.vit_b_16()
+            self.vit = models.vit_b_16(
+                image_size=image_size, patch_size=patch_size
+            )
         last_features = self.vit.heads[0].in_features
         self.vit.heads[0] = nn.Linear(last_features, self.n_classes)
 
@@ -154,8 +160,8 @@ class ViT_B_16(BaseModel):
         self.optimizer_alg = torch.optim.SGD(model_params, lr=self.lr)
 
     def forward(self, data):
-        self.vit_input.to(self.device)
-        data = self.vit_input(data)
+        # self.vit_input.to(self.device)
+        # data = self.vit_input(data)
         self.vit.to(self.device)
         return self.vit(data)
 
@@ -166,6 +172,14 @@ def vit_cifar(n_outputs, lr=1e-3):
 
 def vit_imagenet(n_outputs, lr=1e-3):
     return ViT(1024, 64, 4, 16, 24, n_outputs, lr)
+
+
+def vitb_cifar(n_outputs, lr=1e-3):
+    return ViT_B_16(1024, 32, 2, n_outputs, lr)
+
+
+def vitb_imagenet(n_outputs, lr=1e-3):
+    return ViT_B_16(1024, 64, 4, n_outputs, lr)
 
 
 class ViT(BaseModel):
