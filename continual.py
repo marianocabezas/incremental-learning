@@ -454,12 +454,12 @@ class GEM(MetaModel):
                     offset2 = self.n_classes
 
                 output = self.forward(
-                    torch.cat(self.memory_data[past_task])
+                    torch.cat(self.memory_data[past_task]).to(self.device)
                 )
                 batch_losses = [
                     l_f['weight'] * l_f['f'](
                         output[:, offset1:offset2],
-                        torch.cat(self.memory_labs[past_task])
+                        torch.cat(self.memory_labs[past_task]).to(self.device)
                     )
                     for l_f in self.train_functions
                 ]
