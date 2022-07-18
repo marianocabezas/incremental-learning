@@ -23,7 +23,7 @@ def store_grad(pp, grads, grad_dims, tid):
         if param.grad is not None:
             beg = 0 if cnt == 0 else sum(grad_dims[:cnt])
             en = sum(grad_dims[:cnt + 1])
-            grads[beg:en, tid].copy_(param.grad.data.view(-1))
+            grads[beg:en, tid].copy_(param.cpu().grad.data.view(-1))
         cnt += 1
 
 
@@ -41,8 +41,9 @@ def overwrite_grad(pp, newgrad, grad_dims):
             beg = 0 if cnt == 0 else sum(grad_dims[:cnt])
             en = sum(grad_dims[:cnt + 1])
             this_grad = newgrad[beg:en].contiguous().view(
-                param.grad.data.size())
-            param.grad.data.copy_(this_grad)
+                param.grad.data.size()
+            )
+            param.grad.data.copy_(this_grad.to(param.device))
         cnt += 1
 
 
@@ -56,8 +57,8 @@ def project2cone2(gradient, memories, margin=0.5, eps=1e-3):
         input:  memories, (t * p)-vector
         output: x, p-vector
     """
-    memories_np = memories.cpu().t().double().numpy()
-    gradient_np = gradient.cpu().contiguous().view(-1).double().numpy()
+    memories_np = memories.t().double().numpy()
+    gradient_np = gradient.contiguous().view(-1).double().numpy()
     t = memories_np.shape[0]
     P = np.dot(memories_np, memories_np.transpose())
     P = 0.5 * (P + P.transpose()) + np.eye(t) * eps
@@ -409,7 +410,7 @@ class GEM(MetaModel):
         self.grad_dims = []
         for param in self.model.parameters():
             self.grad_dims.append(param.data.numel())
-        self.grads = torch.Tensor(sum(self.grad_dims), n_tasks).to(self.device)
+        self.grads = torch.Tensor(sum(self.grad_dims), n_tasks)
         self.memory_data = [[] for _ in range(n_tasks)]
         self.memory_labs = [[] for _ in range(n_tasks)]
 
@@ -482,15 +483,19 @@ class GEM(MetaModel):
 
             grad = self.get_grad(indx)
 
-            dotp = torch.mm(self.grads[:, t].unsqueeze(0), grad)
+            dotp = torch.mm(
+                self.grads[:, t].unsqueeze(0).to(self.device),
+                grad.to(self.device)
+            )
 
             if (dotp < 0).sum() != 0:
                 project2cone2(
-                    self.grads[:, t].unsqueeze(1),  grad, self.margin
+                    self.grads[:, t].unsqueeze(1), grad, self.margin
                 )
                 # copy gradients back
-                overwrite_grad(self.parameters, self.grads[:, t],
-                               self.grad_dims)
+                overwrite_grad(
+                    self.parameters, self.grads[:, t], self.grad_dims
+                )
 
     def save_model(self, net_name):
         net_state = {
@@ -557,7 +562,7 @@ class SGEM(GEM):
     def get_grad(self, indx):
         random_indx = np.random.randint(len(self.observed_tasks[:-1]))
         indx = indx.index_select(
-            0, torch.Tensor([random_indx]).cuda().long()
+            0, torch.Tensor([random_indx]).long()
         )
         return self.grads.index_select(1, indx)
 
@@ -602,7 +607,8 @@ class NGEM(GEM):
                 project5cone5(
                     self.grads[:, t].unsqueeze(1),
                     self.grads.index_select(1, indx),
-                    beg, en, margin=self.margin)
+                    beg, en, margin=self.margin
+                )
             # copy gradients back
             overwrite_grad(self.parameters, self.grads[:, t], self.grad_dims)
 
