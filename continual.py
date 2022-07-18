@@ -444,6 +444,7 @@ class GEM(MetaModel):
     def update_gradients(self):
         if len(self.observed_tasks) > 1:
             for past_task in self.observed_tasks[:-1]:
+                print('Updating gradien of task {:02d}'.format(past_task))
                 self.zero_grad()
 
                 if self.split:
