@@ -107,7 +107,7 @@ class BaseModel(nn.Module):
                 self.optimizer_alg.zero_grad()
 
             # First, we do a forward pass through the network.
-            pred_labels, x,_cuda, y_cuda = self.observe(x, y)
+            pred_labels, x_cuda, y_cuda = self.observe(x, y)
 
             # After that, we can compute the relevant losses.
             if train:
