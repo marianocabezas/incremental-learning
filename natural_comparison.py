@@ -137,10 +137,7 @@ def train(
             )
 
         if task is None:
-            net.fit(
-                train_loader, val_loader, offset1=offset1, offset2=offset2,
-                epochs=epochs, patience=patience
-            )
+            net.fit(train_loader, val_loader, epochs=epochs, patience=patience)
         else:
             net.fit(
                 train_loader, val_loader, offset1=offset1, offset2=offset2,
