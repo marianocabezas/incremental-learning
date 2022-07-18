@@ -3,7 +3,6 @@ import os
 import time
 import json
 import random
-from _typeshed import SupportsLessThan
 from typing import Union, Any
 import numpy as np
 import datasets
@@ -258,7 +257,7 @@ def main(verbose=2):
     # We want a common starting point
     d_tr, d_te = load_datasets(config)
     n_tasks = len(d_tr)
-    n_classes: Union[SupportsLessThan, Any] = max(d_tr[-1][0][-1], d_te[-1][0][-1])
+    n_classes = max(d_tr[-1][0][-1], d_te[-1][0][-1])
     nc_per_task = n_classes // n_tasks
 
     # We also need dictionaries for the training tasks so we can track their
