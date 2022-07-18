@@ -191,7 +191,6 @@ class MetaModel(BaseModel):
         if self.offset1 is not None and self.offset2 is not None:
             pred_labels = pred_labels[:, self.offset1:self.offset2]
             y_cuda = y_cuda - self.offset1
-            print(self.offset1, self.offset2, y_cuda)
 
         return pred_labels, x_cuda, y_cuda
 

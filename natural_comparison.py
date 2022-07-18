@@ -462,7 +462,7 @@ def main(verbose=2):
         ):
 
             offset1 = t_i * nc_per_task
-            offset2 = t_i * nc_per_task
+            offset2 = (t_i + 1) * nc_per_task
 
             # < NAIVE >
             print(
