@@ -409,7 +409,9 @@ class GEM(MetaModel):
         self.grad_dims = []
         for param in self.model.parameters():
             self.grad_dims.append(param.data.numel())
-        self.grads = torch.Tensor(sum(self.grad_dims), n_tasks).to(self.device)
+        self.grads = torch.Tensor(
+            sum(self.grad_dims), n_tasks
+        )
         self.memory_data = [[] for _ in range(n_tasks)]
         self.memory_labs = [[] for _ in range(n_tasks)]
 
@@ -425,11 +427,17 @@ class GEM(MetaModel):
         bsz = y.data.size(0)
         endcnt = min(self.mem_cnt + bsz, self.n_memories)
         effbsz = endcnt - self.mem_cnt
-        self.memory_data[t].append(x.detach()[:effbsz])
+        self.memory_data[t].append(
+            x.detach()[:effbsz].cpu()
+        )
         if bsz == 1:
-            self.memory_labs[t].append(y.detach()[0:])
+            self.memory_labs[t].append(
+                y.detach()[0:].cpu()
+            )
         else:
-            self.memory_labs[t].append(y.detach()[:effbsz])
+            self.memory_labs[t].append(
+                y.detach()[:effbsz].cpu()
+            )
         self.mem_cnt += effbsz
         if self.mem_cnt == self.n_memories:
             self.mem_cnt = 0
@@ -447,12 +455,17 @@ class GEM(MetaModel):
                     offset2 = self.n_classes
 
                 output = self.forward(
-                    torch.cat(self.memory_data[past_task])
+                    torch.cat(
+                        self.memory_data[past_task]
+                    ).to(self.device)
                 )
                 batch_losses = [
                     l_f['weight'] * l_f['f'](
                         output[:, offset1:offset2],
-                        torch.cat(self.memory_labs[past_task]) - offset1)
+                        torch.cat(
+                            self.memory_labs[past_task]
+                        ).to(self.device) - offset1
+                    )
                     for l_f in self.train_functions
                 ]
                 sum(batch_losses).backward()
@@ -469,7 +482,9 @@ class GEM(MetaModel):
         if len(self.observed_tasks) > 1:
             # copy gradient
             store_grad(self.parameters, self.grads, self.grad_dims, t)
-            indx = torch.LongTensor(self.observed_tasks[:-1]).to(self.device)
+            indx = torch.LongTensor(
+                self.observed_tasks[:-1]
+            ).to(self.device)
 
             grad = self.get_grad(indx)
 
