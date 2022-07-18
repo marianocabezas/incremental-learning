@@ -156,6 +156,8 @@ class MetaModel(BaseModel):
         self.mem_cnt = 0
         self.observed_tasks = []
         self.current_task = -1
+        self.offset1 = None
+        self.offset2 = None
 
         self.train_functions = self.model.train_functions
         self.val_functions = self.model.val_functions
@@ -184,6 +186,14 @@ class MetaModel(BaseModel):
     def forward(self, *inputs):
         return self.model(*inputs)
 
+    def observe(self, x, y):
+        pred_labels, x_cuda, y_cuda = super().observe(x, y)
+        if self.offset1 is not None and self.offset2 is not None:
+            pred_labels = pred_labels[:, self.offset1:self.offset2]
+            y_cuda = y_cuda - self.offset1
+
+        return pred_labels, x_cuda, y_cuda
+
     def fit(
         self,
         train_loader,
@@ -191,8 +201,12 @@ class MetaModel(BaseModel):
         epochs=50,
         patience=5,
         task=None,
+        offset1=None,
+        offset2=None,
         verbose=True
     ):
+        self.offset1 = offset1
+        self.offset2 = offset2
         if task is not None:
             self.current_task = task
         if self.current_task not in self.observed_tasks:
@@ -354,13 +368,18 @@ class EWC(MetaModel):
         epochs=50,
         patience=5,
         task=None,
+        offset1=None,
+        offset2=None,
         verbose=True
     ):
         if self.first:
             for loss_f in self.train_functions:
                 if loss_f['name'] is 'ewc':
                     loss_f['weight'] = 0
-        super().fit(train_loader, val_loader, epochs, patience, task, verbose)
+        super().fit(
+            train_loader, val_loader, epochs, patience, task, offset1, offset2,
+            verbose
+        )
         self.fisher(train_loader)
         for loss_f in self.train_functions:
             if loss_f['name'] is 'ewc':
@@ -635,13 +654,18 @@ class Independent(MetaModel):
         epochs=50,
         patience=5,
         task=None,
+        offset1=None,
+        offset2=None,
         verbose=True
     ):
         if task is None:
             self.optimizer_alg = self.model[self.current_task + 1].optimizer_alg
         else:
             self.optimizer_alg = self.model[task].optimizer_alg
-        super().fit(train_loader, val_loader, epochs, patience, task, verbose)
+        super().fit(
+            train_loader, val_loader, epochs, patience, task, offset1, offset2,
+            verbose
+        )
         if (self.current_task + 1) < len(self.model):
             self.model[self.current_task + 1].load_state_dict(
                 self.model[self.current_task].state_dict()

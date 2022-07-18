@@ -63,6 +63,21 @@ class BaseModel(nn.Module):
         """
         return None
 
+    def observe(self, x, y):
+        # First, we do a forward pass through the network.
+        if isinstance(x, list) or isinstance(x, tuple):
+            x_cuda = tuple(x_i.to(self.device) for x_i in x)
+            pred_labels = self(*x_cuda)
+        else:
+            x_cuda = x.to(self.device)
+            pred_labels = self(x_cuda)
+        if isinstance(y, list) or isinstance(y, tuple):
+            y_cuda = tuple(y_i.to(self.device) for y_i in y)
+        else:
+            y_cuda = y.to(self.device)
+
+        return pred_labels, x_cuda, y_cuda
+
     def mini_batch_loop(
             self, data, train=True
     ):
@@ -92,16 +107,7 @@ class BaseModel(nn.Module):
                 self.optimizer_alg.zero_grad()
 
             # First, we do a forward pass through the network.
-            if isinstance(x, list) or isinstance(x, tuple):
-                x_cuda = tuple(x_i.to(self.device) for x_i in x)
-                pred_labels = self(*x_cuda)
-            else:
-                x_cuda = x.to(self.device)
-                pred_labels = self(x_cuda)
-            if isinstance(y, list) or isinstance(y, tuple):
-                y_cuda = tuple(y_i.to(self.device) for y_i in y)
-            else:
-                y_cuda = y.to(self.device)
+            pred_labels, x,_cuda, y_cuda = self.observe(x, y)
 
             # After that, we can compute the relevant losses.
             if train:
