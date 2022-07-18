@@ -5,7 +5,6 @@ import json
 import random
 from _typeshed import SupportsLessThan
 from typing import Union, Any
-
 import numpy as np
 import datasets
 import models
@@ -55,6 +54,23 @@ def load_datasets(experiment_config):
 > Network functions
 """
 
+
+def process_net(
+    config, net, model_name, seed, training_set, validation_set,
+    training_tasks, validation_tasks, testing_tasks,
+    task, offset1, offset2, epochs, n_classes, results
+):
+    net.to(net.device)
+    train(
+        config, seed, net, training_set, validation_set,
+        model_name, epochs, epochs, task, offset1, offset2, 2
+    )
+    net.reset_optimiser()
+    update_results(
+        config, net, seed, task + 1, training_tasks, validation_tasks,
+        testing_tasks, results, n_classes, 2
+    )
+    net.to(torch.device('cpu'))
 
 def train(
     config, seed, net, training, validation, model_name, epochs, patience, task,
@@ -448,8 +464,10 @@ def main(verbose=2):
         for t_i, (training_set, validation_set) in enumerate(
                 zip(training_tasks, validation_tasks)
         ):
+
             offset1 = t_i * nc_per_task
             offset2 = t_i * nc_per_task
+
             # < NAIVE >
             print(
                 '{:}Starting task - naive {:02d}/{:02d}{:} - {:02d}/{:02d} '
@@ -459,25 +477,18 @@ def main(verbose=2):
                     c['b'] + str(n_param) + c['nc']
                 )
             )
-
             # We train the naive model on the current task
-            net.to(net.device)
             model_name = os.path.join(
                 model_path,
                 '{:}-naive-t{:02d}.s{:05d}.pt'.format(
                     model_base, t_i, seed
                 )
             )
-            train(
-                config, seed, net, training_set, validation_set,
-                model_name, epochs, epochs, t_i, offset1, offset2, 2
+            process_net(
+                config, net, model_name, seed, training_set, validation_set,
+                training_tasks, validation_tasks, testing_tasks,
+                t_i, offset1, offset2, epochs, n_classes, naive_results
             )
-            net.reset_optimiser()
-            update_results(
-                config, net, seed,  t_i + 1, training_tasks, validation_tasks,
-                testing_tasks, naive_results, n_classes, 2
-            )
-            net.to(torch.device('cpu'))
 
             # < Independent >
             print(
@@ -488,24 +499,18 @@ def main(verbose=2):
                     c['b'] + str(n_param) + c['nc']
                 )
             )
-
-            # We train the naive model on the current task
-            ind_net.to(ind_net.device)
+            # We train the independent model on the current task
             model_name = os.path.join(
                 model_path,
                 '{:}-ind-t{:02d}.s{:05d}.pt'.format(
                     model_base, t_i, seed
                 )
             )
-            train(
-                config, seed, ind_net, training_set, validation_set,
-                model_name, epochs, epochs, t_i, offset1, offset2, 2
+            process_net(
+                config, ind_net, model_name, seed, training_set, validation_set,
+                training_tasks, validation_tasks, testing_tasks,
+                t_i, offset1, offset2, epochs, n_classes, ind_results
             )
-            update_results(
-                config, ind_net, seed, t_i + 1, training_tasks, validation_tasks,
-                testing_tasks, ind_results, n_classes, 2
-            )
-            ind_net.to(torch.device('cpu'))
 
             # < EWC >
             print(
@@ -525,16 +530,11 @@ def main(verbose=2):
                     model_base, t_i, seed
                 )
             )
-            train(
-                config, seed, ewc_net, training_set, validation_set,
-                model_name, epochs, epochs, t_i, offset1, offset2, 2
+            process_net(
+                config, ewc_net, model_name, seed, training_set, validation_set,
+                training_tasks, validation_tasks, testing_tasks,
+                t_i, offset1, offset2, epochs, n_classes, ewc_results
             )
-            ewc_net.reset_optimiser()
-            update_results(
-                config, ewc_net, seed, t_i + 1, training_tasks, validation_tasks,
-                testing_tasks, ewc_results, n_classes, 2
-            )
-            ewc_net.to(torch.device('cpu'))
 
             # < GEM >
             # Original GEM
@@ -546,25 +546,18 @@ def main(verbose=2):
                     c['b'] + str(n_param) + c['nc']
                 )
             )
-
-            # We train the naive model on the current task
-            gem_net.to(gem_net.device)
+            # We train the gem model on the current task
             model_name = os.path.join(
                 model_path,
                 '{:}-gem-t{:02d}.s{:05d}.pt'.format(
                     model_base, t_i, seed
                 )
             )
-            train(
-                config, seed, gem_net,  training_set, validation_set,
-                model_name, epochs, epochs, t_i, offset1, offset2, 2
+            process_net(
+                config, gem_net, model_name, seed, training_set, validation_set,
+                training_tasks, validation_tasks, testing_tasks,
+                t_i, offset1, offset2, epochs, n_classes, gem_results
             )
-            gem_net.reset_optimiser()
-            update_results(
-                config, gem_net, seed, t_i + 1, training_tasks, validation_tasks,
-                testing_tasks, gem_results, n_classes, 2
-            )
-            gem_net.to(torch.device('cpu'))
 
             # Average GEM
             print(
@@ -575,25 +568,18 @@ def main(verbose=2):
                     c['b'] + str(n_param) + c['nc']
                 )
             )
-
-            # We train the naive model on the current task
-            agem_net.to(agem_net.device)
+            # We train the agem model on the current task
             model_name = os.path.join(
                 model_path,
                 '{:}-agem-t{:02d}.s{:05d}.pt'.format(
                     model_base, t_i, seed
                 )
             )
-            train(
-                config, seed, agem_net,  training_set, validation_set,
-                model_name, epochs, epochs, t_i, offset1, offset2, 2
+            process_net(
+                config, agem_net, model_name, seed, training_set, validation_set,
+                training_tasks, validation_tasks, testing_tasks,
+                t_i, offset1, offset2, epochs, n_classes, agem_results
             )
-            agem_net.reset_optimiser()
-            update_results(
-                config, agem_net, seed, t_i + 1, training_tasks, validation_tasks,
-                testing_tasks, agem_results, n_classes, 2
-            )
-            agem_net.to(torch.device('cpu'))
 
             # Stochastic GEM
             print(
@@ -604,25 +590,18 @@ def main(verbose=2):
                     c['b'] + str(n_param) + c['nc']
                 )
             )
-
-            # We train the naive model on the current task
-            sgem_net.to(sgem_net.device)
+            # We train the sgem model on the current task
             model_name = os.path.join(
                 model_path,
                 '{:}-sgem-t{:02d}.s{:05d}.pt'.format(
                     model_base, t_i, seed
                 )
             )
-            train(
-                config, seed, sgem_net,  training_set, validation_set,
-                model_name, epochs, epochs, t_i, offset1, offset2, 2
+            process_net(
+                config, sgem_net, model_name, seed, training_set, validation_set,
+                training_tasks, validation_tasks, testing_tasks,
+                t_i, offset1, offset2, epochs, n_classes, sgem_results
             )
-            sgem_net.reset_optimiser()
-            update_results(
-                config, sgem_net, seed, t_i + 1, training_tasks, validation_tasks,
-                testing_tasks, sgem_results, n_classes, 2
-            )
-            sgem_net.to(torch.device('cpu'))
 
             # PCA-based GEM
             print(
@@ -633,25 +612,18 @@ def main(verbose=2):
                     c['b'] + str(n_param) + c['nc']
                 )
             )
-
-            # We train the naive model on the current task
-            ngem_net.to(ngem_net.device)
+            # We train the ngem model on the current task
             model_name = os.path.join(
                 model_path,
                 '{:}-ngem-t{:02d}.s{:05d}.pt'.format(
                     model_base, t_i, seed
                 )
             )
-            train(
-                config, seed, ngem_net,  training_set, validation_set,
-                model_name, epochs, epochs, t_i, offset1, offset2, 2
+            process_net(
+                config, ngem_net, model_name, seed, training_set, validation_set,
+                training_tasks, validation_tasks, testing_tasks,
+                t_i, offset1, offset2, epochs, n_classes, ngem_results
             )
-            ngem_net.reset_optimiser()
-            update_results(
-                config, ngem_net, seed, t_i + 1, training_tasks, validation_tasks,
-                testing_tasks, ngem_results, n_classes, 2
-            )
-            ngem_net.to(torch.device('cpu'))
 
     for results_i, results_name in zip(all_results, all_methods):
         save_results(
