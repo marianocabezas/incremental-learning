@@ -647,6 +647,9 @@ class Independent(MetaModel):
     def forward(self, *inputs):
         return self.model[self.current_task](*inputs)
 
+    def reset_optimiser(self):
+        pass
+
     def fit(
         self,
         train_loader,
