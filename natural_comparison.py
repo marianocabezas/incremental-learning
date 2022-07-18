@@ -150,7 +150,7 @@ def test(config, net, testing, task, n_classes, verbose=0):
         prediction = net.inference(
             x.cpu().numpy(), nonbatched=False, task=task
         )
-        print(prediction)
+        print(prediction[0])
         predicted = np.argmax(prediction, axis=1)
         target = y.cpu().numpy()
         for t_i, p_i in zip(target, predicted):
