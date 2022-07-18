@@ -409,9 +409,7 @@ class GEM(MetaModel):
         self.grad_dims = []
         for param in self.model.parameters():
             self.grad_dims.append(param.data.numel())
-        self.grads = torch.Tensor(
-            sum(self.grad_dims), n_tasks
-        )
+        self.grads = torch.Tensor(sum(self.grad_dims), n_tasks).to(self.device)
         self.memory_data = [[] for _ in range(n_tasks)]
         self.memory_labs = [[] for _ in range(n_tasks)]
 
@@ -455,16 +453,12 @@ class GEM(MetaModel):
                     offset2 = self.n_classes
 
                 output = self.forward(
-                    torch.cat(
-                        self.memory_data[past_task]
-                    ).to(self.device)
+                    torch.cat(self.memory_data[past_task])
                 )
                 batch_losses = [
                     l_f['weight'] * l_f['f'](
                         output[:, offset1:offset2],
-                        torch.cat(
-                            self.memory_labs[past_task]
-                        ).to(self.device) - offset1
+                        torch.cat(self.memory_labs[past_task]) - offset1
                     )
                     for l_f in self.train_functions
                 ]
