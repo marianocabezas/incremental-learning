@@ -536,7 +536,7 @@ def main(verbose=2):
             )
             ewc_net.to(torch.device('cpu'))
 
-            < GEM >
+            # < GEM >
             # Original GEM
             print(
                 '{:}Starting task - GEM {:02d}/{:02d}{:} - {:02d}/{:02d} '
