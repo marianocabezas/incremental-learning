@@ -479,7 +479,7 @@ class GEM(MetaModel):
             store_grad(self.parameters, self.grads, self.grad_dims, t)
             indx = torch.LongTensor(
                 self.observed_tasks[:-1]
-            ).to(self.device)
+            )
 
             grad = self.get_grad(indx)
 
@@ -535,7 +535,7 @@ class GEM(MetaModel):
 
     def prebatch_update(self, batches, x, y):
         self.update_memory(x, y)
-        batch_size = len(x) // 2
+        batch_size = len(x)
         self.update_gradients(batch_size)
         self.constraint_check()
 
@@ -620,7 +620,7 @@ class NGEM(GEM):
         if len(self.observed_tasks) > 1:
             # copy gradient
             store_grad(self.parameters, self.grads, self.grad_dims, t)
-            indx = torch.LongTensor(self.observed_tasks[:-1]).to(self.device)
+            indx = torch.LongTensor(self.observed_tasks[:-1])
 
             for cnt in range(len(self.block_grad_dims)):
                 beg = 0 if cnt == 0 else sum(self.block_grad_dims[:cnt])
