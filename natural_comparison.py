@@ -431,28 +431,28 @@ def main(verbose=2):
         gem_net = GEM(
             config['network'](n_outputs=n_classes, lr=lr), best=False,
             n_memories=gem_memories, memory_strength=gem_weight,
-            n_tasks=n_tasks, n_classes=n_classes, split=True
+            n_tasks=n_tasks, n_classes=n_classes
         )
         gem_net.model.load_model(starting_model)
         gem_net.to(torch.device('cpu'))
         agem_net = AGEM(
             config['network'](n_outputs=n_classes, lr=lr), best=False,
             n_memories=gem_memories, memory_strength=gem_weight,
-            n_tasks=n_tasks, n_classes=n_classes, split=True
+            n_tasks=n_tasks, n_classes=n_classes
         )
         agem_net.model.load_model(starting_model)
         agem_net.to(torch.device('cpu'))
         sgem_net = SGEM(
             config['network'](n_outputs=n_classes, lr=lr), best=False,
             n_memories=gem_memories, memory_strength=gem_weight,
-            n_tasks=n_tasks, n_classes=n_classes, split=True
+            n_tasks=n_tasks, n_classes=n_classes
         )
         sgem_net.model.load_model(starting_model)
         sgem_net.to(torch.device('cpu'))
         ngem_net = NGEM(
             config['network'](n_outputs=n_classes, lr=lr), best=False,
             n_memories=gem_memories, memory_strength=gem_weight,
-            n_tasks=n_tasks, n_classes=n_classes, split=True
+            n_tasks=n_tasks, n_classes=n_classes
         )
         ngem_net.model.load_model(starting_model)
         ngem_net.to(torch.device('cpu'))
