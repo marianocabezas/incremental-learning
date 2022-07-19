@@ -516,8 +516,14 @@ class GEM(MetaModel):
     def load_model(self, net_name):
         net_state = torch.load(net_name, map_location=self.device)
         self.grad_dims = net_state['grad_dims']
-        self.memory_data = net_state['mem_data'].cpu()
-        self.memory_labs = net_state['mem_labs'].cpu()
+        self.memory_data = [
+            [mem.cpu() for mem in memories]
+            for memories in net_state['mem_data']
+        ]
+        self.memory_labs = [
+            [mem.cpu() for mem in memories]
+            for memories in net_state['mem_labs']
+        ]
         self.mem_cnt = net_state['mem_cnt']
         self.grads = net_state['grads'].cpu()
         self.observed_tasks = net_state['tasks']
@@ -650,8 +656,14 @@ class NGEM(GEM):
         net_state = torch.load(net_name, map_location=self.device)
         self.block_grad_dims = net_state['block_dims']
         self.grad_dims = net_state['grad_dims']
-        self.memory_data = net_state['mem_data'].cpu()
-        self.memory_labs = net_state['mem_labs'].cpu()
+        self.memory_data = [
+            [mem.cpu() for mem in memories]
+            for memories in net_state['mem_data']
+        ]
+        self.memory_labs = [
+            [mem.cpu() for mem in memories]
+            for memories in net_state['mem_labs']
+        ]
         self.mem_cnt = net_state['mem_cnt']
         self.grads = net_state['grads'].cpu()
         self.observed_tasks = net_state['tasks']
