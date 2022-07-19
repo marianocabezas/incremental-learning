@@ -23,7 +23,7 @@ def store_grad(pp, grads, grad_dims, tid):
         if param.grad is not None:
             beg = 0 if cnt == 0 else sum(grad_dims[:cnt])
             en = sum(grad_dims[:cnt + 1])
-            grads[beg:en, tid].copy_(param.grad.data.cpu().view(-1))
+            grads[beg:en, tid].copy_(param.grad.cpu().data.view(-1))
         cnt += 1
 
 
