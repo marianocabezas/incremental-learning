@@ -639,8 +639,8 @@ class NGEM(GEM):
         net_state = {
             'block_dims': self.block_grad_dims,
             'grad_dims': self.grad_dims,
-            'mem_data': self.memory_data.cpu(),
-            'mem_labs': self.memory_labs.cpu(),
+            'mem_data': self.memory_data,
+            'mem_labs': self.memory_labs,
             'mem_cnt': self.mem_cnt,
             'grads': self.grads.cpu(),
             'tasks': self.observed_tasks,
