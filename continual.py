@@ -398,13 +398,12 @@ class EWC(MetaModel):
 class GEM(MetaModel):
     def __init__(
         self, basemodel, best=True, n_memories=256, memory_strength=0.5,
-        n_classes=100, n_tasks=1, split=False
+        n_classes=100, n_tasks=1
     ):
         super().__init__(basemodel, best, n_memories)
         self.margin = memory_strength
         self.n_classes = n_classes
         self.nc_per_task = n_classes // n_tasks
-        self.split = split
         self.train_functions = self.model.train_functions
         self.val_functions = self.model.val_functions
         self.grad_dims = []
@@ -510,7 +509,6 @@ class GEM(MetaModel):
             'first': self.first,
             'n_classes': self.n_classes,
             'nc_per_task': self.nc_per_task,
-            'split': self.split,
             'state': self.state_dict()
         }
         torch.save(net_state, net_name)
@@ -518,16 +516,15 @@ class GEM(MetaModel):
     def load_model(self, net_name):
         net_state = torch.load(net_name, map_location=self.device)
         self.grad_dims = net_state['grad_dims']
-        self.memory_data = net_state['mem_data']
-        self.memory_labs = net_state['mem_labs']
+        self.memory_data = net_state['mem_data'].cpu()
+        self.memory_labs = net_state['mem_labs'].cpu()
         self.mem_cnt = net_state['mem_cnt']
-        self.grads = net_state['grads']
+        self.grads = net_state['grads'].cpu()
         self.observed_tasks = net_state['tasks']
         self.current_task = net_state['task']
         self.first = net_state['first']
         self.n_classes = net_state['n_classes']
         self.nc_per_task = net_state['nc_per_task']
-        self.split = net_state['split']
         self.load_state_dict(net_state['state'])
 
     def prebatch_update(self, batches, x, y):
@@ -561,11 +558,10 @@ class GEM(MetaModel):
 class AGEM(GEM):
     def __init__(
             self, basemodel, best=True, n_memories=256, memory_strength=0.5,
-            n_classes=100, n_tasks=1, split=False
+            n_classes=100, n_tasks=1
     ):
         super().__init__(
             basemodel, best, n_memories, memory_strength, n_classes, n_tasks,
-            split
         )
 
     def get_grad(self, indx):
@@ -575,11 +571,10 @@ class AGEM(GEM):
 class SGEM(GEM):
     def __init__(
             self, basemodel, best=True, n_memories=256, memory_strength=0.5,
-            n_classes=100, n_tasks=1, split=False
+            n_classes=100, n_tasks=1
     ):
         super().__init__(
             basemodel, best, n_memories, memory_strength, n_classes, n_tasks,
-            split
         )
 
     def get_grad(self, indx):
@@ -593,11 +588,10 @@ class SGEM(GEM):
 class NGEM(GEM):
     def __init__(
             self, basemodel, best=True, n_memories=256, memory_strength=0.5,
-            n_classes=100, n_tasks=1, split=False
+            n_classes=100, n_tasks=1
     ):
         super().__init__(
             basemodel, best, n_memories, memory_strength, n_classes, n_tasks,
-            split
         )
         self.block_grad_dims = []
 
@@ -639,16 +633,15 @@ class NGEM(GEM):
         net_state = {
             'block_dims': self.block_grad_dims,
             'grad_dims': self.grad_dims,
-            'mem_data': self.memory_data,
-            'mem_labs': self.memory_labs,
+            'mem_data': self.memory_data.cpu(),
+            'mem_labs': self.memory_labs.cpu(),
             'mem_cnt': self.mem_cnt,
-            'grads': self.grads,
+            'grads': self.grads.cpu(),
             'tasks': self.observed_tasks,
             'task': self.current_task,
             'first': self.first,
             'n_classes': self.n_classes,
             'nc_per_task': self.nc_per_task,
-            'split': self.split,
             'state': self.state_dict()
         }
         torch.save(net_state, net_name)
@@ -657,16 +650,15 @@ class NGEM(GEM):
         net_state = torch.load(net_name, map_location=self.device)
         self.block_grad_dims = net_state['block_dims']
         self.grad_dims = net_state['grad_dims']
-        self.memory_data = net_state['mem_data']
-        self.memory_labs = net_state['mem_labs']
+        self.memory_data = net_state['mem_data'].cpu()
+        self.memory_labs = net_state['mem_labs'].cpu()
         self.mem_cnt = net_state['mem_cnt']
-        self.grads = net_state['grads']
+        self.grads = net_state['grads'].cpu()
         self.observed_tasks = net_state['tasks']
         self.current_task = net_state['task']
         self.first = net_state['first']
         self.n_classes = net_state['n_classes']
         self.nc_per_task = net_state['nc_per_task']
-        self.split = net_state['split']
         self.load_state_dict(net_state['state'])
 
 
