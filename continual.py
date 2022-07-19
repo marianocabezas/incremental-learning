@@ -441,7 +441,7 @@ class GEM(MetaModel):
         if self.mem_cnt == self.n_memories:
             self.mem_cnt = 0
 
-    def update_gradients(self):
+    def update_gradients(self, batch_size):
         if len(self.observed_tasks) > 1:
             for past_task in self.observed_tasks[:-1]:
                 print('Updating gradient of task {:02d}'.format(past_task))
@@ -454,17 +454,22 @@ class GEM(MetaModel):
                     offset1 = 0
                     offset2 = self.n_classes
 
-                output = self.forward(
-                    torch.cat(self.memory_data[past_task]).to(self.device)
-                )
-                batch_losses = [
-                    l_f['weight'] * l_f['f'](
-                        output[:, offset1:offset2],
-                        torch.cat(self.memory_labs[past_task]).to(self.device)
-                    )
-                    for l_f in self.train_functions
-                ]
-                sum(batch_losses).backward()
+                memories_t = torch.cat(self.memory_data[past_task])
+                labels_t = torch.cat(self.memory_labs[past_task])
+                n_memories = len(memories_t)
+
+                for idx in range(0, n_memories, batch_size):
+                    b_memories = memories_t[idx:idx + batch_size, ...]
+                    b_labels = labels_t[idx:idx + batch_size, ...]
+                    output = self.forward(b_memories.to(self.device))
+                    batch_losses = [
+                        l_f['weight'] * l_f['f'](
+                            output[:, offset1:offset2],
+                            b_labels.to(self.device)
+                        )
+                        for l_f in self.train_functions
+                    ]
+                    sum(batch_losses).backward()
                 store_grad(
                     self.parameters, self.grads, self.grad_dims,
                     past_task
@@ -532,7 +537,8 @@ class GEM(MetaModel):
 
     def prebatch_update(self, batches, x, y):
         self.update_memory(x, y)
-        self.update_gradients()
+        batch_size = len(x) // 2
+        self.update_gradients(batch_size)
         self.constraint_check()
 
 
