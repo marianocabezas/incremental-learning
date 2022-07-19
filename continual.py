@@ -413,6 +413,7 @@ class GEM(MetaModel):
         self.grads = torch.Tensor(sum(self.grad_dims), n_tasks)
         self.memory_data = [[] for _ in range(n_tasks)]
         self.memory_labs = [[] for _ in range(n_tasks)]
+        self.offsets = []
 
         # Gradient tensors
         # self.grads = {
@@ -443,16 +444,10 @@ class GEM(MetaModel):
 
     def update_gradients(self, batch_size):
         if len(self.observed_tasks) > 1:
-            for past_task in self.observed_tasks[:-1]:
-                print('Updating gradient of task {:02d}'.format(past_task))
+            for past_task, (offset1, offset2) in zip(
+                self.observed_tasks[:-1], self.offsets[:-1]
+            ):
                 self.zero_grad()
-
-                if self.split:
-                    offset1 = past_task * self.nc_per_task
-                    offset2 = (past_task + 1) * self.nc_per_task
-                else:
-                    offset1 = 0
-                    offset2 = self.n_classes
 
                 memories_t = torch.cat(self.memory_data[past_task])
                 labels_t = torch.cat(self.memory_labs[past_task])
@@ -540,6 +535,27 @@ class GEM(MetaModel):
         batch_size = len(x) // 2
         self.update_gradients(batch_size)
         self.constraint_check()
+
+    def fit(
+        self,
+        train_loader,
+        val_loader,
+        epochs=50,
+        patience=5,
+        task=None,
+        offset1=None,
+        offset2=None,
+        verbose=True
+    ):
+        if offset1 is None:
+            offset1 = 0
+        if offset2 is None:
+            offset2 = self.n_classes
+        self.offsets.append((offset1, offset2))
+        super().fit(
+            train_loader, val_loader, epochs, patience, task, offset1, offset2,
+            verbose
+        )
 
 
 class AGEM(GEM):
