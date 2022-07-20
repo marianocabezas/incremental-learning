@@ -120,21 +120,21 @@ def project5cone5(gradient, memories, beg, en, margin=0.5, eps=1e-3):
         ]) * memories_sum
     else:
         memories_orth, _, _ = torch.pca_lowrank(memories_del_mean, q=min(3, len(memories)))
-        memories_orth = memories_orth.transpose(0, 1)
-        Pg = gradient_tensor - memories_orth.transpose().dot(
+        memories_orth = memories_orth.t()
+        Pg = gradient_tensor - memories_orth.t().dot(
             memories_orth.dot(gradient_tensor))
-        Pg_bar = memories_sum - memories_orth.transpose().dot(
+        Pg_bar = memories_sum - memories_orth.t().dot(
             memories_orth.dot(memories_sum))
-        if memories_sum.transpose().dot(Pg) > 0:
+        if memories_sum.t().dot(Pg) > 0:
             x = Pg
         else:
             x = gradient_tensor - np.min([
-                memories_sum.transpose().dot(Pg) /
-                memories_sum.transpose().dot(Pg_bar), -margin
-            ]) * memories_sum - memories_orth.transpose().dot(
-                memories_orth.dot(gradient_tensor)) + memories_sum.transpose(
-            ).dot(Pg) / memories_sum.transpose().dot(
-                Pg_bar) * memories_orth.transpose().dot(
+                memories_sum.t().dot(Pg) /
+                memories_sum.t().dot(Pg_bar), -margin
+            ]) * memories_sum - memories_orth.t().dot(
+                memories_orth.dot(gradient_tensor)) + memories_sum.t(
+            ).dot(Pg) / memories_sum.t().dot(
+                Pg_bar) * memories_orth.t().dot(
                 memories_orth.dot(memories_sum))
 
     gradient[beg:en].copy_(x.view(-1, 1))
