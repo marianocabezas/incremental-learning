@@ -75,70 +75,70 @@ def project5cone5(gradient, memories, beg, en, margin=0.5, eps=1e-3):
         First we do orthognality of memories and then find the null space of
         these memories gradients
     """
-    # np.seterr(divide='ignore', invalid='ignore')
-    # memories_np = memories[beg:en].cpu().t().double().numpy()
-    # gradient_np = gradient[beg:en].cpu().contiguous().view(-1).double().numpy()
-    # memories_np_sum = np.sum(memories_np, axis=0)
-    # if len(memories_np) == 1:
-    #     x = gradient_np - np.min([
-    #         (memories_np_sum.transpose().dot(gradient_np) /
-    #          memories_np_sum.transpose().dot(memories_np_sum)), -margin
-    #     ]) * memories_np_sum
-    # else:
-    #     memories_np_mean = np.mean(memories_np, axis=0)
-    #     memories_np_del_mean = memories_np - memories_np_mean.reshape(1, -1)
-    #     memories_np_pca = PCA(n_components=min(3, len(memories_np)))
-    #     memories_np_pca.fit(memories_np_del_mean)
-    #     memories_np_orth = memories_np_pca.components_
-    #     Pg = gradient_np - memories_np_orth.transpose().dot(
-    #         memories_np_orth.dot(gradient_np))
-    #     Pg_bar = memories_np_sum - memories_np_orth.transpose().dot(
-    #         memories_np_orth.dot(memories_np_sum))
-    #     if memories_np_sum.transpose().dot(Pg) > 0:
-    #         x = Pg
-    #     else:
-    #         x = gradient_np - np.min([
-    #             memories_np_sum.transpose().dot(Pg) /
-    #             memories_np_sum.transpose().dot(Pg_bar), -margin
-    #         ]) * memories_np_sum - memories_np_orth.transpose().dot(
-    #             memories_np_orth.dot(gradient_np)) + memories_np_sum.transpose(
-    #             ).dot(Pg) / memories_np_sum.transpose().dot(
-    #                 Pg_bar) * memories_np_orth.transpose().dot(
-    #                     memories_np_orth.dot(memories_np_sum))
-    #
-    # gradient[beg:en].copy_(torch.Tensor(x).view(-1, 1))
-
-    memories_tensor = memories[beg:en].t()
-    gradient_tensor = gradient[beg:en].contiguous().view(-1)
-    memories_mean = torch.mean(memories_tensor, axis=0)
-    memories_sum = torch.sum(memories_tensor, axis=0)
-
-    if len(memories_tensor) == 1:
-        x = gradient_tensor - np.min([
-            (memories_sum.t().dot(gradient_tensor) /
-             memories_sum.t().dot(memories_sum)).cpu(), - margin
-        ]) * memories_sum
+    np.seterr(divide='ignore', invalid='ignore')
+    memories_np = memories[beg:en].cpu().t().double().numpy()
+    gradient_np = gradient[beg:en].cpu().contiguous().view(-1).double().numpy()
+    memories_np_sum = np.sum(memories_np, axis=0)
+    if len(memories_np) == 1:
+        x = gradient_np - np.min([
+            (memories_np_sum.transpose().dot(gradient_np) /
+             memories_np_sum.transpose().dot(memories_np_sum)), -margin
+        ]) * memories_np_sum
     else:
-        memories_del_mean = memories_tensor - memories_mean.reshape(1, -1)
-        memories_orth, _, _ = torch.pca_lowrank(memories_del_mean, q=min(3, len(memories)))
-        memories_orth = memories_orth.t()
-        Pg = gradient_tensor - memories_orth.t().dot(
-            memories_orth.dot(gradient_tensor))
-        Pg_bar = memories_sum - memories_orth.t().dot(
-            memories_orth.dot(memories_sum))
-        if memories_sum.t().dot(Pg) > 0:
+        memories_np_mean = np.mean(memories_np, axis=0)
+        memories_np_del_mean = memories_np - memories_np_mean.reshape(1, -1)
+        memories_np_pca = PCA(n_components=min(3, len(memories_np)))
+        memories_np_pca.fit(memories_np_del_mean)
+        memories_np_orth = memories_np_pca.components_
+        Pg = gradient_np - memories_np_orth.transpose().dot(
+            memories_np_orth.dot(gradient_np))
+        Pg_bar = memories_np_sum - memories_np_orth.transpose().dot(
+            memories_np_orth.dot(memories_np_sum))
+        if memories_np_sum.transpose().dot(Pg) > 0:
             x = Pg
         else:
-            x = gradient_tensor - np.min([
-                memories_sum.t().dot(Pg) /
-                memories_sum.t().dot(Pg_bar), -margin
-            ]) * memories_sum - memories_orth.t().dot(
-                memories_orth.dot(gradient_tensor)) + memories_sum.t(
-            ).dot(Pg) / memories_sum.t().dot(
-                Pg_bar) * memories_orth.t().dot(
-                memories_orth.dot(memories_sum))
+            x = gradient_np - np.min([
+                memories_np_sum.transpose().dot(Pg) /
+                memories_np_sum.transpose().dot(Pg_bar), -margin
+            ]) * memories_np_sum - memories_np_orth.transpose().dot(
+                memories_np_orth.dot(gradient_np)) + memories_np_sum.transpose(
+                ).dot(Pg) / memories_np_sum.transpose().dot(
+                    Pg_bar) * memories_np_orth.transpose().dot(
+                        memories_np_orth.dot(memories_np_sum))
 
-    gradient[beg:en].copy_(x.view(-1, 1))
+    gradient[beg:en].copy_(torch.Tensor(x).view(-1, 1))
+
+    # memories_tensor = memories[beg:en].t()
+    # gradient_tensor = gradient[beg:en].contiguous().view(-1)
+    # memories_mean = torch.mean(memories_tensor, axis=0)
+    # memories_sum = torch.sum(memories_tensor, axis=0)
+    #
+    # if len(memories_tensor) == 1:
+    #     x = gradient_tensor - np.min([
+    #         (memories_sum.t().dot(gradient_tensor) /
+    #          memories_sum.t().dot(memories_sum)).cpu(), - margin
+    #     ]) * memories_sum
+    # else:
+    #     memories_del_mean = memories_tensor - memories_mean.reshape(1, -1)
+    #     memories_orth, _, _ = torch.pca_lowrank(memories_del_mean, q=min(3, len(memories)))
+    #     memories_orth = memories_orth.t()
+    #     Pg = gradient_tensor - memories_orth.t().dot(
+    #         memories_orth.dot(gradient_tensor))
+    #     Pg_bar = memories_sum - memories_orth.t().dot(
+    #         memories_orth.dot(memories_sum))
+    #     if memories_sum.t().dot(Pg) > 0:
+    #         x = Pg
+    #     else:
+    #         x = gradient_tensor - np.min([
+    #             memories_sum.t().dot(Pg) /
+    #             memories_sum.t().dot(Pg_bar), -margin
+    #         ]) * memories_sum - memories_orth.t().dot(
+    #             memories_orth.dot(gradient_tensor)) + memories_sum.t(
+    #         ).dot(Pg) / memories_sum.t().dot(
+    #             Pg_bar) * memories_orth.t().dot(
+    #             memories_orth.dot(memories_sum))
+    #
+    # gradient[beg:en].copy_(x.view(-1, 1))
 
 
 class MetaModel(BaseModel):
@@ -640,15 +640,15 @@ class NGEM(GEM):
                 en = sum(self.block_grad_dims[:cnt + 1])
                 if beg == en:
                     continue
-                gradient_gpu = self.grads[:, t].unsqueeze(1).to(self.device)
+                # gradient_gpu = self.grads[:, t].unsqueeze(1).to(self.device)
                 project5cone5(
-                    # self.grads[:, t].unsqueeze(1),
-                    # self.grads.index_select(1, indx),
-                    gradient_gpu,
-                    self.grads.index_select(1, indx).to(self.device),
+                    self.grads[:, t].unsqueeze(1),
+                    self.grads.index_select(1, indx),
+                    # gradient_gpu,
+                    # self.grads.index_select(1, indx).to(self.device),
                     beg, en, margin=self.margin
                 )
-                self.grads[:, t] = gradient_gpu.squeeze(1).cpu()
+                # self.grads[:, t] = gradient_gpu.squeeze(1).cpu()
             # copy gradients back
             overwrite_grad(self.parameters, self.grads[:, t], self.grad_dims)
 
