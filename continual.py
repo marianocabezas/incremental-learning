@@ -116,7 +116,7 @@ def project5cone5(gradient, memories, beg, en, margin=0.5, eps=1e-3):
     if len(memories_tensor) == 1:
         x = gradient_tensor - np.min([
             (memories_sum.t().dot(gradient_tensor) /
-             memories_sum.t().dot(memories_sum)), - margin
+             memories_sum.t().dot(memories_sum)).cpu(), - margin
         ]) * memories_sum
     else:
         memories_del_mean = memories_tensor - memories_mean.reshape(1, -1)
