@@ -76,8 +76,8 @@ def project5cone5(gradient, memories, beg, en, margin=0.5, eps=1e-3):
         these memories gradients
     """
     np.seterr(divide='ignore', invalid='ignore')
-    memories_np = memories[beg:en].cpu().t().double().numpy()
-    gradient_np = gradient[beg:en].cpu().contiguous().view(-1).double().numpy()
+    memories_np = memories[beg:en].t().double().numpy()
+    gradient_np = gradient[beg:en].contiguous().view(-1).double().numpy()
     memories_np_sum = np.sum(memories_np, axis=0)
     if len(memories_np) == 1:
         x = gradient_np - np.min([
