@@ -423,23 +423,46 @@ class GEM(MetaModel):
     def update_memory(self, x, y):
         # Update ring buffer storing examples from current task
         t = self.current_task
-        bsz = y.data.size(0)
-        endcnt = min(self.mem_cnt + bsz, self.n_memories)
-        effbsz = endcnt - self.mem_cnt
-        self.memory_data[t].append(
-            x.detach()[:effbsz].cpu()
-        )
-        if bsz == 1:
-            self.memory_labs[t].append(
-                y.detach()[0:].cpu()
-            )
-        else:
-            self.memory_labs[t].append(
-                y.detach()[:effbsz].cpu()
-            )
-        self.mem_cnt += effbsz
-        if self.mem_cnt == self.n_memories:
-            self.mem_cnt = 0
+        current_size = len(self.memory_data[t])
+        empty_slots = self.n_memories - current_size
+        end_slots = self.n_memories - self.mem_cnt
+        batch_size = y.data.size(0)
+        if empty_slots > 0 or end_slots < batch_size:
+            new_slots = min(batch_size, max(empty_slots, end_slots))
+            new_mem = list(torch.split(
+                x[:new_slots, ...].detach().cpu(), 1
+            ))
+            new_labs = list(torch.split(
+                y[:new_slots, ...].detach().cpu(), 1
+            ))
+            if empty_slots > 0:
+                self.memory_data[t] += new_mem
+                self.memory_labs[t] += new_labs
+            else:
+                self.memory_data[t][self.mem_cnt:] = new_mem
+                self.memory_labs[t][self.mem_cnt:] = new_labs
+            current_size = len(self.memory_data[t])
+            x = x[new_slots:, ...]
+            y = y[new_slots:, ...]
+            if current_size < self.n_memories:
+                self.mem_cnt = current_size
+            else:
+                self.mem_cnt = 0
+        batch_size = y.data.size(0)
+        if batch_size > 0:
+            end_cnt = min(self.mem_cnt + batch_size, self.n_memories)
+            end_mem = end_cnt - self.mem_cnt
+            new_mem = list(torch.split(
+                x[:end_mem, ...].detach().cpu(), 1
+            ))
+            new_labs = list(torch.split(
+                y[:end_mem, ...].detach().cpu(), 1
+            ))
+            self.memory_data[t][self.mem_cnt:end_cnt] = new_mem
+            self.memory_labs[t][self.mem_cnt:end_cnt] = new_labs
+            self.mem_cnt += end_mem
+            if self.mem_cnt == self.n_memories:
+                self.mem_cnt = 0
 
     def update_gradients(self):
         if len(self.observed_tasks) > 1:
