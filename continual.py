@@ -112,7 +112,6 @@ def project5cone5(gradient, memories, beg, en, margin=0.5, eps=1e-3):
     gradient_tensor = gradient[beg:en].contiguous().view(-1)
     memories_mean = torch.mean(memories_tensor, axis=0)
     memories_sum = torch.sum(memories_tensor, axis=0)
-    memories_del_mean = memories_tensor - memories_mean.reshape(1, -1)
 
     if len(memories_tensor) == 1:
         x = gradient_tensor - np.min([
@@ -120,6 +119,7 @@ def project5cone5(gradient, memories, beg, en, margin=0.5, eps=1e-3):
              memories_sum.t().dot(memories_sum)), - margin
         ]) * memories_sum
     else:
+        memories_del_mean = memories_tensor - memories_mean.reshape(1, -1)
         memories_orth, _, _ = torch.pca_lowrank(memories_del_mean, q=min(3, len(memories)))
         memories_orth = memories_orth.t()
         Pg = gradient_tensor - memories_orth.t().dot(
@@ -648,7 +648,6 @@ class NGEM(GEM):
                     self.grads.index_select(1, indx).to(self.device),
                     beg, en, margin=self.margin
                 )
-                print(gradient_gpu.shape)
                 self.grads[:, t] = gradient_gpu.squeeze(1).cpu()
             # copy gradients back
             overwrite_grad(self.parameters, self.grads[:, t], self.grad_dims)
