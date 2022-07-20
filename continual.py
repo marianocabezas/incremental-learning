@@ -115,8 +115,8 @@ def project5cone5(gradient, memories, beg, en, margin=0.5, eps=1e-3):
 
     if len(memories_tensor) == 1:
         x = gradient_tensor - np.min([
-            (memories_sum.transpose(0, 1).dot(gradient_tensor) /
-             memories_sum.transpose(0, 1).dot(memories_sum)), - margin
+            (memories_sum.t().dot(gradient_tensor) /
+             memories_sum.t().dot(memories_sum)), - margin
         ]) * memories_sum
     else:
         memories_orth, _, _ = torch.pca_lowrank(memories_del_mean, q=min(3, len(memories)))
