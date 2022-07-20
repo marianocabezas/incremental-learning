@@ -414,14 +414,8 @@ class GEM(MetaModel):
         self.memory_labs = [[] for _ in range(n_tasks)]
         self.offsets = []
 
-        # Gradient tensors
-        # self.grads = {
-        #     n: [] for n, p in self.model.named_parameters()
-        #     if p.requires_grad
-        # }
-
     def update_memory(self, x, y):
-        # Update ring buffer storing examples from current task
+        # Update ring buffer storing examples from the current task
         t = self.current_task
         current_size = len(self.memory_data[t])
         empty_slots = self.n_memories - current_size
