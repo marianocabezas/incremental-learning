@@ -69,6 +69,7 @@ def process_net(
     )
     net.to(torch.device('cpu'))
 
+
 def train(
     config, seed, net, training, validation, model_name, epochs, patience, task,
     offset1, offset2, verbose=0
@@ -83,7 +84,7 @@ def train(
     :param model_name:
     :param epochs:
     :param patience:
-    :param: task:
+    :param task:
     :param offset1:
     :param offset2:
     :param verbose:
@@ -145,9 +146,10 @@ def train(
         net.save_model(os.path.join(path, model_name))
 
 
-def test(config, net, testing, task, n_classes, verbose=0):
+def test(config, net, testing, task, n_classes, offset1, offset2, verbose=0):
     # Init
     matrix = np.zeros((n_classes, n_classes))
+    task_matrix = np.zeros((n_classes, n_classes))
     datasets = importlib.import_module('datasets')
     dataset = getattr(datasets, config['validation'])(testing[0], testing[1])
     test_loader = DataLoader(
@@ -171,11 +173,15 @@ def test(config, net, testing, task, n_classes, verbose=0):
             x.cpu().numpy(), nonbatched=False, task=task
         )
         predicted = np.argmax(prediction, axis=1)
+        task_predicted = predicted = np.argmax(
+            prediction[:, offset1:offset2], axis=1
+        ) + offset1
         target = y.cpu().numpy()
-        for t_i, p_i in zip(target, predicted):
+        for t_i, p_i, tp_i in zip(target, predicted, task_predicted):
             matrix[t_i, p_i] += 1
+            task_matrix[t_i, tp_i] += 1
 
-    return matrix
+    return matrix, task_matrix
 
 
 def update_results(
@@ -183,20 +189,36 @@ def update_results(
     verbose=0
 ):
     seed = str(seed)
+    n_tasks = len(testing)
+    nc_per_task = n_classes // n_tasks
     test_start = time.time()
     for t_i, (tr_i, val_i, tst_i) in enumerate(zip(training, validation, testing)):
-        tr_matrix = test(config, net, tr_i, t_i, n_classes, verbose)
-        val_matrix = test(config, net, val_i, t_i, n_classes, verbose)
-        tst_matrix = test(config, net, tst_i, t_i, n_classes, verbose)
+        offset1 = t_i * nc_per_task
+        offset2 = (t_i + 1) * nc_per_task
+        tr_matrix, ttr_matrix = test(
+            config, net, tr_i, t_i, n_classes, offset1, offset2, verbose
+        )
+        val_matrix, tval_matrix = test(
+            config, net, val_i, t_i, n_classes, offset1, offset2, verbose
+        )
+        tst_matrix, ttst_matrix = test(
+            config, net, tst_i, t_i, n_classes, offset1, offset2, verbose
+        )
         if isinstance(results, list):
             for results_i in results:
                 results_i[seed]['training'][step, t_i, ...] = tr_matrix
                 results_i[seed]['validation'][step, t_i, ...] = val_matrix
                 results_i[seed]['testing'][step, t_i, ...] = tst_matrix
+                results_i[seed]['task_training'][step, t_i, ...] = ttr_matrix
+                results_i[seed]['task_validation'][step, t_i, ...] = tval_matrix
+                results_i[seed]['task_testing'][step, t_i, ...] = ttst_matrix
         else:
             results[seed]['training'][step, t_i, ...] = tr_matrix
             results[seed]['validation'][step, t_i, ...] = val_matrix
             results[seed]['testing'][step, t_i, ...] = tst_matrix
+            results[seed]['task_training'][step, t_i, ...] = ttr_matrix
+            results[seed]['task_validation'][step, t_i, ...] = tval_matrix
+            results[seed]['task_testing'][step, t_i, ...] = ttst_matrix
     test_elapsed = time.time() - test_start
     if verbose > 0:
         print('\033[KTesting finished {:}'.format(time_to_string(test_elapsed)))
@@ -215,6 +237,9 @@ def save_results(config, json_name, results):
         results_tmp[seed]['training'] = results[seed]['training'].tolist()
         results_tmp[seed]['validation'] = results[seed]['validation'].tolist()
         results_tmp[seed]['testing'] = results[seed]['testing'].tolist()
+        results_tmp[seed]['task_training'] = results[seed]['task_training'].tolist()
+        results_tmp[seed]['task_validation'] = results[seed]['task_validation'].tolist()
+        results_tmp[seed]['task_testing'] = results[seed]['task_testing'].tolist()
     with open(json_file, 'w') as testing_json:
         json.dump(results_tmp, testing_json)
 
@@ -289,6 +314,9 @@ def main(verbose=2):
             'training': empty_confusion_matrix(n_tasks, n_classes),
             'validation': empty_confusion_matrix(n_tasks, n_classes),
             'testing': empty_confusion_matrix(n_tasks, n_classes),
+            'task_training': empty_confusion_matrix(n_tasks, n_classes),
+            'task_validation': empty_confusion_matrix(n_tasks, n_classes),
+            'task_testing': empty_confusion_matrix(n_tasks, n_classes),
         }
         for seed in seeds
     }
