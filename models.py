@@ -240,19 +240,19 @@ def vit_imagenet(n_outputs, lr=1e-3):
     return ViT(1024, 64, 4, 16, 24, n_outputs, lr)
 
 
-def vitb_cifar(n_outputs, lr=1e-3):
+def vitb_cifar(n_outputs, lr=1e-3, pretrained=False):
     return ViT_B_16(32, 2, n_outputs, lr=lr)
 
 
-def vitb_imagenet(n_outputs, lr=1e-3):
+def vitb_imagenet(n_outputs, lr=1e-3, pretrained=False):
     return ViT_B_16(64, 4, n_outputs, lr=lr)
 
 
-def vits_cifar(n_outputs, lr=1e-3):
+def vits_cifar(n_outputs, lr=1e-3, pretrained=False):
     return ViT_S_16(32, 2, n_outputs, lr=lr)
 
 
-def vits_imagenet(n_outputs, lr=1e-3):
+def vits_imagenet(n_outputs, lr=1e-3, pretrained=False):
     return ViT_S_16(64, 4, n_outputs, lr=lr)
 
 
