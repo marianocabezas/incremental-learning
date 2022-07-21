@@ -49,7 +49,7 @@ class ResNet18(BaseModel):
         self.device = device
         if pretrained:
             try:
-                self.resnet = self.resnet18(weights='IMAGENET1K_V1')
+                self.resnet = models.resnet18(weights='IMAGENET1K_V1')
             except TypeError:
                 self.resnet = models.resnet18(pretrained)
         else:
