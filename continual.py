@@ -120,7 +120,7 @@ def project5cone5(gradient, memories, beg, en, margin=0.5, eps=1e-3):
     #     ]) * memories_sum
     # else:
     #     memories_del_mean = memories_tensor - memories_mean.reshape(1, -1)
-    #     memories_orth, _, _ = torch.pca_lowrank(memories_del_mean, q=min(3, len(memories)))
+    #     memories_orth, _, _ = torch.pca_lowrank(memories_del_mean, q=min(2, len(memories)))
     #     memories_orth = memories_orth.t()
     #     Pg = gradient_tensor - memories_orth.t().dot(
     #         memories_orth.dot(gradient_tensor))

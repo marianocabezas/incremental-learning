@@ -244,6 +244,29 @@ def main(verbose=2):
 
     seeds = config['seeds']
     epochs = config['epochs']
+    try:
+        pretrained = config['pretrained']
+    except KeyError:
+        pretrained = False
+
+    # EWC parameters
+    try:
+        ewc_weight = config['ewc_weight']
+    except KeyError:
+        ewc_weight = 1
+    try:
+        ewc_binary = config['ewc_binary']
+    except KeyError:
+        ewc_binary = False
+    # GEM parameters
+    try:
+        gem_weight = config['gem_weight']
+    except KeyError:
+        gem_weight = 0.5
+    try:
+        gem_memories = config['gem_memories']
+    except KeyError:
+        gem_memories = 256
 
     print(
         '{:}[{:}] {:}<Incremental learning framework>{:}'.format(
@@ -293,7 +316,7 @@ def main(verbose=2):
         # Network init (random weights)
         np.random.seed(seed)
         torch.manual_seed(seed)
-        net = config['network'](n_outputs=n_classes)
+        net = config['network'](n_outputs=n_classes, pretrained=pretrained)
         starting_model = os.path.join(
             model_path,
             '{:}-start.s{:05d}.pt'.format(model_base, seed)
@@ -337,7 +360,9 @@ def main(verbose=2):
             lr = config['lr']
         except KeyError:
             lr = 1e-3
-        net = config['network'](n_outputs=n_classes, lr=lr)
+        net = config['network'](
+            n_outputs=n_classes, lr=lr, pretrained=pretrained
+        )
         net.load_model(starting_model)
         training_set = (
             torch.cat([x for x, _ in training_tasks]),
@@ -380,7 +405,9 @@ def main(verbose=2):
         # Naive approach. We just partition the data and update the model
         # with each new batch without caring about previous samples
         net = MetaModel(
-            config['network'](n_outputs=n_classes, lr=lr), best=False
+            config['network'](
+                n_outputs=n_classes, lr=lr, pretrained=pretrained
+            ), best=False
         )
         net.model.load_model(starting_model)
         net.to(torch.device('cpu'))
@@ -392,7 +419,9 @@ def main(verbose=2):
         # called finetune in the original repo. Here we use it by default for
         # simplicity. Might add the option later.
         ind_net = Independent(
-            config['network'](n_outputs=n_classes, lr=lr), best=False,
+            config['network'](
+                n_outputs=n_classes, lr=lr, pretrained=pretrained
+            ), best=False,
             n_tasks=n_tasks
         )
         for net_i in ind_net.model:
@@ -401,17 +430,10 @@ def main(verbose=2):
 
         # EWC approach. We use a penalty term / regularization loss
         # to ensure previous data isn't forgotten.
-        try:
-            ewc_weight = config['ewc_weight']
-        except KeyError:
-            ewc_weight = 1
-        try:
-            ewc_binary = config['ewc_binary']
-        except KeyError:
-            ewc_binary = False
-
         ewc_net = EWC(
-            config['network'](n_outputs=n_classes, lr=lr), best=False,
+            config['network'](
+                n_outputs=n_classes, lr=lr, pretrained=pretrained
+            ), best=False,
             ewc_weight=ewc_weight, ewc_binary=ewc_binary
         )
         ewc_net.model.load_model(starting_model)
@@ -419,38 +441,37 @@ def main(verbose=2):
 
         # GEM approaches. We group all the GEM-related approaches here for
         # simplicity. All parameters should be shared for a fair comparison.
-        try:
-            gem_weight = config['gem_weight']
-        except KeyError:
-            gem_weight = 0.5
-        try:
-            gem_memories = config['gem_memories']
-        except KeyError:
-            gem_memories = 256
-
         gem_net = GEM(
-            config['network'](n_outputs=n_classes, lr=lr), best=False,
+            config['network'](
+                n_outputs=n_classes, lr=lr, pretrained=pretrained
+            ), best=False,
             n_memories=gem_memories, memory_strength=gem_weight,
             n_tasks=n_tasks, n_classes=n_classes
         )
         gem_net.model.load_model(starting_model)
         gem_net.to(torch.device('cpu'))
         agem_net = AGEM(
-            config['network'](n_outputs=n_classes, lr=lr), best=False,
+            config['network'](
+                n_outputs=n_classes, lr=lr, pretrained=pretrained
+            ), best=False,
             n_memories=gem_memories, memory_strength=gem_weight,
             n_tasks=n_tasks, n_classes=n_classes
         )
         agem_net.model.load_model(starting_model)
         agem_net.to(torch.device('cpu'))
         sgem_net = SGEM(
-            config['network'](n_outputs=n_classes, lr=lr), best=False,
+            config['network'](
+                n_outputs=n_classes, lr=lr, pretrained=pretrained
+            ), best=False,
             n_memories=gem_memories, memory_strength=gem_weight,
             n_tasks=n_tasks, n_classes=n_classes
         )
         sgem_net.model.load_model(starting_model)
         sgem_net.to(torch.device('cpu'))
         ngem_net = NGEM(
-            config['network'](n_outputs=n_classes, lr=lr), best=False,
+            config['network'](
+                n_outputs=n_classes, lr=lr, pretrained=pretrained
+            ), best=False,
             n_memories=gem_memories, memory_strength=gem_weight,
             n_tasks=n_tasks, n_classes=n_classes
         )
