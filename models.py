@@ -181,7 +181,6 @@ class ViT_S_16(BaseModel):
         self.n_classes = n_outputs
         self.lr = lr
         self.device = device
-        # self.vit_input = models.ViT_B_16_Weights.IMAGENET1K_V1.transforms()
         self.vit = models.vision_transformer._vision_transformer(
             num_layers=12, num_heads=12, hidden_dim=384, mlp_dim=1536,
             image_size=image_size, patch_size=patch_size, progress=True,
