@@ -3,10 +3,8 @@ import os
 import time
 import json
 import random
-from typing import Union, Any
 import numpy as np
-import datasets
-import models
+import importlib
 import yaml
 import torch
 from torch.utils.data import DataLoader
@@ -96,6 +94,7 @@ def train(
     try:
         net.load_model(os.path.join(path, model_name))
     except IOError:
+        datasets = importlib.import_module('datasets')
         np.random.seed(seed)
         torch.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
@@ -108,7 +107,7 @@ def train(
         if verbose > 1:
             print('< Training dataset >')
         dtrain, ltrain = training
-        train_dataset = config['training'](dtrain, ltrain)
+        train_dataset = getattr(datasets, config['training'])(dtrain, ltrain)
 
         if verbose > 1:
             print('Dataloader creation <with validation>')
@@ -120,7 +119,7 @@ def train(
         if verbose > 1:
             print('< Validation dataset >')
         dval, lval = validation
-        val_dataset = config['validation'](dval, lval)
+        val_dataset = getattr(datasets, config['validation'])(dval, lval)
 
         if verbose > 1:
             print('Dataloader creation <val>')
@@ -149,7 +148,8 @@ def train(
 def test(config, net, testing, task, n_classes, verbose=0):
     # Init
     matrix = np.zeros((n_classes, n_classes))
-    dataset = config['validation'](testing[0], testing[1])
+    datasets = importlib.import_module('datasets')
+    dataset = getattr(datasets, config['validation'])(testing[0], testing[1])
     test_loader = DataLoader(
         dataset, config['test_batch'], num_workers=32
     )
@@ -314,9 +314,11 @@ def main(verbose=2):
             )
         )
         # Network init (random weights)
+        models = importlib.import_module('models')
+        network = getattr(models, config['network'])
         np.random.seed(seed)
         torch.manual_seed(seed)
-        net = config['network'](n_outputs=n_classes, pretrained=pretrained)
+        net = network(n_outputs=n_classes, pretrained=pretrained)
         starting_model = os.path.join(
             model_path,
             '{:}-start.s{:05d}.pt'.format(model_base, seed)
@@ -360,7 +362,7 @@ def main(verbose=2):
             lr = config['lr']
         except KeyError:
             lr = 1e-3
-        net = config['network'](
+        net = network(
             n_outputs=n_classes, lr=lr, pretrained=pretrained
         )
         net.load_model(starting_model)
@@ -405,7 +407,7 @@ def main(verbose=2):
         # Naive approach. We just partition the data and update the model
         # with each new batch without caring about previous samples
         net = MetaModel(
-            config['network'](
+            network(
                 n_outputs=n_classes, lr=lr, pretrained=pretrained
             ), best=False
         )
@@ -419,7 +421,7 @@ def main(verbose=2):
         # called finetune in the original repo. Here we use it by default for
         # simplicity. Might add the option later.
         ind_net = Independent(
-            config['network'](
+            network(
                 n_outputs=n_classes, lr=lr, pretrained=pretrained
             ), best=False,
             n_tasks=n_tasks
@@ -431,7 +433,7 @@ def main(verbose=2):
         # EWC approach. We use a penalty term / regularization loss
         # to ensure previous data isn't forgotten.
         ewc_net = EWC(
-            config['network'](
+            network(
                 n_outputs=n_classes, lr=lr, pretrained=pretrained
             ), best=False,
             ewc_weight=ewc_weight, ewc_binary=ewc_binary
@@ -442,7 +444,7 @@ def main(verbose=2):
         # GEM approaches. We group all the GEM-related approaches here for
         # simplicity. All parameters should be shared for a fair comparison.
         gem_net = GEM(
-            config['network'](
+            network(
                 n_outputs=n_classes, lr=lr, pretrained=pretrained
             ), best=False,
             n_memories=gem_memories, memory_strength=gem_weight,
@@ -451,7 +453,7 @@ def main(verbose=2):
         gem_net.model.load_model(starting_model)
         gem_net.to(torch.device('cpu'))
         agem_net = AGEM(
-            config['network'](
+            network(
                 n_outputs=n_classes, lr=lr, pretrained=pretrained
             ), best=False,
             n_memories=gem_memories, memory_strength=gem_weight,
@@ -460,7 +462,7 @@ def main(verbose=2):
         agem_net.model.load_model(starting_model)
         agem_net.to(torch.device('cpu'))
         sgem_net = SGEM(
-            config['network'](
+            network(
                 n_outputs=n_classes, lr=lr, pretrained=pretrained
             ), best=False,
             n_memories=gem_memories, memory_strength=gem_weight,
@@ -469,7 +471,7 @@ def main(verbose=2):
         sgem_net.model.load_model(starting_model)
         sgem_net.to(torch.device('cpu'))
         ngem_net = NGEM(
-            config['network'](
+            network(
                 n_outputs=n_classes, lr=lr, pretrained=pretrained
             ), best=False,
             n_memories=gem_memories, memory_strength=gem_weight,
