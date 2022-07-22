@@ -146,16 +146,20 @@ def train(
         net.save_model(os.path.join(path, model_name))
 
 
-def test(config, net, testing, task, n_classes, offset1, offset2, verbose=0):
+def test(config, net, testing, task, n_classes, n_tasks, verbose=0):
     # Init
     matrix = np.zeros((n_classes, n_classes))
     task_matrix = np.zeros((n_classes, n_classes))
+    scaled_matrix = np.zeros((n_classes, n_classes))
     datasets = importlib.import_module('datasets')
     dataset = getattr(datasets, config['validation'])(testing[0], testing[1])
     test_loader = DataLoader(
         dataset, config['test_batch'], num_workers=32
     )
     test_start = time.time()
+    nc_per_task = n_classes // n_tasks
+    offset1 = task * nc_per_task
+    offset2 = (task + 1) * nc_per_task
 
     for batch_i, (x, y) in enumerate(test_loader):
         tests = len(test_loader) - batch_i
@@ -176,12 +180,25 @@ def test(config, net, testing, task, n_classes, offset1, offset2, verbose=0):
         task_predicted = np.argmax(
             prediction[:, offset1:offset2], axis=1
         ) + offset1
+        scaled_predicted = np.argmax(
+            np.concatenate([
+                np.softmax(
+                    prediction[:, t_i * nc_per_task:(t_i + 1) * nc_per_task],
+                    axis=1
+                )
+                for t_i in range(n_tasks)
+            ], axis=1
+            ), axis=1
+        )
         target = y.cpu().numpy()
-        for t_i, p_i, tp_i in zip(target, predicted, task_predicted):
+        for t_i, p_i, tp_i, sp_i in zip(
+                target, predicted, task_predicted, scaled_predicted
+        ):
             matrix[t_i, p_i] += 1
             task_matrix[t_i, tp_i] += 1
+            scaled_matrix[t_i, sp_i] += 1
 
-    return matrix, task_matrix
+    return matrix, task_matrix, scaled_matrix
 
 
 def update_results(
@@ -190,19 +207,16 @@ def update_results(
 ):
     seed = str(seed)
     n_tasks = len(testing)
-    nc_per_task = n_classes // n_tasks
     test_start = time.time()
     for t_i, (tr_i, val_i, tst_i) in enumerate(zip(training, validation, testing)):
-        offset1 = t_i * nc_per_task
-        offset2 = (t_i + 1) * nc_per_task
-        tr_matrix, ttr_matrix = test(
-            config, net, tr_i, t_i, n_classes, offset1, offset2, verbose
+        tr_matrix, ttr_matrix, str_matrix = test(
+            config, net, tr_i, t_i, n_classes, n_tasks, verbose
         )
-        val_matrix, tval_matrix = test(
-            config, net, val_i, t_i, n_classes, offset1, offset2, verbose
+        val_matrix, tval_matrix, sval_matrix = test(
+            config, net, val_i, t_i, n_classes, n_tasks, verbose
         )
-        tst_matrix, ttst_matrix = test(
-            config, net, tst_i, t_i, n_classes, offset1, offset2, verbose
+        tst_matrix, ttst_matrix, stst_matrix = test(
+            config, net, tst_i, t_i, n_classes, n_tasks, verbose
         )
         if isinstance(results, list):
             for results_i in results:
@@ -212,6 +226,9 @@ def update_results(
                 results_i[seed]['task_training'][step, t_i, ...] = ttr_matrix
                 results_i[seed]['task_validation'][step, t_i, ...] = tval_matrix
                 results_i[seed]['task_testing'][step, t_i, ...] = ttst_matrix
+                results_i[seed]['scaled_training'][step, t_i, ...] = str_matrix
+                results_i[seed]['scaled_validation'][step, t_i, ...] = sval_matrix
+                results_i[seed]['scaled_testing'][step, t_i, ...] = stst_matrix
         else:
             results[seed]['training'][step, t_i, ...] = tr_matrix
             results[seed]['validation'][step, t_i, ...] = val_matrix
@@ -219,6 +236,9 @@ def update_results(
             results[seed]['task_training'][step, t_i, ...] = ttr_matrix
             results[seed]['task_validation'][step, t_i, ...] = tval_matrix
             results[seed]['task_testing'][step, t_i, ...] = ttst_matrix
+            results[seed]['scaled_training'][step, t_i, ...] = str_matrix
+            results[seed]['scaled_validation'][step, t_i, ...] = sval_matrix
+            results[seed]['scaled_testing'][step, t_i, ...] = stst_matrix
     test_elapsed = time.time() - test_start
     if verbose > 0:
         print('\033[KTesting finished {:}'.format(time_to_string(test_elapsed)))
@@ -240,6 +260,9 @@ def save_results(config, json_name, results):
         results_tmp[seed]['task_training'] = results[seed]['task_training'].tolist()
         results_tmp[seed]['task_validation'] = results[seed]['task_validation'].tolist()
         results_tmp[seed]['task_testing'] = results[seed]['task_testing'].tolist()
+        results_tmp[seed]['scaled_training'] = results[seed]['scaled_training'].tolist()
+        results_tmp[seed]['scaled_validation'] = results[seed]['scaled_validation'].tolist()
+        results_tmp[seed]['scaled_testing'] = results[seed]['scaled_testing'].tolist()
     with open(json_file, 'w') as testing_json:
         json.dump(results_tmp, testing_json)
 
@@ -317,6 +340,9 @@ def main(verbose=2):
             'task_training': empty_confusion_matrix(n_tasks, n_classes),
             'task_validation': empty_confusion_matrix(n_tasks, n_classes),
             'task_testing': empty_confusion_matrix(n_tasks, n_classes),
+            'scaled_training': empty_confusion_matrix(n_tasks, n_classes),
+            'scaled_validation': empty_confusion_matrix(n_tasks, n_classes),
+            'scaled_testing': empty_confusion_matrix(n_tasks, n_classes),
         }
         for seed in seeds
     }
