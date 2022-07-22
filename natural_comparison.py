@@ -65,7 +65,7 @@ def process_net(
     )
     net.reset_optimiser()
     update_results(
-        config, net, seed, task + 1, training_tasks, validation_tasks,
+        config, net, seed, task + 2, training_tasks, validation_tasks,
         testing_tasks, results, n_classes, 2
     )
     net.to(torch.device('cpu'))
