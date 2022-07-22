@@ -217,32 +217,32 @@ def update_results(
         )
         if isinstance(results, list):
             for results_i in results:
-                results_i[seed]['training'][step, t_i, ...] = tr_matrix
-                results_i[seed]['validation'][step, t_i, ...] = val_matrix
-                results_i[seed]['testing'][step, t_i, ...] = tst_matrix
-                results_i[seed]['task_training'][step, t_i, ...] = ttr_matrix
-                results_i[seed]['task_validation'][step, t_i, ...] = tval_matrix
-                results_i[seed]['task_testing'][step, t_i, ...] = ttst_matrix
-                results_i[seed]['scaled_training'][step, t_i, ...] = str_matrix
-                results_i[seed]['scaled_validation'][step, t_i, ...] = sval_matrix
-                results_i[seed]['scaled_testing'][step, t_i, ...] = stst_matrix
+                results_i[seed]['training'][step, ...] += tr_matrix
+                results_i[seed]['validation'][step, ...] += val_matrix
+                results_i[seed]['testing'][step, ...] += tst_matrix
+                results_i[seed]['task_training'][step, ...] += ttr_matrix
+                results_i[seed]['task_validation'][step, ...] += tval_matrix
+                results_i[seed]['task_testing'][step, ...] += ttst_matrix
+                results_i[seed]['scaled_training'][step, ...] += str_matrix
+                results_i[seed]['scaled_validation'][step, ...] += sval_matrix
+                results_i[seed]['scaled_testing'][step, ...] += stst_matrix
         else:
-            results[seed]['training'][step, t_i, ...] = tr_matrix
-            results[seed]['validation'][step, t_i, ...] = val_matrix
-            results[seed]['testing'][step, t_i, ...] = tst_matrix
-            results[seed]['task_training'][step, t_i, ...] = ttr_matrix
-            results[seed]['task_validation'][step, t_i, ...] = tval_matrix
-            results[seed]['task_testing'][step, t_i, ...] = ttst_matrix
-            results[seed]['scaled_training'][step, t_i, ...] = str_matrix
-            results[seed]['scaled_validation'][step, t_i, ...] = sval_matrix
-            results[seed]['scaled_testing'][step, t_i, ...] = stst_matrix
+            results[seed]['training'][step, ...] += tr_matrix
+            results[seed]['validation'][step, ...] += val_matrix
+            results[seed]['testing'][step, ...] += tst_matrix
+            results[seed]['task_training'][step, ...] += ttr_matrix
+            results[seed]['task_validation'][step, ...] += tval_matrix
+            results[seed]['task_testing'][step, ...] += ttst_matrix
+            results[seed]['scaled_training'][step, ...] += str_matrix
+            results[seed]['scaled_validation'][step, ...] += sval_matrix
+            results[seed]['scaled_testing'][step, ...] += stst_matrix
     test_elapsed = time.time() - test_start
     if verbose > 0:
         print('\033[KTesting finished {:}'.format(time_to_string(test_elapsed)))
 
 
 def empty_confusion_matrix(n_tasks, n_classes):
-    return np.zeros((n_tasks + 2, n_tasks, n_classes, n_classes))
+    return np.zeros((n_tasks + 2, n_classes, n_classes))
 
 
 def save_results(config, json_name, results):
