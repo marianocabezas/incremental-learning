@@ -547,6 +547,8 @@ class GEM(MetaModel):
         self.nc_per_task = net_state['nc_per_task']
         self.load_state_dict(net_state['state'])
 
+        return net_state
+
     def prebatch_update(self, batches, x, y):
         self.update_memory(x, y)
         self.update_gradients()
@@ -670,25 +672,8 @@ class NGEM(GEM):
         torch.save(net_state, net_name)
 
     def load_model(self, net_name):
-        net_state = torch.load(net_name, map_location=self.device)
+        net_state = super().load_model(net_name)
         self.block_grad_dims = net_state['block_dims']
-        self.grad_dims = net_state['grad_dims']
-        self.memory_data = [
-            [mem.cpu() for mem in memories]
-            for memories in net_state['mem_data']
-        ]
-        self.memory_labs = [
-            [mem.cpu() for mem in memories]
-            for memories in net_state['mem_labs']
-        ]
-        self.mem_cnt = net_state['mem_cnt']
-        self.grads = net_state['grads'].cpu()
-        self.observed_tasks = net_state['tasks']
-        self.current_task = net_state['task']
-        self.first = net_state['first']
-        self.n_classes = net_state['n_classes']
-        self.nc_per_task = net_state['nc_per_task']
-        self.load_state_dict(net_state['state'])
 
 
 class Independent(MetaModel):
