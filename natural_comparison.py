@@ -10,6 +10,7 @@ import torch
 from torch.utils.data import DataLoader
 from time import strftime
 from copy import deepcopy
+from scipy.special import softmax
 from continual import MetaModel, EWC, GEM, AGEM, SGEM, NGEM, Independent
 from utils import color_codes, time_to_string
 
@@ -157,9 +158,9 @@ def test(config, net, testing, task, n_classes, n_tasks, verbose=0):
         dataset, config['test_batch'], num_workers=32
     )
     test_start = time.time()
-    nc_per_task = n_classes // n_tasks
-    offset1 = task * nc_per_task
-    offset2 = (task + 1) * nc_per_task
+    nc_x_t = n_classes // n_tasks
+    offset1 = task * nc_x_t
+    offset2 = (task + 1) * nc_x_t
 
     for batch_i, (x, y) in enumerate(test_loader):
         tests = len(test_loader) - batch_i
@@ -176,20 +177,16 @@ def test(config, net, testing, task, n_classes, n_tasks, verbose=0):
         prediction = net.inference(
             x.cpu().numpy(), nonbatched=False, task=task
         )
+        scaled_prediction = np.concatenate([
+            softmax(prediction[:, t_i * nc_x_t:(t_i + 1) * nc_x_t], axis=1)
+            for t_i in range(n_tasks)
+        ], axis=1)
+
         predicted = np.argmax(prediction, axis=1)
         task_predicted = np.argmax(
             prediction[:, offset1:offset2], axis=1
         ) + offset1
-        scaled_predicted = np.argmax(
-            np.concatenate([
-                np.softmax(
-                    prediction[:, t_i * nc_per_task:(t_i + 1) * nc_per_task],
-                    axis=1
-                )
-                for t_i in range(n_tasks)
-            ], axis=1
-            ), axis=1
-        )
+        scaled_predicted = np.argmax(scaled_prediction, axis=1)
         target = y.cpu().numpy()
         for t_i, p_i, tp_i, sp_i in zip(
                 target, predicted, task_predicted, scaled_predicted
