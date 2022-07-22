@@ -173,7 +173,7 @@ def test(config, net, testing, task, n_classes, offset1, offset2, verbose=0):
             x.cpu().numpy(), nonbatched=False, task=task
         )
         predicted = np.argmax(prediction, axis=1)
-        task_predicted = predicted = np.argmax(
+        task_predicted = np.argmax(
             prediction[:, offset1:offset2], axis=1
         ) + offset1
         target = y.cpu().numpy()
