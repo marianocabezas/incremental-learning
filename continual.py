@@ -8,25 +8,6 @@ from sklearn.decomposition import PCA
 from base import BaseModel
 
 
-def store_grad(pp, grads, grad_dims, tid):
-    """
-        This stores parameter gradients of past tasks.
-        pp: parameters
-        grads: gradients
-        grad_dims: list with number of parameters per layers
-        tid: task id
-    """
-    # store the gradients
-    grads[:, tid].fill_(0.0)
-    cnt = 0
-    for param in pp():
-        if param.grad is not None:
-            beg = 0 if cnt == 0 else sum(grad_dims[:cnt])
-            en = sum(grad_dims[:cnt + 1])
-            grads[beg:en, tid].copy_(param.grad.cpu().data.view(-1))
-        cnt += 1
-
-
 def overwrite_grad(pp, newgrad, grad_dims):
     """
         This is used to overwrite the gradients with a new gradient
@@ -76,8 +57,8 @@ def project2cone2(gradient, memories, margin=0.5, eps=1e-3):
 
 def project5cone5(gradient, memories, beg, en, margin=0.5, eps=1e-3):
     """
-        First we do orthognality of memories and then find the null space of
-        these memories gradients
+        First we do orthogonality of memories and then find the null space of
+        their gradients
     """
     np.seterr(divide='ignore', invalid='ignore')
     memories_np = np.nan_to_num(
@@ -469,6 +450,24 @@ class GEM(MetaModel):
             if self.mem_cnt == self.n_memories:
                 self.mem_cnt = 0
 
+    def store_grad(self, tid):
+        """
+            This stores parameter gradients of past tasks.
+            pp: parameters
+            grads: gradients
+            grad_dims: list with number of parameters per layers
+            tid: task id
+        """
+        # store the gradients
+        self.grads[:, tid].fill_(0.0)
+        cnt = 0
+        for param in self.parameters():
+            if param.grad is not None:
+                beg = 0 if cnt == 0 else sum(self.grad_dims[:cnt])
+                en = sum(self.grad_dims[:cnt + 1])
+                self.grads[beg:en, tid].copy_(param.grad.cpu().data.view(-1))
+            cnt += 1
+
     def update_gradients(self):
         if len(self.observed_tasks) > 1:
             for past_task, (offset1, offset2) in zip(
@@ -488,10 +487,7 @@ class GEM(MetaModel):
                     for l_f in self.train_functions
                 ]
                 sum(batch_losses).backward()
-                store_grad(
-                    self.parameters, self.grads, self.grad_dims,
-                    past_task
-                )
+                self.store_grad(past_task)
 
     def get_grad(self, indx):
         return self.grads.index_select(1, indx)
@@ -499,8 +495,8 @@ class GEM(MetaModel):
     def constraint_check(self):
         t = self.current_task
         if len(self.observed_tasks) > 1:
-            # copy gradient
-            store_grad(self.parameters, self.grads, self.grad_dims, t)
+            # Copy the current gradient
+            self.store_grad(t)
             indx = torch.LongTensor(
                 self.observed_tasks[:-1]
             )
@@ -512,11 +508,11 @@ class GEM(MetaModel):
                 grad.to(self.device)
             )
 
-            if (dotp < 0).sum() != 0:
+            if (dotp < 0).any():
                 project2cone2(
                     self.grads[:, t].unsqueeze(1), grad, self.margin
                 )
-                # copy gradients back
+                # Copy gradients back
                 overwrite_grad(
                     self.parameters, self.grads[:, t], self.grad_dims
                 )
@@ -644,7 +640,7 @@ class NGEM(GEM):
         t = self.current_task
         if len(self.observed_tasks) > 1:
             # copy gradient
-            store_grad(self.parameters, self.grads, self.grad_dims, t)
+            self.store_grad(t)
             indx = torch.LongTensor(self.observed_tasks[:-1])
 
             for cnt in range(len(self.block_grad_dims)):
@@ -727,3 +723,103 @@ class Independent(MetaModel):
             self.model[self.current_task + 1].load_state_dict(
                 self.model[self.current_task].state_dict()
             )
+
+
+class ParamGEM(GEM):
+    def __init__(
+        self, basemodel, best=True, n_memories=256, memory_strength=0.5,
+        n_classes=100, n_tasks=1
+    ):
+        super().__init__(basemodel, best, n_memories)
+        self.margin = memory_strength
+        self.n_classes = n_classes
+        self.nc_per_task = n_classes // n_tasks
+        self.train_functions = self.model.train_functions
+        self.val_functions = self.model.val_functions
+        self.grads = []
+        for param in self.model.parameters():
+            if param.requires_grad:
+                self.grads = torch.Tensor(param.data.numel(), n_tasks)
+        self.memory_data = [[] for _ in range(n_tasks)]
+        self.memory_labs = [[] for _ in range(n_tasks)]
+        self.offsets = []
+
+    def update_memory(self, x, y):
+        # Update ring buffer storing examples from the current task
+        t = self.current_task
+        current_size = len(self.memory_data[t])
+        empty_slots = self.n_memories - current_size
+        end_slots = self.n_memories - self.mem_cnt
+        batch_size = y.data.size(0)
+        if empty_slots > 0 or end_slots < batch_size:
+            new_slots = min(batch_size, max(empty_slots, end_slots))
+            new_mem = list(torch.split(
+                x[:new_slots, ...].detach().cpu(), 1
+            ))
+            new_labs = list(torch.split(
+                y[:new_slots, ...].detach().cpu(), 1
+            ))
+            if empty_slots > 0:
+                self.memory_data[t] += new_mem
+                self.memory_labs[t] += new_labs
+            else:
+                self.memory_data[t][self.mem_cnt:] = new_mem
+                self.memory_labs[t][self.mem_cnt:] = new_labs
+            current_size = len(self.memory_data[t])
+            x = x[new_slots:, ...]
+            y = y[new_slots:, ...]
+            if current_size < self.n_memories:
+                self.mem_cnt = current_size
+            else:
+                self.mem_cnt = 0
+        batch_size = y.data.size(0)
+        if batch_size > 0:
+            end_cnt = min(self.mem_cnt + batch_size, self.n_memories)
+            end_mem = end_cnt - self.mem_cnt
+            new_mem = list(torch.split(
+                x[:end_mem, ...].detach().cpu(), 1
+            ))
+            new_labs = list(torch.split(
+                y[:end_mem, ...].detach().cpu(), 1
+            ))
+            self.memory_data[t][self.mem_cnt:end_cnt] = new_mem
+            self.memory_labs[t][self.mem_cnt:end_cnt] = new_labs
+            self.mem_cnt += end_mem
+            if self.mem_cnt == self.n_memories:
+                self.mem_cnt = 0
+
+    def store_grad(self, tid):
+        p = 0
+        for param in self.parameters():
+            if param.requires_grad:
+                if param.grad is not None:
+                    self.grads[p][:, tid].copy_(
+                        param.grad.cpu().data.view(-1)
+                    )
+                p += 1
+
+    def constraint_check(self):
+        if len(self.observed_tasks) > 1:
+            p = 0
+            indx = torch.LongTensor(
+                self.observed_tasks[:-1]
+            )
+            for param in self.parameters():
+                if param.requires_grad:
+                    if param.grad is not None:
+                        current_grad = param.grad.cpu().data.view(-1)
+                        grad = self.grads[p].index_select(1, indx)
+                        dotp = torch.mm(
+                            current_grad.unsqueeze(0).to(self.device),
+                            grad.to(self.device)
+                        )
+                        if (dotp < 0).any():
+                            project2cone2(
+                                current_grad.unsqueeze(1), grad, self.margin
+                            )
+                            # Copy the new gradient
+                            current_grad = current_grad.contiguous().view(
+                                param.grad.data.size()
+                            )
+                            param.grad.data.copy_(current_grad.to(param.device))
+                    p += 1
