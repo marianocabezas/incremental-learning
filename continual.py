@@ -114,7 +114,9 @@ def project5cone5(gradient, memories, beg, en, margin=0.5, eps=1e-3):
                     Pg_bar) * memories_np_orth.transpose().dot(
                         memories_np_orth.dot(memories_np_sum))
 
-    gradient[beg:en].copy_(torch.Tensor(x).view(-1, 1))
+    gradient[beg:en].copy_(
+        torch.Tensor(np.nan_to_num(x).astype(np.float32)).view(-1, 1)
+    )
 
     # memories_tensor = memories[beg:en].t()
     # gradient_tensor = gradient[beg:en].contiguous().view(-1)
