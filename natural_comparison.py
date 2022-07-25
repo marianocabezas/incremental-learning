@@ -345,7 +345,7 @@ def main(verbose=2):
     ngem_results = deepcopy(naive_results)
     xgem_results = deepcopy(naive_results)
     ind_results = deepcopy(naive_results)
-    all_methods = ['naive', 'ewc', 'gem', 'agem', 'sgem', 'ngem', 'xgen', 'ind']
+    all_methods = ['naive', 'ewc', 'gem', 'agem', 'sgem', 'ngem', 'xgem', 'ind']
     all_results = [
         naive_results, ewc_results, gem_results, agem_results, sgem_results,
         ngem_results, xgem_results, ind_results
