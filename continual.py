@@ -88,6 +88,10 @@ def project5cone5(gradient, memories, beg, en, margin=0.5, eps=1e-3):
         memories_np_mean = np.mean(memories_np, axis=0)
         memories_np_del_mean = memories_np - memories_np_mean.reshape(1, -1)
         memories_np_pca = PCA(n_components=min(3, len(memories_np)))
+        print(
+            'Inf:', np.sum(np.isinf(memories_np_del_mean)),
+            'NaN:', np.sum(np.isnan(memories_np_del_mean)),
+        )
         memories_np_pca.fit(memories_np_del_mean)
         memories_np_orth = memories_np_pca.components_
         Pg = gradient_np - memories_np_orth.transpose().dot(
@@ -661,7 +665,7 @@ class NGEM(GEM):
             'mem_data': self.memory_data,
             'mem_labs': self.memory_labs,
             'mem_cnt': self.mem_cnt,
-            'grads': self.grads.cpu(),
+            'grads': self.grads,
             'tasks': self.observed_tasks,
             'task': self.current_task,
             'first': self.first,
