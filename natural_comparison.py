@@ -339,16 +339,16 @@ def main(verbose=2):
         for seed in seeds
     }
     ewc_results = deepcopy(naive_results)
+    ind_results = deepcopy(naive_results)
     gem_results = deepcopy(naive_results)
     agem_results = deepcopy(naive_results)
     sgem_results = deepcopy(naive_results)
     ngem_results = deepcopy(naive_results)
     xgem_results = deepcopy(naive_results)
-    ind_results = deepcopy(naive_results)
-    all_methods = ['naive', 'ewc', 'gem', 'agem', 'sgem', 'ngem', 'xgem', 'ind']
+    all_methods = ['naive', 'ewc', 'ind', 'gem', 'agem', 'sgem', 'ngem', 'xgem']
     all_results = [
-        naive_results, ewc_results, gem_results, agem_results, sgem_results,
-        ngem_results, xgem_results, ind_results
+        naive_results, ewc_results, ind_results, gem_results, agem_results,
+        sgem_results, ngem_results, xgem_results
     ]
 
     # Main loop with all the seeds
