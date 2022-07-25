@@ -57,8 +57,12 @@ def project2cone2(gradient, memories, margin=0.5, eps=1e-3):
         input:  memories, (t * p)-vector
         output: x, p-vector
     """
-    memories_np = memories.t().double().numpy()
-    gradient_np = gradient.contiguous().view(-1).double().numpy()
+    memories_np = np.nan_to_num(
+        memories.t().double().numpy()
+    ).astype(np.float32)
+    gradient_np = np.nan_to_num(
+        gradient.contiguous().view(-1).double().numpy()
+    ).astype(np.float32)
     t = memories_np.shape[0]
     P = np.dot(memories_np, memories_np.transpose())
     P = 0.5 * (P + P.transpose()) + np.eye(t) * eps
@@ -76,8 +80,12 @@ def project5cone5(gradient, memories, beg, en, margin=0.5, eps=1e-3):
         these memories gradients
     """
     np.seterr(divide='ignore', invalid='ignore')
-    memories_np = memories[beg:en].t().double().numpy()
-    gradient_np = gradient[beg:en].contiguous().view(-1).double().numpy()
+    memories_np = np.nan_to_num(
+        memories[beg:en].t().double().numpy()
+    ).astype(np.float32)
+    gradient_np = np.nan_to_num(
+        gradient[beg:en].contiguous().view(-1).double().numpy()
+    ).astype(np.float32)
     memories_np_sum = np.sum(memories_np, axis=0)
     if len(memories_np) == 1:
         x = gradient_np - np.min([
@@ -88,14 +96,6 @@ def project5cone5(gradient, memories, beg, en, margin=0.5, eps=1e-3):
         memories_np_mean = np.mean(memories_np, axis=0)
         memories_np_del_mean = memories_np - memories_np_mean.reshape(1, -1)
         memories_np_pca = PCA(n_components=min(3, len(memories_np)))
-        print(
-            'Inf:', np.sum(np.isinf(memories_np_del_mean)),
-            np.sum(np.isinf(memories_np)),
-            np.sum(np.isinf(memories_np_mean)),
-            'NaN:', np.sum(np.isnan(memories_np_del_mean)),
-            np.sum(np.isnan(memories_np)),
-            np.sum(np.isnan(memories_np_mean)),
-        )
         memories_np_pca.fit(memories_np_del_mean)
         memories_np_orth = memories_np_pca.components_
         Pg = gradient_np - memories_np_orth.transpose().dot(
