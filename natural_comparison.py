@@ -11,7 +11,8 @@ from torch.utils.data import DataLoader
 from time import strftime
 from copy import deepcopy
 from scipy.special import softmax
-from continual import MetaModel, EWC, GEM, AGEM, SGEM, NGEM, Independent
+from continual import MetaModel, EWC, Independent
+from continual import GEM, AGEM, SGEM, NGEM, ParamGEM
 from utils import color_codes, time_to_string
 
 
@@ -342,11 +343,12 @@ def main(verbose=2):
     agem_results = deepcopy(naive_results)
     sgem_results = deepcopy(naive_results)
     ngem_results = deepcopy(naive_results)
+    xgem_results = deepcopy(naive_results)
     ind_results = deepcopy(naive_results)
-    all_methods = ['naive', 'ewc', 'gem', 'agem', 'sgem', 'ngem', 'ind']
+    all_methods = ['naive', 'ewc', 'gem', 'agem', 'sgem', 'ngem', 'xgen', 'ind']
     all_results = [
         naive_results, ewc_results, gem_results, agem_results, sgem_results,
-        ngem_results, ind_results
+        ngem_results, xgem_results, ind_results
     ]
 
     # Main loop with all the seeds
@@ -524,6 +526,15 @@ def main(verbose=2):
         )
         ngem_net.model.load_model(starting_model)
         ngem_net.to(torch.device('cpu'))
+        xgem_net = ParamGEM(
+            network(
+                n_outputs=n_classes, lr=lr, pretrained=pretrained
+            ), best=False,
+            n_memories=gem_memories, memory_strength=gem_weight,
+            n_tasks=n_tasks, n_classes=n_classes
+        )
+        xgem_net.model.load_model(starting_model)
+        xgem_net.to(torch.device('cpu'))
 
         for t_i, (training_set, validation_set) in enumerate(
                 zip(training_tasks, validation_tasks)
@@ -691,6 +702,28 @@ def main(verbose=2):
                 config, ngem_net, model_name, seed, training_set, validation_set,
                 training_tasks, validation_tasks, testing_tasks,
                 t_i, offset1, offset2, epochs, n_classes, ngem_results
+            )
+
+            # Parameter-based GEM
+            print(
+                '{:}Starting task - XGEM {:02d}/{:02d}{:} - {:02d}/{:02d} '
+                '({:} parameters)'.format(
+                    c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
+                    test_n + 1, len(config['seeds']),
+                    c['b'] + str(n_param) + c['nc']
+                )
+            )
+            # We train the xgem model on the current task
+            model_name = os.path.join(
+                model_path,
+                '{:}-xgem-t{:02d}.s{:05d}.pt'.format(
+                    model_base, t_i, seed
+                )
+            )
+            process_net(
+                config, xgem_net, model_name, seed, training_set, validation_set,
+                training_tasks, validation_tasks, testing_tasks,
+                t_i, offset1, offset2, epochs, n_classes, xgem_results
             )
 
     for results_i, results_name in zip(all_results, all_methods):
