@@ -40,10 +40,10 @@ def project2cone2(gradient, memories, margin=0.5, eps=1e-3):
     """
     memories_np = np.nan_to_num(
         memories.t().double().numpy()
-    ).astype(np.float32)
+    )
     gradient_np = np.nan_to_num(
         gradient.contiguous().view(-1).double().numpy()
-    ).astype(np.float32)
+    )
     t = memories_np.shape[0]
     P = np.dot(memories_np, memories_np.transpose())
     P = 0.5 * (P + P.transpose()) + np.eye(t) * eps
@@ -753,6 +753,194 @@ class ParamGEM(GEM):
                         param.grad.cpu().data.view(-1)
                     )
                 p += 1
+
+    def load_model(self, net_name):
+        net_state = torch.load(net_name, map_location=self.device)
+        self.grad_dims = net_state['grad_dims']
+        self.memory_data = [
+            [mem.cpu() for mem in memories]
+            for memories in net_state['mem_data']
+        ]
+        self.memory_labs = [
+            [mem.cpu() for mem in memories]
+            for memories in net_state['mem_labs']
+        ]
+        self.mem_cnt = net_state['mem_cnt']
+        self.grads = [grad.cpu() for grad in net_state['grads']]
+        self.observed_tasks = net_state['tasks']
+        self.current_task = net_state['task']
+        self.first = net_state['first']
+        self.n_classes = net_state['n_classes']
+        self.nc_per_task = net_state['nc_per_task']
+        self.load_state_dict(net_state['state'])
+
+        return net_state
+
+    def constraint_check(self):
+        if len(self.observed_tasks) > 1:
+            p = 0
+            indx = torch.LongTensor(
+                self.observed_tasks[:-1]
+            )
+            for param in self.parameters():
+                if param.requires_grad:
+                    if param.grad is not None:
+                        current_grad = param.grad.cpu().data.view(-1)
+                        grad = self.grads[p].index_select(1, indx)
+                        dotp = torch.mm(
+                            current_grad.unsqueeze(0).to(self.device),
+                            grad.to(self.device)
+                        )
+                        if (dotp < 0).any():
+                            project2cone2(
+                                current_grad.unsqueeze(1), grad, self.margin
+                            )
+                            # Copy the new gradient
+                            current_grad = current_grad.contiguous().view(
+                                param.grad.data.size()
+                            )
+                            param.grad.data.copy_(current_grad.to(param.device))
+                    p += 1
+
+
+class iCARL(MetaModel):
+    def __init__(
+        self, basemodel, best=True, n_memories=256, memory_strength=0.5,
+        n_classes=100, n_tasks=1
+    ):
+        super().__init__(basemodel, best, n_memories)
+        self.margin = memory_strength
+        self.n_classes = n_classes
+        self.nc_per_task = n_classes // n_tasks
+        self.train_functions = self.model.train_functions + [
+            {
+                'name': 'dist',
+                'weight': memory_strength,
+                'f': lambda p, t: self.distillation_loss()
+            }
+        ]
+        self.val_functions = self.model.val_functions
+        # setup losses
+        self.bce = torch.nn.CrossEntropyLoss()
+        self.kl = torch.nn.KLDivLoss()  # for distillation
+        self.lsm = torch.nn.LogSoftmax(dim=1)
+        self.sm = torch.nn.Softmax(dim=1)
+
+        # memory
+        self.examples_seen = 0
+        self.memx = None  # stores raw inputs, PxD
+        self.memy = None
+        self.mem_class_x = {}  # stores exemplars class by class
+        self.mem_class_y = {}
+        self.memory_data = [[] for _ in range(n_tasks)]
+        self.memory_labs = [[] for _ in range(n_tasks)]
+        self.offsets = []
+
+    def distillation_loss(self):
+        losses = []
+        for past_task, (offset1, offset2) in zip(
+                self.observed_tasks[:-1], self.offsets[:-1]
+        ):
+            # first generate a minibatch with one example per class from
+            # previous tasks
+            inp_dist = []
+            target_dist = []
+            for cc in range(self.nc_per_task):
+                indx = torch.random.randint(
+                    0,
+                    len(self.mem_class_x[cc + offset1]) - 1
+                )
+                inp_dist.append(
+                    self.mem_class_x[cc + offset1][indx].clone()
+                )
+                target_dist.append(
+                    self.mem_class_y[cc + offset1][indx].clone()
+                )
+            inp_dist = torch.stack(inp_dist, dim=0)
+            target_dist = torch.stack(target_dist, dim=0)
+
+            # Add distillation loss
+            losses.append(
+                self.kl(
+                    self.lsm(self.net(inp_dist)[:, offset1:offset2]),
+                    self.sm(target_dist[:, offset1:offset2])
+                ) * self.nc_per_task
+            )
+        return sum(losses)
+
+    def prebatch_update(self, batch, batches, x, y):
+        self.examples_seen += x.size(0)
+
+        if self.memx is None:
+            self.memx = x.data.clone()
+            self.memy = y.data.clone()
+        else:
+            self.memx = torch.cat((self.memx, x.data.clone()))
+            self.memy = torch.cat((self.memy, y.data.clone()))
+
+    def batch_update(self, batch, batches, x, y):
+        if self.examples_seen == self.samples_per_task:
+            self.examples_seen = 0
+            # get labels from previous task; we assume labels are consecutive
+            if self.gpu:
+                all_labs = torch.LongTensor(np.unique(self.memy.cpu().numpy()))
+            else:
+                all_labs = torch.LongTensor(np.unique(self.memy.numpy()))
+            num_classes = all_labs.size(0)
+            assert (num_classes == self.nc_per_task)
+            # Reduce exemplar set by updating value of num. exemplars per class
+            self.num_exemplars = int(
+                self.n_memories / (num_classes + len(self.mem_class_x.keys())))
+            offset1, offset2 = self.compute_offsets(t)
+            for ll in range(num_classes):
+                lab = all_labs[ll].cuda()
+                indxs = (self.memy == lab).nonzero().squeeze()
+                cdata = self.memx.index_select(
+                    0, indxs)  # cdata are exemplar whose label == lab
+
+                # Construct exemplar set for last task
+                mean_feature = self.net(
+                    cdata)[:, offset1:offset2].data.clone().mean(0)
+                nd = self.nc_per_task
+                exemplars = torch.zeros(self.num_exemplars, x.size(1))
+                if self.gpu:
+                    exemplars = exemplars.cuda()
+                ntr = cdata.size(0)
+                # used to keep track of which examples we have already used
+                taken = torch.zeros(ntr)
+                model_output = self.net(cdata)[:, offset1:offset2].data.clone()
+                for ee in range(self.num_exemplars):
+                    prev = torch.zeros(1, nd)
+                    if self.gpu:
+                        prev = prev.cuda()
+                    if ee > 0:
+                        prev = self.net(
+                            exemplars[:ee])[:, offset1:offset2].data.clone(
+                            ).sum(0)
+                    cost = (
+                        mean_feature.expand(ntr, nd) -
+                        (model_output + prev.expand(ntr, nd)) / (ee + 1)).norm(
+                            2, 1).squeeze()
+                    _, indx = cost.sort(0)
+                    winner = 0
+                    while winner < indx.size(0) and taken[indx[winner]] == 1:
+                        winner += 1
+                    if winner < indx.size(0):
+                        taken[indx[winner]] = 1
+                        exemplars[ee] = cdata[indx[winner]].clone()
+                    else:
+                        exemplars = exemplars[:indx.size(0), :].clone()
+                        self.num_exemplars = indx.size(0)
+                        break
+                # update memory with exemplars
+                self.mem_class_x[lab.item()] = exemplars.clone()
+
+            # recompute outputs for distillation purposes
+            for cc in self.mem_class_x.keys():
+                self.mem_class_y[cc] = self.net(
+                    self.mem_class_x[cc]).data.clone()
+            self.memx = None
+            self.memy = None
 
     def load_model(self, net_name):
         net_state = torch.load(net_name, map_location=self.device)
