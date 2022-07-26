@@ -754,6 +754,28 @@ class ParamGEM(GEM):
                     )
                 p += 1
 
+    def load_model(self, net_name):
+        net_state = torch.load(net_name, map_location=self.device)
+        self.grad_dims = net_state['grad_dims']
+        self.memory_data = [
+            [mem.cpu() for mem in memories]
+            for memories in net_state['mem_data']
+        ]
+        self.memory_labs = [
+            [mem.cpu() for mem in memories]
+            for memories in net_state['mem_labs']
+        ]
+        self.mem_cnt = net_state['mem_cnt']
+        self.grads = [grad.cpu() for grad in net_state['grads']]
+        self.observed_tasks = net_state['tasks']
+        self.current_task = net_state['task']
+        self.first = net_state['first']
+        self.n_classes = net_state['n_classes']
+        self.nc_per_task = net_state['nc_per_task']
+        self.load_state_dict(net_state['state'])
+
+        return net_state
+
     def constraint_check(self):
         if len(self.observed_tasks) > 1:
             p = 0
