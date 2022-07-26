@@ -739,54 +739,10 @@ class ParamGEM(GEM):
         self.grads = []
         for param in self.model.parameters():
             if param.requires_grad:
-                self.grads = torch.Tensor(param.data.numel(), n_tasks)
+                self.grads.append(torch.Tensor(param.data.numel(), n_tasks))
         self.memory_data = [[] for _ in range(n_tasks)]
         self.memory_labs = [[] for _ in range(n_tasks)]
         self.offsets = []
-
-    def update_memory(self, x, y):
-        # Update ring buffer storing examples from the current task
-        t = self.current_task
-        current_size = len(self.memory_data[t])
-        empty_slots = self.n_memories - current_size
-        end_slots = self.n_memories - self.mem_cnt
-        batch_size = y.data.size(0)
-        if empty_slots > 0 or end_slots < batch_size:
-            new_slots = min(batch_size, max(empty_slots, end_slots))
-            new_mem = list(torch.split(
-                x[:new_slots, ...].detach().cpu(), 1
-            ))
-            new_labs = list(torch.split(
-                y[:new_slots, ...].detach().cpu(), 1
-            ))
-            if empty_slots > 0:
-                self.memory_data[t] += new_mem
-                self.memory_labs[t] += new_labs
-            else:
-                self.memory_data[t][self.mem_cnt:] = new_mem
-                self.memory_labs[t][self.mem_cnt:] = new_labs
-            current_size = len(self.memory_data[t])
-            x = x[new_slots:, ...]
-            y = y[new_slots:, ...]
-            if current_size < self.n_memories:
-                self.mem_cnt = current_size
-            else:
-                self.mem_cnt = 0
-        batch_size = y.data.size(0)
-        if batch_size > 0:
-            end_cnt = min(self.mem_cnt + batch_size, self.n_memories)
-            end_mem = end_cnt - self.mem_cnt
-            new_mem = list(torch.split(
-                x[:end_mem, ...].detach().cpu(), 1
-            ))
-            new_labs = list(torch.split(
-                y[:end_mem, ...].detach().cpu(), 1
-            ))
-            self.memory_data[t][self.mem_cnt:end_cnt] = new_mem
-            self.memory_labs[t][self.mem_cnt:end_cnt] = new_labs
-            self.mem_cnt += end_mem
-            if self.mem_cnt == self.n_memories:
-                self.mem_cnt = 0
 
     def store_grad(self, tid):
         p = 0
