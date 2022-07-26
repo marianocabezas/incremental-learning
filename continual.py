@@ -749,11 +749,6 @@ class ParamGEM(GEM):
         for param in self.parameters():
             if param.requires_grad:
                 if param.grad is not None:
-                    print(
-                        param.grad.cpu().data.view(-1).shape,
-                        param.grad.cpu().data.shape,
-                        self.grads[p]
-                    )
                     self.grads[p][:, tid].copy_(
                         param.grad.cpu().data.view(-1)
                     )
@@ -769,7 +764,6 @@ class ParamGEM(GEM):
                 if param.requires_grad:
                     if param.grad is not None:
                         current_grad = param.grad.cpu().data.view(-1)
-                        print(self.grads[p].shape)
                         grad = self.grads[p].index_select(1, indx)
                         dotp = torch.mm(
                             current_grad.unsqueeze(0).to(self.device),
