@@ -749,6 +749,11 @@ class ParamGEM(GEM):
         for param in self.parameters():
             if param.requires_grad:
                 if param.grad is not None:
+                    print(
+                        param.grad.cpu().data.view(-1).shape,
+                        param.grad.cpu().data.shape,
+                        self.grads[p]
+                    )
                     self.grads[p][:, tid].copy_(
                         param.grad.cpu().data.view(-1)
                     )
