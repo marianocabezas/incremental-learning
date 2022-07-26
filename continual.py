@@ -555,7 +555,7 @@ class GEM(MetaModel):
 
         return net_state
 
-    def prebatch_update(self, batches, x, y):
+    def prebatch_update(self, batch, batches, x, y):
         self.update_memory(x, y)
         self.update_gradients()
         self.constraint_check()
@@ -764,6 +764,7 @@ class ParamGEM(GEM):
                 if param.requires_grad:
                     if param.grad is not None:
                         current_grad = param.grad.cpu().data.view(-1)
+                        print(self.grads[p].shape)
                         grad = self.grads[p].index_select(1, indx)
                         dotp = torch.mm(
                             current_grad.unsqueeze(0).to(self.device),

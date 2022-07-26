@@ -119,9 +119,9 @@ class BaseModel(nn.Module):
                 batch_loss = sum(batch_losses)
                 if self.training:
                     batch_loss.backward()
-                    self.prebatch_update(len(data), x_cuda, y_cuda)
+                    self.prebatch_update(batch_i, len(data), x_cuda, y_cuda)
                     self.optimizer_alg.step()
-                    self.batch_update(len(data), x_cuda, y_cuda)
+                    self.batch_update(batch_i, len(data), x_cuda, y_cuda)
 
             else:
                 # Validation losses (applied to the validation data)
@@ -504,7 +504,7 @@ class BaseModel(nn.Module):
         """
         return None
 
-    def prebatch_update(self, batches, x, y):
+    def prebatch_update(self, batch, batches, x, y):
         """
         Callback function to update something on the model before the batch
         update is applied. To be reimplemented if necessary.
@@ -515,7 +515,7 @@ class BaseModel(nn.Module):
         """
         return None
 
-    def batch_update(self, batches, x, y):
+    def batch_update(self, batch, batches, x, y):
         """
         Callback function to update something on the model after the batch
         is finished. To be reimplemented if necessary.
