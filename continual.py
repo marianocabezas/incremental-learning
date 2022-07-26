@@ -162,12 +162,16 @@ class MetaModel(BaseModel):
         self.model.reset_optimiser()
         self.optimizer_alg = self.model.optimizer_alg
 
-    def save_model(self, net_name):
+    def get_state(self):
         net_state = {
             'first': self.first,
             'task': self.current_task,
             'state': self.state_dict()
         }
+        return net_state
+
+    def save_model(self, net_name):
+        net_state = self.get_state()
         torch.save(net_state, net_name)
 
     def load_model(self, net_name):
@@ -338,13 +342,10 @@ class EWC(MetaModel):
         self.model.reset_optimiser()
         self.optimizer_alg = self.model.optimizer_alg
 
-    def save_model(self, net_name):
-        net_state = {
-            'state': self.state_dict(),
-            'ewc_param': self.ewc_parameters,
-            'first': self.first
-        }
-        torch.save(net_state, net_name)
+    def get_state(self):
+        net_state = super().get_state()
+        net_state['ewc_param'] = self.ewc_parameters
+        return net_state
 
     def load_model(self, net_name):
         net_state = super().load_model(net_name)
@@ -516,21 +517,17 @@ class GEM(MetaModel):
                     self.parameters, self.grads[:, t], self.grad_dims
                 )
 
-    def save_model(self, net_name):
-        net_state = {
-            'grad_dims': self.grad_dims,
-            'mem_data': self.memory_data,
-            'mem_labs': self.memory_labs,
-            'mem_cnt': self.mem_cnt,
-            'grads': self.grads,
-            'tasks': self.observed_tasks,
-            'task': self.current_task,
-            'first': self.first,
-            'n_classes': self.n_classes,
-            'nc_per_task': self.nc_per_task,
-            'state': self.state_dict()
-        }
-        torch.save(net_state, net_name)
+    def get_state(self):
+        net_state = super().get_state()
+        net_state['grad_dims'] = self.grad_dims
+        net_state['mem_data'] = self.memory_data
+        net_state['mem_labs'] = self.memory_labs
+        net_state['mem_cnt'] = self.mem_cnt
+        net_state['grads'] = self.grads
+        net_state['tasks'] = self.observed_tasks
+        net_state['n_classes'] = self.n_classes
+        net_state['nc_per_task'] = self.nc_per_task
+        return net_state
 
     def load_model(self, net_name):
         net_state = super().load_model(net_name)
@@ -659,22 +656,10 @@ class NGEM(GEM):
             # copy gradients back
             overwrite_grad(self.parameters, self.grads[:, t], self.grad_dims)
 
-    def save_model(self, net_name):
-        net_state = {
-            'block_dims': self.block_grad_dims,
-            'grad_dims': self.grad_dims,
-            'mem_data': self.memory_data,
-            'mem_labs': self.memory_labs,
-            'mem_cnt': self.mem_cnt,
-            'grads': self.grads,
-            'tasks': self.observed_tasks,
-            'task': self.current_task,
-            'first': self.first,
-            'n_classes': self.n_classes,
-            'nc_per_task': self.nc_per_task,
-            'state': self.state_dict()
-        }
-        torch.save(net_state, net_name)
+    def get_state(self):
+        net_state = super().get_state()
+        net_state['block_dims'] = self.block_grad_dims
+        return net_state
 
     def load_model(self, net_name):
         net_state = super().load_model(net_name)
@@ -942,6 +927,17 @@ class iCARL(MetaModel):
 
         return net_state
 
+    def get_state(self):
+        net_state = super().get_state()
+        net_state['mem_class_x'] = self.mem_class_x
+        net_state['mem_class_y'] = self.mem_class_y
+        net_state['memx'] = self.memx
+        net_state['memy'] = self.memy
+        net_state['n_examples'] = self.examples_seen
+        net_state['n_classes'] = self.n_classes
+        net_state['nc_per_task'] = self.nc_per_task
+        return net_state
+
     def save_model(self, net_name):
         net_state = {
             'mem_class_x': self.mem_class_x,
@@ -949,10 +945,7 @@ class iCARL(MetaModel):
             'memx': self.memx,
             'memy': self.memy,
             'n_examples': self.examples_seen,
-            'task': self.current_task,
-            'first': self.first,
             'n_classes': self.n_classes,
             'nc_per_task': self.nc_per_task,
-            'state': self.state_dict()
         }
         torch.save(net_state, net_name)
