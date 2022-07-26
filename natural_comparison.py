@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from time import strftime
 from copy import deepcopy
 from scipy.special import softmax
-from continual import MetaModel, EWC, Independent
+from continual import MetaModel, EWC, Independent, iCARL
 from continual import GEM, AGEM, SGEM, NGEM, ParamGEM
 from utils import color_codes, time_to_string
 
@@ -298,6 +298,15 @@ def main(verbose=2):
         ewc_binary = config['ewc_binary']
     except KeyError:
         ewc_binary = False
+    # iCARL parameters
+    try:
+        icarl_weight = config['icarl_weight']
+    except KeyError:
+        icarl_weight = 1
+    try:
+        icarl_memories = config['icarl_memories']
+    except KeyError:
+        icarl_memories = 1280
     # GEM parameters
     try:
         gem_weight = config['gem_weight']
@@ -307,6 +316,7 @@ def main(verbose=2):
         gem_memories = config['gem_memories']
     except KeyError:
         gem_memories = 256
+
 
     print(
         '{:}[{:}] {:}<Incremental learning framework>{:}'.format(
@@ -340,15 +350,19 @@ def main(verbose=2):
     }
     ewc_results = deepcopy(naive_results)
     ind_results = deepcopy(naive_results)
+    icarl_results = deepcopy(naive_results)
     gem_results = deepcopy(naive_results)
     agem_results = deepcopy(naive_results)
     sgem_results = deepcopy(naive_results)
     ngem_results = deepcopy(naive_results)
     xgem_results = deepcopy(naive_results)
-    all_methods = ['naive', 'ewc', 'ind', 'gem', 'agem', 'sgem', 'ngem', 'xgem']
+    all_methods = [
+        'naive', 'ewc', 'ind', 'icarl',
+        'gem', 'agem', 'sgem', 'ngem', 'xgem'
+    ]
     all_results = [
-        naive_results, ewc_results, ind_results, gem_results, agem_results,
-        sgem_results, ngem_results, xgem_results
+        naive_results, ewc_results, ind_results, icarl_results,
+        gem_results, agem_results, sgem_results, ngem_results, xgem_results
     ]
 
     # Main loop with all the seeds
@@ -488,6 +502,17 @@ def main(verbose=2):
         ewc_net.model.load_model(starting_model)
         ewc_net.to(torch.device('cpu'))
 
+        # iCARL approach. A mix of exemplar memory and distillation.
+        icarl_net = iCARL(
+            network(
+                n_outputs=n_classes, lr=lr, pretrained=pretrained
+            ), best=False,
+            memory_strength=icarl_weight, n_memories=icarl_memories,
+            n_tasks=n_tasks, n_classes=n_classes
+        )
+        icarl_net.model.load_model(starting_model)
+        icarl_net.to(torch.device('cpu'))
+
         # GEM approaches. We group all the GEM-related approaches here for
         # simplicity. All parameters should be shared for a fair comparison.
         gem_net = GEM(
@@ -613,6 +638,30 @@ def main(verbose=2):
                 config, ewc_net, model_name, seed, training_set, validation_set,
                 training_tasks, validation_tasks, testing_tasks,
                 t_i, offset1, offset2, epochs, n_classes, ewc_results
+            )
+
+            # < iCARL >
+            print(
+                '{:}Starting task - iCARL {:02d}/{:02d}{:} - {:02d}/{:02d} '
+                '({:} parameters)'.format(
+                    c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
+                    test_n + 1, len(config['seeds']),
+                    c['b'] + str(n_param) + c['nc']
+                )
+            )
+
+            # We train the naive model on the current task
+            icarl_net.to(icarl_net.device)
+            model_name = os.path.join(
+                model_path,
+                '{:}-icarl-t{:02d}.s{:05d}.pt'.format(
+                    model_base, t_i, seed
+                )
+            )
+            process_net(
+                config, icarl_net, model_name, seed, training_set, validation_set,
+                training_tasks, validation_tasks, testing_tasks,
+                t_i, offset1, offset2, epochs, n_classes, icarl_results
             )
 
             # < GEM >

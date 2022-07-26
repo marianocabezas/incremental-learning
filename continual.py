@@ -175,6 +175,7 @@ class MetaModel(BaseModel):
         self.first = net_state['first']
         self.current_task = net_state['task']
         self.load_state_dict(net_state['state'])
+        return net_state
 
     def forward(self, *inputs):
         return self.model(*inputs)
@@ -346,10 +347,8 @@ class EWC(MetaModel):
         torch.save(net_state, net_name)
 
     def load_model(self, net_name):
-        net_state = torch.load(net_name, map_location=self.device)
+        net_state = super().load_model(net_name)
         self.ewc_parameters = net_state['ewc_param']
-        self.first = net_state['first']
-        self.load_state_dict(net_state['state'])
 
     def forward(self, *inputs):
         return self.model(*inputs)
@@ -478,7 +477,7 @@ class GEM(MetaModel):
                 memories_t = torch.cat(self.memory_data[past_task])
                 labels_t = torch.cat(self.memory_labs[past_task])
 
-                output = self.forward(memories_t.to(self.device))
+                output = self(memories_t.to(self.device))
                 batch_losses = [
                     l_f['weight'] * l_f['f'](
                         output[:, offset1:offset2],
@@ -534,7 +533,7 @@ class GEM(MetaModel):
         torch.save(net_state, net_name)
 
     def load_model(self, net_name):
-        net_state = torch.load(net_name, map_location=self.device)
+        net_state = super().load_model(net_name)
         self.grad_dims = net_state['grad_dims']
         self.memory_data = [
             [mem.cpu() for mem in memories]
@@ -550,11 +549,8 @@ class GEM(MetaModel):
         else:
             self.grads = net_state['grads'].cpu()
         self.observed_tasks = net_state['tasks']
-        self.current_task = net_state['task']
-        self.first = net_state['first']
         self.n_classes = net_state['n_classes']
         self.nc_per_task = net_state['nc_per_task']
-        self.load_state_dict(net_state['state'])
 
         return net_state
 
@@ -790,7 +786,6 @@ class iCARL(MetaModel):
         n_classes=100, n_tasks=1
     ):
         super().__init__(basemodel, best, n_memories)
-        self.margin = memory_strength
         self.n_classes = n_classes
         self.nc_per_task = n_classes // n_tasks
         self.train_functions = self.model.train_functions + [
@@ -813,8 +808,6 @@ class iCARL(MetaModel):
         self.memy = None
         self.mem_class_x = {}  # stores exemplars class by class
         self.mem_class_y = {}
-        self.memory_data = [[] for _ in range(n_tasks)]
-        self.memory_labs = [[] for _ in range(n_tasks)]
         self.offsets = []
 
     def distillation_loss(self):
@@ -837,8 +830,8 @@ class iCARL(MetaModel):
                 target_dist.append(
                     self.mem_class_y[cc + offset1][indx].clone()
                 )
-            inp_dist = torch.stack(inp_dist, dim=0)
-            target_dist = torch.stack(target_dist, dim=0)
+            inp_dist = torch.stack(inp_dist, dim=0).to(self.device)
+            target_dist = torch.stack(target_dist, dim=0).to(self.device)
 
             # Add distillation loss
             losses.append(
@@ -853,11 +846,11 @@ class iCARL(MetaModel):
         self.examples_seen += x.size(0)
 
         if self.memx is None:
-            self.memx = x.data.clone()
-            self.memy = y.data.clone()
+            self.memx = x.cpu().data.clone()
+            self.memy = y.cpu().data.clone()
         else:
-            self.memx = torch.cat((self.memx, x.data.clone()))
-            self.memy = torch.cat((self.memy, y.data.clone()))
+            self.memx = torch.cat((self.memx, x.cpu().data.clone()))
+            self.memy = torch.cat((self.memy, y.cpu().data.clone()))
 
     def batch_update(self, batch, batches, x, y):
         if self.examples_seen == self.samples_per_task:
@@ -883,9 +876,10 @@ class iCARL(MetaModel):
                 mean_feature = self.net(
                     cdata)[:, offset1:offset2].data.clone().mean(0)
                 nd = self.nc_per_task
-                exemplars = torch.zeros(self.num_exemplars, x.size(1))
-                if self.gpu:
-                    exemplars = exemplars.cuda()
+                exemplars = torch.zeros(
+                    self.num_exemplars, x.size(1),
+                    device=self.device
+                )
                 ntr = cdata.size(0)
                 # used to keep track of which examples we have already used
                 taken = torch.zeros(ntr)
@@ -914,33 +908,51 @@ class iCARL(MetaModel):
                         self.num_exemplars = indx.size(0)
                         break
                 # update memory with exemplars
-                self.mem_class_x[lab.item()] = exemplars.clone()
+                self.mem_class_x[lab.item()] = exemplars.cpu().clone()
 
             # recompute outputs for distillation purposes
             for cc in self.mem_class_x.keys():
                 self.mem_class_y[cc] = self.net(
-                    self.mem_class_x[cc]).data.clone()
+                    self.mem_class_x[cc]
+                ).cpu().data.clone()
             self.memx = None
             self.memy = None
 
     def load_model(self, net_name):
-        net_state = torch.load(net_name, map_location=self.device)
-        self.grad_dims = net_state['grad_dims']
-        self.memory_data = [
-            [mem.cpu() for mem in memories]
-            for memories in net_state['mem_data']
-        ]
-        self.memory_labs = [
-            [mem.cpu() for mem in memories]
-            for memories in net_state['mem_labs']
-        ]
-        self.mem_cnt = net_state['mem_cnt']
-        self.grads = [grad.cpu() for grad in net_state['grads']]
-        self.observed_tasks = net_state['tasks']
-        self.current_task = net_state['task']
-        self.first = net_state['first']
+        net_state = super().load_model(net_name)
+        if net_state['memx'] is not None:
+            self.memx = net_state['memx'].cpu()
+        else:
+            self.memx = None
+        if net_state['memy'] is not None:
+            self.memy = net_state['memy'].cpu()
+        else:
+            self.memy = None
+        self.mem_class_x = {
+            key: data.cpu()
+            for key, data in net_state['mem_class_x'].items()
+        }  # stores exemplars class by class
+        self.mem_class_y = {
+            key: data.cpu()
+            for key, data in net_state['mem_class_y'].items()
+        }  # stores exemplars class by class
+        self.examples_seen = net_state['n_examples']
         self.n_classes = net_state['n_classes']
         self.nc_per_task = net_state['nc_per_task']
-        self.load_state_dict(net_state['state'])
 
         return net_state
+
+    def save_model(self, net_name):
+        net_state = {
+            'mem_class_x': self.mem_class_x,
+            'mem_class_y': self.mem_class_y,
+            'memx': self.memx,
+            'memy': self.memy,
+            'n_examples': self.examples_seen,
+            'task': self.current_task,
+            'first': self.first,
+            'n_classes': self.n_classes,
+            'nc_per_task': self.nc_per_task,
+            'state': self.state_dict()
+        }
+        torch.save(net_state, net_name)
