@@ -545,7 +545,10 @@ class GEM(MetaModel):
             for memories in net_state['mem_labs']
         ]
         self.mem_cnt = net_state['mem_cnt']
-        self.grads = net_state['grads'].cpu()
+        if type(net_state['grads']) is list:
+            self.grads = [grad.cpu() for grad in net_state['grads']]
+        else:
+            self.grads = net_state['grads'].cpu()
         self.observed_tasks = net_state['tasks']
         self.current_task = net_state['task']
         self.first = net_state['first']
@@ -750,31 +753,9 @@ class ParamGEM(GEM):
             if param.requires_grad:
                 if param.grad is not None:
                     self.grads[p][:, tid].copy_(
-                        param.grad.cpu().data.view(-1)
+                        param.grad.cpu().data.flatten()
                     )
                 p += 1
-
-    def load_model(self, net_name):
-        net_state = torch.load(net_name, map_location=self.device)
-        self.grad_dims = net_state['grad_dims']
-        self.memory_data = [
-            [mem.cpu() for mem in memories]
-            for memories in net_state['mem_data']
-        ]
-        self.memory_labs = [
-            [mem.cpu() for mem in memories]
-            for memories in net_state['mem_labs']
-        ]
-        self.mem_cnt = net_state['mem_cnt']
-        self.grads = [grad.cpu() for grad in net_state['grads']]
-        self.observed_tasks = net_state['tasks']
-        self.current_task = net_state['task']
-        self.first = net_state['first']
-        self.n_classes = net_state['n_classes']
-        self.nc_per_task = net_state['nc_per_task']
-        self.load_state_dict(net_state['state'])
-
-        return net_state
 
     def constraint_check(self):
         if len(self.observed_tasks) > 1:
@@ -785,7 +766,7 @@ class ParamGEM(GEM):
             for param in self.parameters():
                 if param.requires_grad:
                     if param.grad is not None:
-                        current_grad = param.grad.cpu().data.view(-1)
+                        current_grad = param.grad.cpu().data.flatten()
                         grad = self.grads[p].index_select(1, indx)
                         dotp = torch.mm(
                             current_grad.unsqueeze(0).to(self.device),
@@ -891,7 +872,7 @@ class iCARL(MetaModel):
             # Reduce exemplar set by updating value of num. exemplars per class
             self.num_exemplars = int(
                 self.n_memories / (num_classes + len(self.mem_class_x.keys())))
-            offset1, offset2 = self.compute_offsets(t)
+            offset1, offset2 = self.offsets[-1]
             for ll in range(num_classes):
                 lab = all_labs[ll].cuda()
                 indxs = (self.memy == lab).nonzero().squeeze()
@@ -963,29 +944,3 @@ class iCARL(MetaModel):
         self.load_state_dict(net_state['state'])
 
         return net_state
-
-    def constraint_check(self):
-        if len(self.observed_tasks) > 1:
-            p = 0
-            indx = torch.LongTensor(
-                self.observed_tasks[:-1]
-            )
-            for param in self.parameters():
-                if param.requires_grad:
-                    if param.grad is not None:
-                        current_grad = param.grad.cpu().data.view(-1)
-                        grad = self.grads[p].index_select(1, indx)
-                        dotp = torch.mm(
-                            current_grad.unsqueeze(0).to(self.device),
-                            grad.to(self.device)
-                        )
-                        if (dotp < 0).any():
-                            project2cone2(
-                                current_grad.unsqueeze(1), grad, self.margin
-                            )
-                            # Copy the new gradient
-                            current_grad = current_grad.contiguous().view(
-                                param.grad.data.size()
-                            )
-                            param.grad.data.copy_(current_grad.to(param.device))
-                    p += 1
