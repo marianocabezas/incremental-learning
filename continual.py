@@ -490,7 +490,8 @@ class GEM(MetaModel):
                 sum(batch_losses).backward()
                 self.store_grad(past_task)
 
-    def get_grad(self, indx):
+    def get_grad(self):
+        indx = torch.tensor(self.observed_tasks[:-1], dtype=torch.long)
         return self.grads.index_select(1, indx)
 
     def constraint_check(self):
@@ -499,8 +500,7 @@ class GEM(MetaModel):
         # Copy the current gradient
         grad_t = self.grads.index_select(1, torch.tensor(t, dtype=torch.long))
         if len(self.observed_tasks) > 1:
-            indx = torch.tensor(self.observed_tasks[:-1], dtype=torch.long)
-            grad = self.get_grad(indx)
+            grad = self.get_grad()
 
             dotp = torch.mm(
                 grad_t.t().to(self.device),
@@ -587,7 +587,8 @@ class AGEM(GEM):
             basemodel, best, n_memories, memory_strength, n_classes, n_tasks,
         )
 
-    def get_grad(self, indx):
+    def get_grad(self):
+        indx = torch.tensor(self.observed_tasks[:-1], dtype=torch.long)
         return self.grads.index_select(1, indx).mean(dim=1, keepdim=True)
 
 
@@ -600,10 +601,10 @@ class SGEM(GEM):
             basemodel, best, n_memories, memory_strength, n_classes, n_tasks,
         )
 
-    def get_grad(self, indx):
-        random_indx = np.random.randint(len(self.observed_tasks[:-1]))
-        indx = indx.index_select(
-            0, torch.Tensor([random_indx]).long()
+    def get_grad(self):
+        indx = torch.tensor(
+            [np.random.randint(len(self.observed_tasks[:-1]))],
+            dtype=torch.long
         )
         return self.grads.index_select(1, indx)
 
@@ -741,9 +742,7 @@ class ParamGEM(GEM):
     def constraint_check(self):
         if len(self.observed_tasks) > 1:
             p = 0
-            indx = torch.LongTensor(
-                self.observed_tasks[:-1]
-            )
+            indx = torch.tensor(self.observed_tasks[:-1], dtype=torch.long)
             for param in self.parameters():
                 if param.requires_grad:
                     if param.grad is not None:
