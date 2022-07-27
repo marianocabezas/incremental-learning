@@ -502,15 +502,14 @@ class GEM(MetaModel):
         grad = self.get_grad(indx)
         grad_t = self.get_grad(torch.tensor(t, dtype=torch.long))
         if len(self.observed_tasks) > 1:
-            print(grad_t.shape, grad.shape)
             dotp = torch.mm(
-                grad_t.unsqueeze(0).to(self.device),
+                grad_t.transpose().to(self.device),
                 grad.to(self.device)
             )
 
             if (dotp < 0).any():
                 grad_t = project2cone2(
-                    grad_t.unsqueeze(1), grad, self.margin
+                    grad_t, grad, self.margin
                 )
                 # Copy gradients back
                 overwrite_grad(
