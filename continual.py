@@ -862,7 +862,7 @@ class iCARL(MetaModel):
                 )[:, offset_slice].data.clone().mean(0)
                 nd = self.nc_per_task
                 exemplars = torch.zeros(
-                    self.num_exemplars, x.size(1),
+                    (self.num_exemplars,) + x.shape[1:],
                     device=self.device
                 )
                 ntr = cdata.size(0)
