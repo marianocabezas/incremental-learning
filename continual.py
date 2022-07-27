@@ -1013,7 +1013,7 @@ class LoggingGEM(GEM):
         self.grad_log['90%'].append(quantiles[8])
         self.grad_log['max'].append(np.max(grads, axis=0))
         if grads.shape[1] > 1:
-            norm_grads = grads / np.linalg.norm(grads, axis=0)
+            norm_grads = grads / np.linalg.norm(grads, axis=0, keepdims=True)
             self.grad_log['dot'].append(
                 np.expand_dims(norm_grads[:, -1], 0) @ norm_grads[:, :-1]
             )
