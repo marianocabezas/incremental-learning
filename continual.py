@@ -839,6 +839,7 @@ class iCARL(MetaModel):
             self.num_exemplars = int(
                 self.n_memories / (num_classes + len(self.mem_class_x.keys())))
             offset_slice = slice(self.offset1, self.offset2)
+            print(num_classes)
             for ll in range(num_classes):
                 lab = all_labs[ll]
                 indxs = (self.memy == lab).nonzero().squeeze()
@@ -889,7 +890,7 @@ class iCARL(MetaModel):
             # recompute outputs for distillation purposes
             for k in self.mem_class_x.keys():
                 self.mem_class_y[k] = self.model(
-                    self.mem_class_x[k]
+                    self.mem_class_x[k].to(self.device)
                 ).cpu().data.clone()
             self.memx = None
             self.memy = None
