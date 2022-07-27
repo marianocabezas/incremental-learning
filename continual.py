@@ -506,6 +506,7 @@ class GEM(MetaModel):
                 self.grads[:, t].unsqueeze(0).to(self.device),
                 grad.to(self.device)
             )
+            print(dotp.shape)
 
             if (dotp < 0).any():
                 grad = project2cone2(
