@@ -854,7 +854,6 @@ class iCARL(MetaModel):
                     (self.num_exemplars,) + x.shape[1:],
                     device=self.device
                 )
-                print(x.shape, exemplars.shape)
                 ntr = cdata.size(0)
                 # used to keep track of which examples we have already used
                 taken = torch.zeros(ntr)
@@ -862,6 +861,7 @@ class iCARL(MetaModel):
                 for ee in range(self.num_exemplars):
                     prev = torch.zeros(1, nd).to(self.device)
                     if ee > 0:
+                        print(x.shape, exemplars.shape, exemplars[:ee].shape)
                         prev = self.model(
                             exemplars[:ee]
                         )[:, offset_slice].data.clone().sum(0)
