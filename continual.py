@@ -994,6 +994,7 @@ class LoggingGEM(GEM):
             super().constraint_check().numpy(), 0
         )
         grads = deepcopy(self.grads[:, :(self.current_task + 1)].numpy())
+        old_grad = np.expand_dims(grads[:, -1], 0)
         quantiles = np.quantile(
             grads, [.1, .2, .25, .4, .5, .6, .75, .8, .9], axis=0
         )
@@ -1010,7 +1011,7 @@ class LoggingGEM(GEM):
         self.grad_log['80%'].append(quantiles[7])
         self.grad_log['90%'].append(quantiles[8])
         self.grad_log['max'].append(np.max(grads, axis=0))
-        if grads.shape[1] > 1:
+        if self.current_task > 0:
             norms = np.clip(
                 np.linalg.norm(grads, axis=0, keepdims=True), 1e-6, np.inf
             )
@@ -1018,24 +1019,17 @@ class LoggingGEM(GEM):
                 np.linalg.norm(new_grad, axis=0, keepdims=True), 1e-6, np.inf
             )
             norm_grads = grads / norms
-            self.grad_log['dot'].append(
-                np.expand_dims(grads[:, -1], 0) @ norm_grads[:, :-1]
+            old_norm = np.expand_dims(norm_grads[:, -1], 0)
+            print(
+                old_grad.shape, new_grad.shape, grads.shape,
+                old_norm.shape, new_norm.shape, norm_grads.shape,
             )
-            self.grad_log['norm_dot'].append(
-                np.expand_dims(norm_grads[:, -1], 0) @ grads[:, :-1]
-            )
-            self.grad_log['new_dot'].append(
-                new_grad @ norm_grads[:, :-1]
-            )
-            self.grad_log['norm_new_dot'].append(
-                new_norm @ grads[:, :-1]
-            )
-            self.grad_log['grads_dot'].append(
-                new_grad @ np.expand_dims(grads[:, -1], 0)
-            )
-            self.grad_log['norm_grads_dot'].append(
-                new_norm @ np.expand_dims(norm_grads[:, -1], 0)
-            )
+            self.grad_log['dot'].append(old_grad @ norm_grads[:, :-1])
+            self.grad_log['norm_dot'].append(old_norm @ grads[:, :-1])
+            self.grad_log['new_dot'].append(new_grad @ norm_grads[:, :-1])
+            self.grad_log['norm_new_dot'].append(new_norm @ grads[:, :-1])
+            self.grad_log['grads_dot'].append(new_grad @ old_grad)
+            self.grad_log['norm_grads_dot'].append(new_norm @ old_norm)
 
     def get_state(self):
         net_state = super().get_state()
