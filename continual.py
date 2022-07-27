@@ -949,3 +949,33 @@ class iCARL(MetaModel):
             'nc_per_task': self.nc_per_task,
         }
         torch.save(net_state, net_name)
+
+
+class LoggingGEM(GEM):
+    def __init__(
+        self, basemodel, best=True, n_memories=256, memory_strength=0.5,
+        n_classes=100, n_tasks=1
+    ):
+        super().__init__(
+            basemodel, best, n_memories, memory_strength, n_classes, n_tasks
+        )
+        self.grad_log = []
+
+    def constraint_check(self):
+        super().constraint_check()
+        self.grad_log.append(
+            deepcopy(self.grads[:, :(self.current_task + 1)].numpy())
+        )
+
+    def get_state(self):
+        net_state = super().get_state()
+        net_state['log'] = [
+            log.cpu() for log in self.grad_log
+        ]
+        return net_state
+
+    def load_model(self, net_name):
+        net_state = super().load_model(net_name)
+        self.grad_log = net_state['log']
+
+        return net_state
