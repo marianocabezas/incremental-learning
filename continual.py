@@ -491,7 +491,6 @@ class GEM(MetaModel):
                 self.store_grad(past_task)
 
     def get_grad(self, indx):
-        print(len(self.grads), indx, self.current_task)
         return self.grads.index_select(1, indx)
 
     def constraint_check(self):
@@ -503,7 +502,7 @@ class GEM(MetaModel):
         grad_t = self.get_grad(torch.tensor(t, dtype=torch.long))
         if len(self.observed_tasks) > 1:
             dotp = torch.mm(
-                grad_t.transpose().to(self.device),
+                grad_t.t().to(self.device),
                 grad.to(self.device)
             )
 
