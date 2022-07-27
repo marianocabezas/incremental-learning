@@ -634,7 +634,7 @@ class NGEM(GEM):
     def constraint_check(self):
         t = self.current_task
         if len(self.observed_tasks) > 1:
-            # copy gradient
+            # Copy gradient
             self.store_grad(t)
             indx = torch.LongTensor(self.observed_tasks[:-1])
 
