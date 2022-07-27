@@ -836,7 +836,7 @@ class iCARL(MetaModel):
                 self.n_memories / (num_classes + len(self.mem_class_x.keys())))
             offset_slice = slice(self.offset1, self.offset2)
             for k in all_labs:
-                indxs = (self.memy == k).nonzero().squeeze()
+                indxs = (self.memy == k).nonzero(as_tuple=False).squeeze()
                 cdata = self.memx.index_select(
                     0, indxs
                 ).to(self.device)  # cdata are exemplar whose label == lab
@@ -866,7 +866,6 @@ class iCARL(MetaModel):
                             2, 1
                     ).squeeze()
                     _, indx = cost.sort(0)
-                    print(indx)
                     winner = 0
                     while winner < indx.size(0) and taken[indx[winner]] == 1:
                         winner += 1
