@@ -847,7 +847,7 @@ class iCARL(MetaModel):
             # Reduce exemplar set by updating value of num. exemplars per class
             self.num_exemplars = int(
                 self.n_memories / (num_classes + len(self.mem_class_x.keys())))
-            offset1, offset2 = self.offsets[-1]
+            offset_slice = slice(self.offset1, self.offset2)
             for ll in range(num_classes):
                 lab = all_labs[ll].cuda()
                 indxs = (self.memy == lab).nonzero().squeeze()
@@ -856,7 +856,7 @@ class iCARL(MetaModel):
 
                 # Construct exemplar set for last task
                 mean_feature = self.net(
-                    cdata)[:, offset1:offset2].data.clone().mean(0)
+                    cdata)[:, offset_slice].data.clone().mean(0)
                 nd = self.nc_per_task
                 exemplars = torch.zeros(
                     self.num_exemplars, x.size(1),
@@ -865,13 +865,13 @@ class iCARL(MetaModel):
                 ntr = cdata.size(0)
                 # used to keep track of which examples we have already used
                 taken = torch.zeros(ntr)
-                model_output = self.net(cdata)[:, offset1:offset2].data.clone()
+                model_output = self.net(cdata)[:, offset_slice].data.clone()
                 for ee in range(self.num_exemplars):
                     prev = torch.zeros(1, nd).to(self.device)
                     if ee > 0:
                         prev = self.net(
-                            exemplars[:ee])[:, offset1:offset2].data.clone(
-                            ).sum(0)
+                            exemplars[:ee]
+                        )[:, offset_slice].data.clone().sum(0)
                     cost = (
                         mean_feature.expand(ntr, nd) -
                         (model_output + prev.expand(ntr, nd)) / (ee + 1)).norm(
