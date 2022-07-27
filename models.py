@@ -156,7 +156,6 @@ class ResNet18(BaseModel):
         self.optimizer_alg = torch.optim.SGD(model_params, lr=self.lr)
 
     def forward(self, data):
-        print(data.shape)
         self.resnet.to(self.device)
         return self.resnet(data)
 
