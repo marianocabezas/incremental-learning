@@ -993,11 +993,17 @@ class LoggingGEM(GEM):
             '90%': [],
             'max': [],
             'dot': [],
-            'norm_dot': []
+            'norm_dot': [],
+            'new_dot': [],
+            'norm_new_dot': [],
+            'grads_dot': [],
+            'norm_grads_dot': [],
         }
 
     def constraint_check(self):
-        new_grad = super().constraint_check()
+        new_grad = np.expand_dims(
+            super().constraint_check().numpy(), 0
+        )
         grads = deepcopy(self.grads[:, :(self.current_task + 1)].numpy())
         quantiles = np.quantile(
             grads, [.1, .2, .25, .4, .5, .6, .75, .8, .9], axis=0
@@ -1019,12 +1025,27 @@ class LoggingGEM(GEM):
             norms = np.clip(
                 np.linalg.norm(grads, axis=0, keepdims=True), 1e-6, np.inf
             )
+            new_norm = np.clip(
+                np.linalg.norm(new_grad, axis=0, keepdims=True), 1e-6, np.inf
+            )
             norm_grads = grads / norms
             self.grad_log['dot'].append(
-                np.expand_dims(norm_grads[:, -1], 0) @ norm_grads[:, :-1]
+                np.expand_dims(grads[:, -1], 0) @ norm_grads[:, :-1]
             )
             self.grad_log['norm_dot'].append(
-                np.expand_dims(grads[:, -1], 0) @ grads[:, :-1]
+                np.expand_dims(norm_grads[:, -1], 0) @ grads[:, :-1]
+            )
+            self.grad_log['new_dot'].append(
+                new_grad @ norm_grads[:, :-1]
+            )
+            self.grad_log['norm_new_dot'].append(
+                new_norm @ grads[:, :-1]
+            )
+            self.grad_log['grads_dot'].append(
+                new_grad @ np.expand_dims(grads[:, -1], 0)
+            )
+            self.grad_log['norm_grads_dot'].append(
+                new_norm @ np.expand_dims(norm_grads[:, -1], 0)
             )
 
     def get_state(self):
