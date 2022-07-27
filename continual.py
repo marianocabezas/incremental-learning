@@ -841,10 +841,7 @@ class iCARL(MetaModel):
         if (batch + 1) == batches:
             self.examples_seen = 0
             # get labels from previous task; we assume labels are consecutive
-            if self.gpu:
-                all_labs = torch.LongTensor(np.unique(self.memy.cpu().numpy()))
-            else:
-                all_labs = torch.LongTensor(np.unique(self.memy.numpy()))
+            all_labs = torch.LongTensor(np.unique(self.memy.numpy()))
             num_classes = all_labs.size(0)
             assert (num_classes == self.nc_per_task)
             # Reduce exemplar set by updating value of num. exemplars per class
@@ -870,9 +867,7 @@ class iCARL(MetaModel):
                 taken = torch.zeros(ntr)
                 model_output = self.net(cdata)[:, offset1:offset2].data.clone()
                 for ee in range(self.num_exemplars):
-                    prev = torch.zeros(1, nd)
-                    if self.gpu:
-                        prev = prev.cuda()
+                    prev = torch.zeros(1, nd).to(self.device)
                     if ee > 0:
                         prev = self.net(
                             exemplars[:ee])[:, offset1:offset2].data.clone(
