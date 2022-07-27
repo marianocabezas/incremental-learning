@@ -495,6 +495,7 @@ class GEM(MetaModel):
 
     def constraint_check(self):
         t = self.current_task
+        self.store_grad(t)
         # Copy the current gradient
         indx = torch.LongTensor(
             self.observed_tasks[:-1]
