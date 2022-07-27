@@ -992,7 +992,7 @@ class LoggingGEM(GEM):
     def constraint_check(self):
         new_grad = super().constraint_check().numpy()
         grads = deepcopy(self.grads[:, :(self.current_task + 1)].numpy())
-        old_grad = np.expand_dims(grads[:, -1], 0)
+        old_grad = np.expand_dims(grads[:, -1], 1)
         quantiles = np.quantile(
             grads, [.1, .2, .25, .4, .5, .6, .75, .8, .9], axis=0
         )
@@ -1017,7 +1017,7 @@ class LoggingGEM(GEM):
                 np.linalg.norm(new_grad, axis=0, keepdims=True), 1e-6, np.inf
             )
             norm_grads = grads / norms
-            old_norm = np.expand_dims(norm_grads[:, -1], 0)
+            old_norm = np.expand_dims(norm_grads[:, -1], 1)
             print(
                 old_grad.shape, new_grad.shape, grads.shape,
                 old_norm.shape, new_norm.shape, norm_grads.shape,
