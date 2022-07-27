@@ -840,15 +840,17 @@ class iCARL(MetaModel):
                 self.n_memories / (num_classes + len(self.mem_class_x.keys())))
             offset_slice = slice(self.offset1, self.offset2)
             for ll in range(num_classes):
-                lab = all_labs[ll].to(self.device)
-                indxs = (self.memy.to(self.device) == lab).nonzero().squeeze()
-                cdata = self.memx.to(self.device).index_select(
-                    0, indxs)  # cdata are exemplar whose label == lab
+                lab = all_labs[ll]
+                indxs = (self.memy == lab).nonzero().squeeze()
+                cdata = self.memx.index_select(
+                    0, indxs
+                ).to(self.device)  # cdata are exemplar whose label == lab
 
                 # Construct exemplar set for last task
-                mean_feature = self.model(
+                cout = self.model(
                     cdata
-                )[:, offset_slice].data.clone().mean(0)
+                )[:, offset_slice].data.clone()
+                mean_feature = cout.mean(0)
                 nd = self.nc_per_task
                 exemplars = torch.zeros(
                     (self.num_exemplars,) + x.shape[1:],
@@ -858,13 +860,13 @@ class iCARL(MetaModel):
                 # used to keep track of which examples we have already used
                 taken = torch.zeros(ntr)
                 model_output = self.model(cdata)[:, offset_slice].data.clone()
+                prev = torch.zeros(1, nd).to(self.device)
                 for ee in range(self.num_exemplars):
-                    prev = torch.zeros(1, nd).to(self.device)
-                    if ee > 0:
-                        print(x.shape, exemplars.shape, exemplars[:ee].shape)
-                        prev = self.model(
-                            exemplars[:ee]
-                        )[:, offset_slice].data.clone().sum(0)
+                    # if ee > 0:
+                    #     print(x.shape, exemplars.shape, exemplars[:ee].shape)
+                    #     prev = self.model(
+                    #         exemplars[:ee]
+                    #     )[:, offset_slice].data.clone().sum(0)
                     cost = (
                         mean_feature.expand(ntr, nd) -
                         (model_output + prev.expand(ntr, nd)) / (ee + 1)).norm(
@@ -876,6 +878,7 @@ class iCARL(MetaModel):
                     if winner < indx.size(0):
                         taken[indx[winner]] = 1
                         exemplars[ee] = cdata[indx[winner]].clone()
+                        prev += cout[indx[winner], offset_slice].data.clone()
                     else:
                         exemplars = exemplars[:indx.size(0), :].clone()
                         self.num_exemplars = indx.size(0)
