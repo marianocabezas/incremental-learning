@@ -868,11 +868,7 @@ class iCARL(MetaModel):
                     if winner < indx.size(0):
                         taken[indx[winner]] = 1
                         exemplars[ee] = cdata[indx[winner]].clone()
-                        print(
-                            prev.shape, indx, winner, model_output.shape,
-                            model_output[indx[winner], offset_slice].data.shape
-                        )
-                        prev += model_output[indx[winner], offset_slice].data.clone()
+                        prev += model_output[indx[winner], :].data.clone()
                     else:
                         exemplars = exemplars[:indx.size(0), :].clone()
                         self.num_exemplars = indx.size(0)
