@@ -502,10 +502,8 @@ class GEM(MetaModel):
         if len(self.observed_tasks) > 1:
             grad = self.get_grad()
 
-            dotp = torch.mm(
-                grad_t.t().to(self.device),
-                grad.to(self.device)
-            )
+            dotp = grad_t.t().to(self.device) @ grad.to(self.device)
+            print(dotp.shape)
 
             if (dotp < 0).any():
                 grad_t = project2cone2(
