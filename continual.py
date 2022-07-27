@@ -505,13 +505,16 @@ class GEM(MetaModel):
             dotp = grad_t.t().to(self.device) @ grad.to(self.device)
 
             if (dotp < 0).any():
-                grad_t = project2cone2(
-                    grad_t, grad, self.margin
-                )
-                # Copy gradients back
-                overwrite_grad(
-                    self.parameters, grad_t, self.grad_dims
-                )
+                try:
+                    grad_t = project2cone2(
+                        grad_t, grad, self.margin
+                    )
+                    # Copy gradients back
+                    overwrite_grad(
+                        self.parameters, grad_t, self.grad_dims
+                    )
+                except ValueError:
+                    pass
         return grad_t
 
     def get_state(self):
