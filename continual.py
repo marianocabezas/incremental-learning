@@ -491,7 +491,7 @@ class GEM(MetaModel):
                 self.store_grad(past_task)
 
     def get_grad(self, indx):
-        print(len(self.grads), indx)
+        print(len(self.grads), indx, self.current_task)
         return self.grads.index_select(1, indx)
 
     def constraint_check(self):
