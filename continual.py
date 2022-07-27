@@ -1027,8 +1027,6 @@ class LoggingGEM(GEM):
 
     def load_model(self, net_name):
         net_state = super().load_model(net_name)
-        self.grad_log = [
-            log.cpu().numpy for log in net_state['log']
-        ]
+        self.grad_log = net_state['log']
 
         return net_state
