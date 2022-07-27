@@ -495,15 +495,13 @@ class GEM(MetaModel):
 
     def constraint_check(self):
         t = self.current_task
+        # Copy the current gradient
+        indx = torch.LongTensor(
+            self.observed_tasks[:-1]
+        )
         self.store_grad(t)
+        grad = self.get_grad(indx)
         if len(self.observed_tasks) > 1:
-            # Copy the current gradient
-            indx = torch.LongTensor(
-                self.observed_tasks[:-1]
-            )
-
-            grad = self.get_grad(indx)
-
             dotp = torch.mm(
                 self.grads[:, t].unsqueeze(0).to(self.device),
                 grad.to(self.device)
@@ -517,7 +515,7 @@ class GEM(MetaModel):
                 overwrite_grad(
                     self.parameters, grad, self.grad_dims
                 )
-            return grad
+        return grad
 
     def get_state(self):
         net_state = super().get_state()
