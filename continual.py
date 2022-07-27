@@ -942,17 +942,6 @@ class iCARL(MetaModel):
         net_state['nc_per_task'] = self.nc_per_task
         return net_state
 
-    def save_model(self, net_name):
-        net_state = {
-            'mem_class_x': self.mem_class_x,
-            'mem_class_y': self.mem_class_y,
-            'memx': self.memx,
-            'memy': self.memy,
-            'n_classes': self.n_classes,
-            'nc_per_task': self.nc_per_task,
-        }
-        torch.save(net_state, net_name)
-
 
 class LoggingGEM(GEM):
     def __init__(
