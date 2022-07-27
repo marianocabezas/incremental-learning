@@ -502,7 +502,7 @@ class GEM(MetaModel):
             self.observed_tasks[:-1]
         )
         grad = self.get_grad(indx)
-        grad_t = self.get_grad(t)
+        grad_t = self.get_grad(torch.tensor(t, dtype=torch.long))
         if len(self.observed_tasks) > 1:
             dotp = torch.mm(
                 grad_t.unsqueeze(0).to(self.device),
