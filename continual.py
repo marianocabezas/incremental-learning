@@ -869,7 +869,7 @@ class iCARL(MetaModel):
                         taken[indx[winner]] = 1
                         exemplars[ee] = cdata[indx[winner]].clone()
                         print(
-                            prev.shape,
+                            prev.shape, indx, winner, model_output.shape,
                             model_output[indx[winner], offset_slice].data.shape
                         )
                         prev += model_output[indx[winner], offset_slice].data.clone()
