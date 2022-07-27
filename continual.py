@@ -50,8 +50,11 @@ def project2cone2(gradient, memories, margin=0.5, eps=1e-3):
     q = np.dot(memories_np, gradient_np) * -1
     G = np.eye(t)
     h = np.zeros(t) + margin
-    v = quadprog.solve_qp(P, q, G, h)[0]
-    x = np.dot(v, memories_np) + gradient_np
+    try:
+        v = quadprog.solve_qp(P, q, G, h)[0]
+        x = np.dot(v, memories_np) + gradient_np
+    except ValueError:
+        x = gradient
     return torch.Tensor(x).view(-1, 1)
     # gradient.copy_(torch.Tensor(x).view(-1, 1))
 
