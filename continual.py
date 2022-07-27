@@ -52,7 +52,8 @@ def project2cone2(gradient, memories, margin=0.5, eps=1e-3):
     h = np.zeros(t) + margin
     v = quadprog.solve_qp(P, q, G, h)[0]
     x = np.dot(v, memories_np) + gradient_np
-    gradient.copy_(torch.Tensor(x).view(-1, 1))
+    return torch.Tensor(x)
+    # gradient.copy_(torch.Tensor(x).view(-1, 1))
 
 
 def project5cone5(gradient, memories, beg, en, margin=0.5, eps=1e-3):
@@ -494,9 +495,9 @@ class GEM(MetaModel):
 
     def constraint_check(self):
         t = self.current_task
+        self.store_grad(t)
         if len(self.observed_tasks) > 1:
             # Copy the current gradient
-            self.store_grad(t)
             indx = torch.LongTensor(
                 self.observed_tasks[:-1]
             )
@@ -509,13 +510,14 @@ class GEM(MetaModel):
             )
 
             if (dotp < 0).any():
-                project2cone2(
+                grad = project2cone2(
                     self.grads[:, t].unsqueeze(1), grad, self.margin
                 )
                 # Copy gradients back
                 overwrite_grad(
-                    self.parameters, self.grads[:, t], self.grad_dims
+                    self.parameters, grad, self.grad_dims
                 )
+            return grad
 
     def get_state(self):
         net_state = super().get_state()
@@ -754,11 +756,11 @@ class ParamGEM(GEM):
                             grad.to(self.device)
                         )
                         if (dotp < 0).any():
-                            project2cone2(
+                            new_grad = project2cone2(
                                 current_grad.unsqueeze(1), grad, self.margin
                             )
                             # Copy the new gradient
-                            current_grad = current_grad.contiguous().view(
+                            current_grad = new_grad.contiguous().view(
                                 param.grad.data.size()
                             )
                             param.grad.data.copy_(current_grad.to(param.device))
@@ -821,7 +823,7 @@ class iCARL(MetaModel):
             # Add distillation loss
             losses.append(
                 self.kl(
-                    self.lsm(self.net(inp_dist)[:, offset1:offset2]),
+                    self.lsm(self.model(inp_dist)[:, offset1:offset2]),
                     self.sm(target_dist[:, offset1:offset2])
                 ) * self.nc_per_task
             )
@@ -855,7 +857,7 @@ class iCARL(MetaModel):
                     0, indxs)  # cdata are exemplar whose label == lab
 
                 # Construct exemplar set for last task
-                mean_feature = self.net(
+                mean_feature = self.model(
                     cdata
                 )[:, offset_slice].data.clone().mean(0)
                 nd = self.nc_per_task
@@ -866,11 +868,11 @@ class iCARL(MetaModel):
                 ntr = cdata.size(0)
                 # used to keep track of which examples we have already used
                 taken = torch.zeros(ntr)
-                model_output = self.net(cdata)[:, offset_slice].data.clone()
+                model_output = self.model(cdata)[:, offset_slice].data.clone()
                 for ee in range(self.num_exemplars):
                     prev = torch.zeros(1, nd).to(self.device)
                     if ee > 0:
-                        prev = self.net(
+                        prev = self.model(
                             exemplars[:ee]
                         )[:, offset_slice].data.clone().sum(0)
                     cost = (
@@ -893,7 +895,7 @@ class iCARL(MetaModel):
 
             # recompute outputs for distillation purposes
             for cc in self.mem_class_x.keys():
-                self.mem_class_y[cc] = self.net(
+                self.mem_class_y[cc] = self.model(
                     self.mem_class_x[cc]
                 ).cpu().data.clone()
             self.memx = None
@@ -994,7 +996,8 @@ class LoggingGEM(GEM):
             'norm_dot': []
         }
 
-    def batch_update(self, batch, batches, x, y):
+    def constraint_check(self):
+        new_grad = super().constraint_check()
         grads = deepcopy(self.grads[:, :(self.current_task + 1)].numpy())
         quantiles = np.quantile(
             grads, [.1, .2, .25, .4, .5, .6, .75, .8, .9], axis=0
