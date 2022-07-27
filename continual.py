@@ -1021,6 +1021,8 @@ class LoggingGEM(GEM):
             print(
                 old_grad.shape, new_grad.shape, grads.shape,
                 old_norm.shape, new_norm.shape, norm_grads.shape,
+            )
+            print(
                 (old_norm @ norm_grads[:, :-1]).shape,
                 (new_norm @ grads[:, :-1]).shape,
                 (new_norm @ old_norm).shape
