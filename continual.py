@@ -502,10 +502,10 @@ class GEM(MetaModel):
         if len(self.observed_tasks) > 1:
             grad = self.get_grad()
 
-            dotp = grad_t.t().to(self.device) @ grad.to(self.device)
+            # dotp = grad_t.t().to(self.device) @ grad.to(self.device)
+            dotp = grad_t.t() @ grad
 
             if (dotp < 0).any():
-                print(dotp)
                 grad_t = project2cone2(
                     grad_t, grad, self.margin
                 )
