@@ -1018,15 +1018,6 @@ class LoggingGEM(GEM):
             )
             norm_grads = grads / norms
             old_norm = np.expand_dims(norm_grads[:, -1], 0)
-            print(
-                old_grad.shape, new_grad.shape, grads.shape,
-                old_norm.shape, new_norm.shape, norm_grads.shape,
-            )
-            print(
-                (old_norm @ norm_grads[:, :-1]).shape,
-                (new_norm.transpose() @ grads[:, :-1]).shape,
-                (old_norm @ new_norm).shape
-            )
             self.grad_log['dot'].append(old_grad @ grads[:, :-1])
             self.grad_log['norm_dot'].append(old_norm @ norm_grads[:, :-1])
             self.grad_log['new_dot'].append(
