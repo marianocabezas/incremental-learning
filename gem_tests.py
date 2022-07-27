@@ -7,40 +7,7 @@ import torch
 from time import strftime
 from continual import LoggingGEM
 from utils import color_codes
-from natural_comparison import train
-
-
-"""
-> Arguments
-"""
-
-
-def parse_inputs():
-    parser = argparse.ArgumentParser(
-        description='Train models with incremental learning approaches and '
-                    'test them to obtain timeseries metrics of simple'
-                    'overlap concepts.'
-    )
-
-    # Mode selector
-    parser.add_argument(
-        '-i', '--input-config',
-        dest='config', default='/data/IncrementalLearning/activity_dual.yml',
-        help='Path to the file with the configuration for the experiment.'
-    )
-    options = vars(parser.parse_args())
-
-    return options
-
-
-"""
-> Data functions
-"""
-
-
-def load_datasets(experiment_config):
-    d_tr, d_te = torch.load(experiment_config['path'])
-    return d_tr, d_te
+from natural_comparison import train, load_datasets, parse_inputs
 
 
 """
@@ -62,11 +29,11 @@ def process_net(
 
 
 """
-> Dummy main function
+> Main function
 """
 
 
-def main(verbose=2):
+def main():
     # Init
     c = color_codes()
     options = parse_inputs()

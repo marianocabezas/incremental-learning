@@ -898,6 +898,27 @@ class iCARL(MetaModel):
             self.memx = None
             self.memy = None
 
+    def fit(
+        self,
+        train_loader,
+        val_loader,
+        epochs=50,
+        patience=5,
+        task=None,
+        offset1=None,
+        offset2=None,
+        verbose=True
+    ):
+        if offset1 is None:
+            offset1 = 0
+        if offset2 is None:
+            offset2 = self.n_classes
+        self.offsets.append((offset1, offset2))
+        super().fit(
+            train_loader, val_loader, epochs, patience, task, offset1, offset2,
+            verbose
+        )
+
     def load_model(self, net_name):
         net_state = super().load_model(net_name)
         if net_state['memx'] is not None:
@@ -954,13 +975,51 @@ class LoggingGEM(GEM):
         super().__init__(
             basemodel, best, n_memories, memory_strength, n_classes, n_tasks
         )
-        self.grad_log = []
+        self.grad_log = {
+            'mean': [],
+            'std': [],
+            'min': [],
+            '10%': [],
+            '20%': [],
+            '25%': [],
+            '40%': [],
+            'median': [],
+            '60%': [],
+            '75%': [],
+            '80%': [],
+            '90%': [],
+            'max': [],
+            'dot': [],
+            'norm_dot': []
+        }
 
     def constraint_check(self):
         super().constraint_check()
-        self.grad_log.append(
-            deepcopy(self.grads[:, :(self.current_task + 1)].numpy())
+        grads = deepcopy(self.grads[:, :(self.current_task + 1)].numpy())
+        quantiles = np.quantile(
+            grads, [.1, .2, .25, .4, .5, .6, .75, .8, .9], axis=0
         )
+        self.grad_log['mean'].append(np.mean(grads, axis=0))
+        self.grad_log['std'].append(np.std(grads, axis=0))
+        self.grad_log['min'].append(np.min(grads, axis=0))
+        self.grad_log['10%'].append(quantiles[0])
+        self.grad_log['20%'].append(quantiles[1])
+        self.grad_log['25%'].append(quantiles[2])
+        self.grad_log['40%'].append(quantiles[3])
+        self.grad_log['median'].append(quantiles[4])
+        self.grad_log['60%'].append(quantiles[5])
+        self.grad_log['75%'].append(quantiles[6])
+        self.grad_log['80%'].append(quantiles[7])
+        self.grad_log['90%'].append(quantiles[8])
+        self.grad_log['max'].append(np.max(grads, axis=0))
+        if grads.shape[1] > 1:
+            norm_grads = grads / np.linalg.norm(grads, axis=0)
+            self.grad_log['dot'].append(
+                norm_grads[:, -1].unsqueeze(0) @ norm_grads[:, :-1]
+            )
+            self.grad_log['norm_dot'].append(
+                grads[:, -1].unsqueeze(0) @ grads[:, :-1]
+            )
 
     def get_state(self):
         net_state = super().get_state()
