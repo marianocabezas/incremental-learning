@@ -497,10 +497,11 @@ class GEM(MetaModel):
         t = self.current_task
         self.store_grad(t)
         # Copy the current gradient
-        indx = torch.tensor(self.observed_tasks[:-1], dtype=torch.long)
-        grad = self.get_grad(indx)
         grad_t = self.get_grad(torch.tensor(t, dtype=torch.long))
         if len(self.observed_tasks) > 1:
+            indx = torch.tensor(self.observed_tasks[:-1], dtype=torch.long)
+            grad = self.get_grad(indx)
+
             dotp = torch.mm(
                 grad_t.t().to(self.device),
                 grad.to(self.device)
