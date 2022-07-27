@@ -838,7 +838,7 @@ class iCARL(MetaModel):
             self.memy = torch.cat((self.memy, y.cpu().data.clone()))
 
     def batch_update(self, batch, batches, x, y):
-        if self.examples_seen == self.samples_per_task:
+        if (batch + 1) == batches:
             self.examples_seen = 0
             # get labels from previous task; we assume labels are consecutive
             if self.gpu:
