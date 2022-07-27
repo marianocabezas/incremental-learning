@@ -503,9 +503,9 @@ class GEM(MetaModel):
             grad = self.get_grad()
 
             dotp = grad_t.t().to(self.device) @ grad.to(self.device)
-            print(dotp, dotp.shape)
 
             if (dotp < 0).any():
+                print(dotp)
                 grad_t = project2cone2(
                     grad_t, grad, self.margin
                 )
