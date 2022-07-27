@@ -572,73 +572,73 @@ def main(verbose=2):
                 offset1 = 0
                 offset2 = n_classes
 
-            # < NAIVE >
-            print(
-                '{:}Starting task - naive {:02d}/{:02d}{:} - {:02d}/{:02d} '
-                '({:} parameters)'.format(
-                    c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
-                    test_n + 1, len(config['seeds']),
-                    c['b'] + str(n_param) + c['nc']
-                )
-            )
-            # We train the naive model on the current task
-            model_name = os.path.join(
-                model_path,
-                '{:}-naive-t{:02d}.s{:05d}.pt'.format(
-                    model_base, t_i, seed
-                )
-            )
-            process_net(
-                config, net, model_name, seed, training_set, validation_set,
-                training_tasks, validation_tasks, testing_tasks,
-                t_i, offset1, offset2, epochs, n_classes, naive_results
-            )
-
-            # < Independent >
-            print(
-                '{:}Starting task - Independent {:02d}/{:02d}{:} - '
-                '{:02d}/{:02d} ({:} parameters)'.format(
-                    c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
-                    test_n + 1, len(config['seeds']),
-                    c['b'] + str(n_param) + c['nc']
-                )
-            )
-            # We train the independent model on the current task
-            model_name = os.path.join(
-                model_path,
-                '{:}-ind-t{:02d}.s{:05d}.pt'.format(
-                    model_base, t_i, seed
-                )
-            )
-            process_net(
-                config, ind_net, model_name, seed, training_set, validation_set,
-                training_tasks, validation_tasks, testing_tasks,
-                t_i, offset1, offset2, epochs, n_classes, ind_results
-            )
-
-            # < EWC >
-            print(
-                '{:}Starting task - EWC {:02d}/{:02d}{:} - {:02d}/{:02d} '
-                '({:} parameters)'.format(
-                    c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
-                    test_n + 1, len(config['seeds']),
-                    c['b'] + str(n_param) + c['nc']
-                )
-            )
-
-            # We train the naive model on the current task
-            ewc_net.to(ewc_net.device)
-            model_name = os.path.join(
-                model_path,
-                '{:}-ewc-t{:02d}.s{:05d}.pt'.format(
-                    model_base, t_i, seed
-                )
-            )
-            process_net(
-                config, ewc_net, model_name, seed, training_set, validation_set,
-                training_tasks, validation_tasks, testing_tasks,
-                t_i, offset1, offset2, epochs, n_classes, ewc_results
-            )
+            # # < NAIVE >
+            # print(
+            #     '{:}Starting task - naive {:02d}/{:02d}{:} - {:02d}/{:02d} '
+            #     '({:} parameters)'.format(
+            #         c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
+            #         test_n + 1, len(config['seeds']),
+            #         c['b'] + str(n_param) + c['nc']
+            #     )
+            # )
+            # # We train the naive model on the current task
+            # model_name = os.path.join(
+            #     model_path,
+            #     '{:}-naive-t{:02d}.s{:05d}.pt'.format(
+            #         model_base, t_i, seed
+            #     )
+            # )
+            # process_net(
+            #     config, net, model_name, seed, training_set, validation_set,
+            #     training_tasks, validation_tasks, testing_tasks,
+            #     t_i, offset1, offset2, epochs, n_classes, naive_results
+            # )
+            # 
+            # # < Independent >
+            # print(
+            #     '{:}Starting task - Independent {:02d}/{:02d}{:} - '
+            #     '{:02d}/{:02d} ({:} parameters)'.format(
+            #         c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
+            #         test_n + 1, len(config['seeds']),
+            #         c['b'] + str(n_param) + c['nc']
+            #     )
+            # )
+            # # We train the independent model on the current task
+            # model_name = os.path.join(
+            #     model_path,
+            #     '{:}-ind-t{:02d}.s{:05d}.pt'.format(
+            #         model_base, t_i, seed
+            #     )
+            # )
+            # process_net(
+            #     config, ind_net, model_name, seed, training_set, validation_set,
+            #     training_tasks, validation_tasks, testing_tasks,
+            #     t_i, offset1, offset2, epochs, n_classes, ind_results
+            # )
+            # 
+            # # < EWC >
+            # print(
+            #     '{:}Starting task - EWC {:02d}/{:02d}{:} - {:02d}/{:02d} '
+            #     '({:} parameters)'.format(
+            #         c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
+            #         test_n + 1, len(config['seeds']),
+            #         c['b'] + str(n_param) + c['nc']
+            #     )
+            # )
+            # 
+            # # We train the naive model on the current task
+            # ewc_net.to(ewc_net.device)
+            # model_name = os.path.join(
+            #     model_path,
+            #     '{:}-ewc-t{:02d}.s{:05d}.pt'.format(
+            #         model_base, t_i, seed
+            #     )
+            # )
+            # process_net(
+            #     config, ewc_net, model_name, seed, training_set, validation_set,
+            #     training_tasks, validation_tasks, testing_tasks,
+            #     t_i, offset1, offset2, epochs, n_classes, ewc_results
+            # )
 
             # < iCARL >
             print(

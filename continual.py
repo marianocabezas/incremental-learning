@@ -499,23 +499,23 @@ class GEM(MetaModel):
         indx = torch.LongTensor(
             self.observed_tasks[:-1]
         )
-        self.store_grad(t)
         grad = self.get_grad(indx)
+        grad_t = self.get_grad(torch.LongTensor(t))
         if len(self.observed_tasks) > 1:
             dotp = torch.mm(
-                self.grads[:, t].unsqueeze(0).to(self.device),
+                grad_t.unsqueeze(0).to(self.device),
                 grad.to(self.device)
             )
 
             if (dotp < 0).any():
-                grad = project2cone2(
-                    self.grads[:, t].unsqueeze(1), grad, self.margin
+                grad_t = project2cone2(
+                    grad_t.unsqueeze(1), grad, self.margin
                 )
                 # Copy gradients back
                 overwrite_grad(
-                    self.parameters, grad, self.grad_dims
+                    self.parameters, grad_t, self.grad_dims
                 )
-        return grad
+        return grad_t
 
     def get_state(self):
         net_state = super().get_state()
@@ -970,6 +970,7 @@ class LoggingGEM(GEM):
         )
         self.grad_log = {
             'mean': [],
+            'mean_abs': [],
             'std': [],
             'min': [],
             '10%': [],
@@ -998,6 +999,7 @@ class LoggingGEM(GEM):
             grads, [.1, .2, .25, .4, .5, .6, .75, .8, .9], axis=0
         )
         self.grad_log['mean'].append(np.mean(grads, axis=0))
+        self.grad_log['mean_abs'].append(np.mean(np.abs(grads), axis=0))
         self.grad_log['std'].append(np.std(grads, axis=0))
         self.grad_log['min'].append(np.min(grads, axis=0))
         self.grad_log['10%'].append(quantiles[0])
