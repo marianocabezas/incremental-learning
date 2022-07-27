@@ -782,8 +782,7 @@ class iCARL(MetaModel):
         ]
         self.val_functions = self.model.val_functions
 
-        # memory
-        self.examples_seen = 0
+        # Memory
         self.memx = None  # stores raw inputs, PxD
         self.memy = None
         self.mem_class_x = {}  # stores exemplars class by class
@@ -819,8 +818,6 @@ class iCARL(MetaModel):
         return sum(losses)
 
     def prebatch_update(self, batch, batches, x, y):
-        self.examples_seen += x.size(0)
-
         if self.memx is None:
             self.memx = x.cpu().data.clone()
             self.memy = y.cpu().data.clone()
@@ -830,8 +827,7 @@ class iCARL(MetaModel):
 
     def batch_update(self, batch, batches, x, y):
         if (batch + 1) == batches:
-            self.examples_seen = 0
-            # get labels from previous task; we assume labels are consecutive
+            # Get labels from previous task; we assume labels are consecutive
             all_labs = torch.LongTensor(np.unique(self.memy.numpy()))
             num_classes = all_labs.size(0)
             assert (num_classes == self.nc_per_task)
@@ -839,53 +835,51 @@ class iCARL(MetaModel):
             self.num_exemplars = int(
                 self.n_memories / (num_classes + len(self.mem_class_x.keys())))
             offset_slice = slice(self.offset1, self.offset2)
-            print(num_classes)
-            for ll in range(num_classes):
-                lab = all_labs[ll]
-                indxs = (self.memy == lab).nonzero().squeeze()
+            for k in all_labs:
+                indxs = (self.memy == k).nonzero().squeeze()
                 cdata = self.memx.index_select(
                     0, indxs
                 ).to(self.device)  # cdata are exemplar whose label == lab
 
                 # Construct exemplar set for last task
-                cout = self.model(
+                model_output = self.model(
                     cdata
                 )[:, offset_slice].data.clone()
-                mean_feature = cout.mean(0)
-                nd = self.nc_per_task
+                mean_feature = model_output.mean(0)
                 exemplars = torch.zeros(
                     (self.num_exemplars,) + x.shape[1:],
                     device=self.device
                 )
-                ntr = cdata.size(0)
+                batch_size = cdata.size(0)
                 # used to keep track of which examples we have already used
-                taken = torch.zeros(ntr)
-                model_output = self.model(cdata)[:, offset_slice].data.clone()
-                prev = torch.zeros(1, nd).to(self.device)
+                taken = torch.zeros(batch_size)
+                prev = torch.zeros(1, self.nc_per_task).to(self.device)
                 for ee in range(self.num_exemplars):
                     # if ee > 0:
                     #     print(x.shape, exemplars.shape, exemplars[:ee].shape)
                     #     prev = self.model(
                     #         exemplars[:ee]
                     #     )[:, offset_slice].data.clone().sum(0)
-                    cost = (
-                        mean_feature.expand(ntr, nd) -
-                        (model_output + prev.expand(ntr, nd)) / (ee + 1)).norm(
-                            2, 1).squeeze()
+                    mean_cost = mean_feature.expand(batch_size, self.nc_per_task)
+                    output_cost = model_output + prev.expand(batch_size, self.nc_per_task)
+                    cost = (mean_cost - output_cost / (ee + 1)).norm(
+                            2, 1
+                    ).squeeze()
                     _, indx = cost.sort(0)
+                    print(indx)
                     winner = 0
                     while winner < indx.size(0) and taken[indx[winner]] == 1:
                         winner += 1
                     if winner < indx.size(0):
                         taken[indx[winner]] = 1
                         exemplars[ee] = cdata[indx[winner]].clone()
-                        prev += cout[indx[winner], offset_slice].data.clone()
+                        prev += model_output[indx[winner], offset_slice].data.clone()
                     else:
                         exemplars = exemplars[:indx.size(0), :].clone()
                         self.num_exemplars = indx.size(0)
                         break
                 # update memory with exemplars
-                self.mem_class_x[lab.item()] = exemplars.cpu().clone()
+                self.mem_class_x[k] = exemplars.cpu().clone()
 
             # recompute outputs for distillation purposes
             for k in self.mem_class_x.keys():
@@ -934,7 +928,6 @@ class iCARL(MetaModel):
             key: data.cpu()
             for key, data in net_state['mem_class_y'].items()
         }  # stores exemplars class by class
-        self.examples_seen = net_state['n_examples']
         self.n_classes = net_state['n_classes']
         self.nc_per_task = net_state['nc_per_task']
 
@@ -946,7 +939,6 @@ class iCARL(MetaModel):
         net_state['mem_class_y'] = self.mem_class_y
         net_state['memx'] = self.memx
         net_state['memy'] = self.memy
-        net_state['n_examples'] = self.examples_seen
         net_state['n_classes'] = self.n_classes
         net_state['nc_per_task'] = self.nc_per_task
         return net_state
@@ -957,7 +949,6 @@ class iCARL(MetaModel):
             'mem_class_y': self.mem_class_y,
             'memx': self.memx,
             'memy': self.memy,
-            'n_examples': self.examples_seen,
             'n_classes': self.n_classes,
             'nc_per_task': self.nc_per_task,
         }
