@@ -52,7 +52,7 @@ def project2cone2(gradient, memories, margin=0.5, eps=1e-3):
     h = np.zeros(t) + margin
     v = quadprog.solve_qp(P, q, G, h)[0]
     x = np.dot(v, memories_np) + gradient_np
-    return torch.Tensor(x)
+    return torch.Tensor(x).view(-1, 1)
     # gradient.copy_(torch.Tensor(x).view(-1, 1))
 
 
@@ -990,9 +990,7 @@ class LoggingGEM(GEM):
         }
 
     def constraint_check(self):
-        new_grad = np.expand_dims(
-            super().constraint_check().numpy(), 0
-        )
+        new_grad = super().constraint_check().numpy()
         grads = deepcopy(self.grads[:, :(self.current_task + 1)].numpy())
         old_grad = np.expand_dims(grads[:, -1], 0)
         quantiles = np.quantile(
