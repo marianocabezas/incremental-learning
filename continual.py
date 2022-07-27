@@ -781,11 +781,6 @@ class iCARL(MetaModel):
             }
         ]
         self.val_functions = self.model.val_functions
-        # setup losses
-        self.bce = torch.nn.CrossEntropyLoss()
-        self.kl = torch.nn.KLDivLoss()  # for distillation
-        self.lsm = torch.nn.LogSoftmax(dim=1)
-        self.sm = torch.nn.Softmax(dim=1)
 
         # memory
         self.examples_seen = 0
@@ -802,28 +797,24 @@ class iCARL(MetaModel):
         ):
             # first generate a minibatch with one example per class from
             # previous tasks
-            inp_dist = []
-            target_dist = []
-            for cc in range(self.nc_per_task):
-                indx = torch.random.randint(
-                    0,
-                    len(self.mem_class_x[cc + offset1]) - 1
-                )
-                inp_dist.append(
-                    self.mem_class_x[cc + offset1][indx].clone()
-                )
-                target_dist.append(
-                    self.mem_class_y[cc + offset1][indx].clone()
-                )
-            inp_dist = torch.stack(inp_dist, dim=0).to(self.device)
-            target_dist = torch.stack(target_dist, dim=0).to(self.device)
+            x = []
+            y_logits = []
+            for k in range(self.nc_per_task):
+                x_k = self.mem_class_x[k + offset1]
+                y_k = self.mem_class_y[k + offset1]
+                indx = torch.random.randint(0, len(x_k) - 1)
+                x.append(x_k[indx].clone())
+                y_logits.append(y_k[indx].clone())
+            x = torch.stack(x, dim=0).to(self.device)
+            y_logits = torch.stack(y_logits, dim=0).to(self.device)
 
             # Add distillation loss
+            prediction = F.log_softmax(
+                self.model(x)[:, offset1:offset2], 1
+            )
+            y = F.softmax(y_logits[:, offset1:offset2], 1)
             losses.append(
-                self.kl(
-                    self.lsm(self.model(inp_dist)[:, offset1:offset2]),
-                    self.sm(target_dist[:, offset1:offset2])
-                ) * self.nc_per_task
+                F.kl_div(prediction, y) * self.nc_per_task
             )
         return sum(losses)
 
@@ -892,9 +883,9 @@ class iCARL(MetaModel):
                 self.mem_class_x[lab.item()] = exemplars.cpu().clone()
 
             # recompute outputs for distillation purposes
-            for cc in self.mem_class_x.keys():
-                self.mem_class_y[cc] = self.model(
-                    self.mem_class_x[cc]
+            for k in self.mem_class_x.keys():
+                self.mem_class_y[k] = self.model(
+                    self.mem_class_x[k]
                 ).cpu().data.clone()
             self.memx = None
             self.memy = None
