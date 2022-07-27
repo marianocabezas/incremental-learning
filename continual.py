@@ -993,8 +993,7 @@ class LoggingGEM(GEM):
             'norm_dot': []
         }
 
-    def constraint_check(self):
-        super().constraint_check()
+    def batch_update(self, batch, batches, x, y):
         grads = deepcopy(self.grads[:, :(self.current_task + 1)].numpy())
         quantiles = np.quantile(
             grads, [.1, .2, .25, .4, .5, .6, .75, .8, .9], axis=0
@@ -1015,10 +1014,10 @@ class LoggingGEM(GEM):
         if grads.shape[1] > 1:
             norm_grads = grads / np.linalg.norm(grads, axis=0)
             self.grad_log['dot'].append(
-                norm_grads[:, -1].unsqueeze(0) @ norm_grads[:, :-1]
+                np.expand_dims(norm_grads[:, -1], 0) @ norm_grads[:, :-1]
             )
             self.grad_log['norm_dot'].append(
-                grads[:, -1].unsqueeze(0) @ grads[:, :-1]
+                np.expand_dims(grads[:, -1], 0) @ grads[:, :-1]
             )
 
     def get_state(self):
