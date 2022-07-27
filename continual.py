@@ -849,14 +849,15 @@ class iCARL(MetaModel):
                 self.n_memories / (num_classes + len(self.mem_class_x.keys())))
             offset_slice = slice(self.offset1, self.offset2)
             for ll in range(num_classes):
-                lab = all_labs[ll].cuda()
-                indxs = (self.memy == lab).nonzero().squeeze()
-                cdata = self.memx.index_select(
+                lab = all_labs[ll].to(self.device)
+                indxs = (self.memy.to(self.device) == lab).nonzero().squeeze()
+                cdata = self.memx.to(self.device).index_select(
                     0, indxs)  # cdata are exemplar whose label == lab
 
                 # Construct exemplar set for last task
                 mean_feature = self.net(
-                    cdata)[:, offset_slice].data.clone().mean(0)
+                    cdata
+                )[:, offset_slice].data.clone().mean(0)
                 nd = self.nc_per_task
                 exemplars = torch.zeros(
                     self.num_exemplars, x.size(1),
