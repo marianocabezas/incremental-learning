@@ -815,8 +815,7 @@ class iCARL(MetaModel):
             else:
                 losses = []
                 for offset1, offset2 in self.offsets[:-1]:
-                    losses.append(self._kl_div_loss(offset1, offset2))
-                losses += losses
+                    losses += self._kl_div_loss(offset1, offset2)
         else:
             losses = []
         return sum(losses)
