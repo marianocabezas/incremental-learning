@@ -336,10 +336,10 @@ class BaseModel(nn.Module):
                 )
                 print(final_s)
 
+            self.epoch_update(epochs, train_loader)
+
             if no_improv_e == int(patience / (1 - self.dropout)):
                 break
-
-            self.epoch_update(epochs, train_loader)
 
         t_end = time.time() - t_start
         t_end_s = time_to_string(t_end)
