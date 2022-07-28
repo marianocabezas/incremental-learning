@@ -851,11 +851,6 @@ class iCARL(MetaModel):
                 taken = torch.zeros(batch_size)
                 prev = torch.zeros(1, n_classes).to(self.device)
                 for ee in range(self.num_exemplars):
-                    # if ee > 0:
-                    #     print(x.shape, exemplars.shape, exemplars[:ee].shape)
-                    #     prev = self.model(
-                    #         exemplars[:ee]
-                    #     )[:, offset_slice].data.clone().sum(0)
                     mean_cost = mean_feature.expand(batch_size, n_classes)
                     output_cost = model_output + prev.expand(batch_size, n_classes)
                     cost = (mean_cost - output_cost / (ee + 1)).norm(
