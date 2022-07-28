@@ -824,7 +824,6 @@ class iCARL(MetaModel):
                 self.memy = torch.cat((self.memy, y.cpu().data.clone()))
 
     def epoch_update(self, epochs, loader):
-        print(self.epoch, epochs)
         if (self.model.epoch + 1) == epochs:
             # Get labels from previous task; we assume labels are consecutive
             all_labs = torch.LongTensor(np.unique(self.memy.numpy()))
@@ -846,7 +845,7 @@ class iCARL(MetaModel):
                 )[:, offset_slice].data.clone()
                 mean_feature = model_output.mean(0)
                 exemplars = torch.zeros(
-                    (self.num_exemplars,) + x.shape[1:],
+                    (self.num_exemplars,) + cdata.shape[1:],
                     device=self.device
                 )
                 batch_size = cdata.size(0)
