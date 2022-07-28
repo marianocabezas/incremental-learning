@@ -887,6 +887,7 @@ class iCARL(MetaModel):
                 )
             self.memx = None
             self.memy = None
+            self.first = False
 
     def fit(
         self,
