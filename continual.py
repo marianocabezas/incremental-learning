@@ -784,15 +784,13 @@ class iCARL(MetaModel):
         # Memory
         self.memx = None  # stores raw inputs, PxD
         self.memy = None
-        self.mem_class_x = {}  # stores exemplars class by class
-        self.mem_class_y = {}
+        self.mem_class_x = []  # stores exemplars class by class
+        self.mem_class_y = []
         self.offsets = []
 
     def distillation_loss(self):
         losses = []
-        for past_task, (offset1, offset2) in zip(
-                self.observed_tasks[:-1], self.offsets[:-1]
-        ):
+        for offset1, offset2 in self.offsets[:-1]:
             # first generate a minibatch with one example per class from
             # previous tasks
             x = []
@@ -817,15 +815,16 @@ class iCARL(MetaModel):
         return sum(losses)
 
     def prebatch_update(self, batch, batches, x, y):
-        if self.memx is None:
-            self.memx = x.cpu().data.clone()
-            self.memy = y.cpu().data.clone()
-        else:
-            self.memx = torch.cat((self.memx, x.cpu().data.clone()))
-            self.memy = torch.cat((self.memy, y.cpu().data.clone()))
+        if self.epoch == 0:
+            if self.memx is None:
+                self.memx = x.cpu().data.clone()
+                self.memy = y.cpu().data.clone()
+            else:
+                self.memx = torch.cat((self.memx, x.cpu().data.clone()))
+                self.memy = torch.cat((self.memy, y.cpu().data.clone()))
 
-    def batch_update(self, batch, batches, x, y):
-        if (batch + 1) == batches:
+    def epoch_update(self, epochs, loader):
+        if (self.epoch + 1) == epochs:
             # Get labels from previous task; we assume labels are consecutive
             all_labs = torch.LongTensor(np.unique(self.memy.numpy()))
             num_classes = all_labs.size(0)
@@ -876,14 +875,12 @@ class iCARL(MetaModel):
                         exemplars = exemplars[:indx.size(0), :].clone()
                         self.num_exemplars = indx.size(0)
                         break
-                # update memory with exemplars
-                self.mem_class_x[k] = exemplars.cpu().clone()
-
-            # recompute outputs for distillation purposes
-            for k in self.mem_class_x.keys():
-                self.mem_class_y[k] = self.model(
-                    self.mem_class_x[k].to(self.device)
-                ).cpu().data.clone()
+                # Update memory with exemplars
+                self.mem_class_x.append(exemplars.cpu().clone())
+                # Recompute outputs for distillation purposes
+                self.mem_class_y.append(
+                    self.model(exemplars.to(self.device)).cpu().data.clone()
+                )
             self.memx = None
             self.memy = None
 
