@@ -846,6 +846,7 @@ class iCARL(MetaModel):
                     cdata
                 )[:, offset_slice].data.clone()
                 mean_feature = model_output.mean(0)
+                print(mean_feature.shape)
                 exemplars = torch.zeros(
                     (self.num_exemplars,) + cdata.shape[1:],
                     device=self.device
