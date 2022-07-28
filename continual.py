@@ -790,14 +790,13 @@ class iCARL(MetaModel):
 
     def distillation_loss(self):
         losses = []
+        print(len(self.mem_class_x), len(self.mem_class_y))
         for offset1, offset2 in self.offsets[:-1]:
             # first generate a minibatch with one example per class from
             # previous tasks
             x = []
             y_logits = []
-            for k in range(self.nc_per_task):
-                x_k = self.mem_class_x[k + offset1]
-                y_k = self.mem_class_y[k + offset1]
+            for x_k, y_k in zip(self.mem_class_x, self.mem_class_y):
                 indx = torch.random.randint(0, len(x_k) - 1)
                 x.append(x_k[indx].clone())
                 y_logits.append(y_k[indx].clone())
