@@ -798,7 +798,7 @@ class iCARL(MetaModel):
             for k in range(self.nc_per_task):
                 x_k = self.mem_class_x[k + offset1]
                 y_k = self.mem_class_y[k + offset1]
-                indx = torch.random.randint(0, len(x_k) - 1)
+                indx = np.random.randint(0, len(x_k) - 1)
                 x.append(x_k[indx].clone())
                 y_logits.append(y_k[indx].clone())
             x = torch.stack(x, dim=0).to(self.device)
