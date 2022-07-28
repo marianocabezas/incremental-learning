@@ -824,7 +824,7 @@ class iCARL(MetaModel):
                 self.memy = torch.cat((self.memy, y.cpu().data.clone()))
 
     def epoch_update(self, epochs, loader):
-        if (self.epoch + 1) == epochs:
+        if (self.model.epoch + 1) == epochs:
             print('Updating memory')
             # Get labels from previous task; we assume labels are consecutive
             all_labs = torch.LongTensor(np.unique(self.memy.numpy()))
