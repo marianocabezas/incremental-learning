@@ -795,9 +795,9 @@ class iCARL(MetaModel):
             # previous tasks
             x = []
             y_logits = []
-            for k in range(self.nc_per_task):
-                x_k = self.mem_class_x[k + offset1]
-                y_k = self.mem_class_y[k + offset1]
+            for k in range(offset1, offset2):
+                x_k = self.mem_class_x[k]
+                y_k = self.mem_class_y[k]
                 indx = np.random.randint(0, len(x_k) - 1)
                 x.append(x_k[indx].clone())
                 y_logits.append(y_k[indx].clone())
@@ -810,7 +810,9 @@ class iCARL(MetaModel):
             )
             y = F.softmax(y_logits[:, offset1:offset2], 1)
             losses.append(
-                F.kl_div(prediction, y) * self.nc_per_task
+                F.kl_div(
+                    prediction, y, reduction='batchmean'
+                ) * self.nc_per_task
             )
         return sum(losses)
 
@@ -828,7 +830,6 @@ class iCARL(MetaModel):
             # Get labels from previous task; we assume labels are consecutive
             all_labs = torch.LongTensor(np.unique(self.memy.numpy()))
             num_classes = all_labs.size(0)
-            assert (num_classes == self.nc_per_task)
             # Reduce exemplar set by updating value of num. exemplars per class
             self.num_exemplars = int(
                 self.n_memories / (num_classes + len(self.mem_class_x))
