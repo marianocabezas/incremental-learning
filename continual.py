@@ -790,7 +790,6 @@ class iCARL(MetaModel):
 
     def distillation_loss(self):
         losses = []
-        print(len(self.mem_class_x), len(self.mem_class_y))
         for offset1, offset2 in self.offsets[:-1]:
             # first generate a minibatch with one example per class from
             # previous tasks
