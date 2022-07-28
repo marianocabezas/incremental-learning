@@ -811,7 +811,6 @@ class iCARL(MetaModel):
     def distillation_loss(self):
         if not self.first:
             if (self.offset2 - self.offset1) == self.n_classes:
-                print('Class incremental')
                 losses = self._kl_div_loss(0, len(self.mem_class_x))
             else:
                 losses = []
