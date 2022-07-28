@@ -783,32 +783,40 @@ class iCARL(MetaModel):
         self.mem_class_y = []
         self.offsets = []
 
-    def distillation_loss(self):
+    def _kl_div_loss(self, offset1, offset2):
         losses = []
-        for offset1, offset2 in self.offsets[:-1]:
-            # first generate a minibatch with one example per class from
-            # previous tasks
-            x = []
-            y_logits = []
-            for k in range(offset1, offset2):
-                x_k = self.mem_class_x[k]
-                y_k = self.mem_class_y[k]
-                indx = np.random.randint(0, len(x_k) - 1)
-                x.append(x_k[indx].clone())
-                y_logits.append(y_k[indx].clone())
-            x = torch.stack(x, dim=0).to(self.device)
-            y_logits = torch.stack(y_logits, dim=0).to(self.device)
+        x = []
+        y_logits = []
+        for k in range(offset1, offset2):
+            x_k = self.mem_class_x[k]
+            y_k = self.mem_class_y[k]
+            indx = np.random.randint(0, len(x_k) - 1)
+            x.append(x_k[indx].clone())
+            y_logits.append(y_k[indx].clone())
+        x = torch.stack(x, dim=0).to(self.device)
+        y_logits = torch.stack(y_logits, dim=0).to(self.device)
 
-            # Add distillation loss
-            prediction = F.log_softmax(
-                self.model(x)[:, offset1:offset2], 1
-            )
-            y = F.softmax(y_logits[:, offset1:offset2], 1)
-            losses.append(
-                F.kl_div(
-                    prediction, y, reduction='batchmean'
-                ) * (offset2 - offset1)
-            )
+        # Add distillation loss
+        prediction = F.log_softmax(
+            self.model(x)[:, offset1:offset2], 1
+        )
+        y = F.softmax(y_logits[:, offset1:offset2], 1)
+        losses.append(
+            F.kl_div(
+                prediction, y, reduction='batchmean'
+            ) * (offset2 - offset1)
+        )
+        return losses
+
+    def distillation_loss(self):
+        if (self.offset2 - self.offset1) == self.n_classes:
+            print('Class incremental')
+            losses = self._kl_div_loss(0, len(self.mem_class_x))
+        else:
+            losses = []
+            for offset1, offset2 in self.offsets[:-1]:
+                losses.append(self._kl_div_loss(offset1, offset2))
+            losses += losses
         return sum(losses)
 
     def prebatch_update(self, batch, batches, x, y):
