@@ -809,14 +809,17 @@ class iCARL(MetaModel):
         return losses
 
     def distillation_loss(self):
-        if (self.offset2 - self.offset1) == self.n_classes:
-            print('Class incremental')
-            losses = self._kl_div_loss(0, len(self.mem_class_x))
+        if not self.first:
+            if (self.offset2 - self.offset1) == self.n_classes:
+                print('Class incremental')
+                losses = self._kl_div_loss(0, len(self.mem_class_x))
+            else:
+                losses = []
+                for offset1, offset2 in self.offsets[:-1]:
+                    losses.append(self._kl_div_loss(offset1, offset2))
+                losses += losses
         else:
             losses = []
-            for offset1, offset2 in self.offsets[:-1]:
-                losses.append(self._kl_div_loss(offset1, offset2))
-            losses += losses
         return sum(losses)
 
     def prebatch_update(self, batch, batches, x, y):
