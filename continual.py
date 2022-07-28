@@ -915,14 +915,12 @@ class iCARL(MetaModel):
             self.memy = net_state['memy'].cpu()
         else:
             self.memy = None
-        self.mem_class_x = {
-            key: data.cpu()
-            for key, data in net_state['mem_class_x'].items()
-        }  # stores exemplars class by class
-        self.mem_class_y = {
-            key: data.cpu()
-            for key, data in net_state['mem_class_y'].items()
-        }  # stores exemplars class by class
+        self.mem_class_x = [
+            data.cpu() for data in net_state['mem_class_x']
+        ]  # stores exemplars class by class
+        self.mem_class_y = [
+            data.cpu() for data in net_state['mem_class_y']
+        ]  # stores exemplars class by class
         self.n_classes = net_state['n_classes']
         self.nc_per_task = net_state['nc_per_task']
 
