@@ -831,7 +831,7 @@ class iCARL(MetaModel):
             assert (num_classes == self.nc_per_task)
             # Reduce exemplar set by updating value of num. exemplars per class
             self.num_exemplars = int(
-                self.n_memories / (num_classes + len(self.mem_class_x.keys())))
+                self.n_memories / (num_classes + len(self.mem_class_x)))
             offset_slice = slice(self.offset1, self.offset2)
             for k in all_labs:
                 indxs = (self.memy == k).nonzero(as_tuple=False).squeeze()
