@@ -399,7 +399,6 @@ class GEM(MetaModel):
         super().__init__(basemodel, best, n_memories)
         self.margin = memory_strength
         self.n_classes = n_classes
-        self.nc_per_task = n_classes // n_tasks
         self.train_functions = self.model.train_functions
         self.val_functions = self.model.val_functions
         self.grad_dims = []
@@ -526,7 +525,6 @@ class GEM(MetaModel):
         net_state['grads'] = self.grads
         net_state['tasks'] = self.observed_tasks
         net_state['n_classes'] = self.n_classes
-        net_state['nc_per_task'] = self.nc_per_task
         return net_state
 
     def load_model(self, net_name):
@@ -547,7 +545,6 @@ class GEM(MetaModel):
             self.grads = net_state['grads'].cpu()
         self.observed_tasks = net_state['tasks']
         self.n_classes = net_state['n_classes']
-        self.nc_per_task = net_state['nc_per_task']
 
         return net_state
 
@@ -718,7 +715,6 @@ class ParamGEM(GEM):
         super().__init__(basemodel, best, n_memories)
         self.margin = memory_strength
         self.n_classes = n_classes
-        self.nc_per_task = n_classes // n_tasks
         self.train_functions = self.model.train_functions
         self.val_functions = self.model.val_functions
         self.grads = []
@@ -771,7 +767,6 @@ class iCARL(MetaModel):
     ):
         super().__init__(basemodel, best, n_memories)
         self.n_classes = n_classes
-        self.nc_per_task = n_classes // n_tasks
         self.train_functions = self.model.train_functions + [
             {
                 'name': 'dist',
@@ -812,7 +807,7 @@ class iCARL(MetaModel):
             losses.append(
                 F.kl_div(
                     prediction, y, reduction='batchmean'
-                ) * self.nc_per_task
+                ) * (offset2 - offset1)
             )
         return sum(losses)
 
@@ -835,6 +830,7 @@ class iCARL(MetaModel):
                 self.n_memories / (num_classes + len(self.mem_class_x))
             )
             offset_slice = slice(self.offset1, self.offset2)
+            n_classes = self.offset2 - self.offset1
             for k in all_labs:
                 indxs = (self.memy == k).nonzero(as_tuple=False).squeeze()
                 cdata = self.memx.index_select(
@@ -854,15 +850,15 @@ class iCARL(MetaModel):
                 batch_size = cdata.size(0)
                 # used to keep track of which examples we have already used
                 taken = torch.zeros(batch_size)
-                prev = torch.zeros(1, self.nc_per_task).to(self.device)
+                prev = torch.zeros(1, n_classes).to(self.device)
                 for ee in range(self.num_exemplars):
                     # if ee > 0:
                     #     print(x.shape, exemplars.shape, exemplars[:ee].shape)
                     #     prev = self.model(
                     #         exemplars[:ee]
                     #     )[:, offset_slice].data.clone().sum(0)
-                    mean_cost = mean_feature.expand(batch_size, self.nc_per_task)
-                    output_cost = model_output + prev.expand(batch_size, self.nc_per_task)
+                    mean_cost = mean_feature.expand(batch_size, n_classes)
+                    output_cost = model_output + prev.expand(batch_size, n_classes)
                     cost = (mean_cost - output_cost / (ee + 1)).norm(
                             2, 1
                     ).squeeze()
@@ -925,7 +921,6 @@ class iCARL(MetaModel):
             data.cpu() for data in net_state['mem_class_y']
         ]  # stores exemplars class by class
         self.n_classes = net_state['n_classes']
-        self.nc_per_task = net_state['nc_per_task']
 
         return net_state
 
@@ -936,7 +931,6 @@ class iCARL(MetaModel):
         net_state['memx'] = self.memx
         net_state['memy'] = self.memy
         net_state['n_classes'] = self.n_classes
-        net_state['nc_per_task'] = self.nc_per_task
         return net_state
 
 
