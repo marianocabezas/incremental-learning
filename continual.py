@@ -1134,7 +1134,7 @@ class GDumb(MetaModel):
                     self.mem_class_x[big_class].pop(
                         np.random.randint(len(self.mem_class_x[big_class]))
                     )
-                self.mem_class_x[y_i].append(x_i.)
+                self.mem_class_x[y_i].append(x_i)
 
     def model_update(self, batch_size):
         self.model.optimizer_alg.zero_grad()
