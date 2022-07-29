@@ -1,7 +1,8 @@
 from copy import deepcopy
 import torch
-import torch.nn.functional as F
 from torch import nn
+import torch.nn.functional as F
+from torch.utils.data import DataLoader
 import numpy as np
 import quadprog
 from sklearn.decomposition import PCA
@@ -1023,4 +1024,181 @@ class LoggingGEM(GEM):
         net_state = super().load_model(net_name)
         self.grad_log = net_state['log']
 
+        return net_state
+
+
+class GDumb(MetaModel):
+    def __init__(
+        self, basemodel, best=True, n_memories=256, n_classes=100
+    ):
+        super().__init__(basemodel, best, n_memories)
+        self.n_classes = n_classes
+        self.train_functions = self.model.train_functions
+        self.val_functions = self.model.val_functions
+
+        # Memory
+        self.mem_class_x = [[] for _ in range(n_classes)]  # stores exemplars class by class
+        self.offsets = []
+
+    def mini_batch_loop(
+            self, data, train=True
+    ):
+        """
+                This is the main loop. It's "generic" enough to account for multiple
+                types of data (target and input) and it differentiates between
+                training and testing. While inherently all networks have a training
+                state to check, here the difference is applied to the kind of data
+                being used (is it the validation data or the training data?). Why am
+                I doing this? Because there might be different metrics for each type
+                of data. There is also the fact that for training, I really don't care
+                about the values of the losses, since I only want to see how the global
+                value updates, while I want both (the losses and the global one) for
+                validation.
+                :param data: Dataloader for the network.
+                :param train: Whether to use the training dataloader or the validation
+                 one.
+                :return:
+                """
+        losses = list()
+        mid_losses = list()
+        accs = list()
+        n_batches = len(data)
+        for batch_i, (x, y) in enumerate(data):
+            if not self.training:
+                # First, we do a forward pass through the network.
+                pred_labels, x_cuda, y_cuda = self.observe(x, y)
+
+                # After that, we can compute the relevant losses.
+                if train:
+                    # Training losses (applied to the training data)
+                    batch_losses = [
+                        l_f['weight'] * l_f['f'](pred_labels, y_cuda)
+                        for l_f in self.train_functions
+                    ]
+                    batch_loss = sum(batch_losses)
+                else:
+                    # Validation losses (applied to the validation data)
+                    batch_losses = [
+                        l_f['f'](pred_labels, y_cuda)
+                        for l_f in self.val_functions
+                    ]
+                    batch_loss = sum([
+                        l_f['weight'] * l
+                        for l_f, l in zip(self.val_functions, batch_losses)
+                    ])
+                    mid_losses.append([l.tolist() for l in batch_losses])
+                    batch_accs = [
+                        l_f['f'](pred_labels, y_cuda)
+                        for l_f in self.acc_functions
+                    ]
+                    accs.append([a.tolist() for a in batch_accs])
+
+                # It's important to compute the global loss in both cases.
+                loss_value = batch_loss.tolist()
+                losses.append(loss_value)
+
+                self.print_progress(
+                    batch_i, n_batches, loss_value, np.mean(losses)
+                )
+                torch.cuda.empty_cache()
+                torch.cuda.ipc_collect()
+            else:
+                self.memory_update(x, y)
+                losses.append(self.model_update(x.size[0]))
+
+            # Mean loss of the global loss (we don't need the loss for each batch).
+            mean_loss = np.mean(losses)
+
+            if train:
+                return mean_loss
+            else:
+                # If using the validation data, we actually need to compute the
+                # mean of each different loss.
+                mean_losses = np.mean(list(zip(*mid_losses)), axis=1)
+                np_accs = np.array(list(zip(*accs)))
+                mean_accs = np.mean(np_accs, axis=1) if np_accs.size > 0 else []
+            return mean_loss, mean_losses, mean_accs
+
+    def memory_update(self, x, y):
+        for x_i, y_i in zip(x, y):
+            n_classes = sum([len(k_i) > 0 for k_i in self.mem_class_y])
+            n_class_memories = [len(k_i) for k_i in self.mem_class_y]
+            if n_classes > 0:
+                mem_x_class = self.n_memories
+            else:
+                mem_x_class = self.n_memories / n_classes
+            class_size = len(self.mem_class_x[y_i])
+            if class_size == 0 or class_size < mem_x_class:
+                if sum(n_class_memories) >= self.n_memories:
+                    big_class = np.argmax(n_class_memories)
+                    self.mem_class_x[big_class].pop(
+                        np.random.randint(len(self.mem_class_x[big_class]))
+                    )
+                self.mem_class_x[y_i].append(x_i.)
+
+    def model_update(self, batch_size):
+        self.model.optimizer_alg.zero_grad()
+        losses = list()
+        memory_loader = DataLoader(
+            [
+                (x_i, y_i) for y_i, mem_x in enumerate(self.mem_class_x)
+                for x_i in mem_x
+            ], batch_size=batch_size, shuffle=True
+        )
+        n_batches = len(memory_loader)
+        for batch_i, (x, y) in enumerate(memory_loader):
+            pred_labels = self.model(x.to(self.device))
+            y_cuda = y.to(self.device)
+            batch_losses = [
+                l_f['weight'] * l_f['f'](pred_labels, y_cuda)
+                for l_f in self.train_functions
+            ]
+            batch_loss = sum(batch_losses)
+            loss_value = batch_loss.tolist()
+            losses.append(loss_value)
+            batch_loss.backward()
+            self.optimizer_alg.step()
+
+            self.print_progress(
+                batch_i, n_batches, loss_value, np.mean(losses)
+            )
+            torch.cuda.empty_cache()
+            torch.cuda.ipc_collect()
+        return np.mean(losses)
+
+
+    def fit(
+        self,
+        train_loader,
+        val_loader,
+        epochs=50,
+        patience=5,
+        task=None,
+        offset1=None,
+        offset2=None,
+        verbose=True
+    ):
+        if offset1 is None:
+            offset1 = 0
+        if offset2 is None:
+            offset2 = self.n_classes
+        self.offsets.append((offset1, offset2))
+        super().fit(
+            train_loader, val_loader, epochs, patience, task, offset1, offset2,
+            verbose
+        )
+
+    def load_model(self, net_name):
+        net_state = super().load_model(net_name)
+        self.mem_class_x = [
+            data.cpu() for data in net_state['mem_class_x']
+        ]  # stores exemplars class by class
+        self.n_classes = net_state['n_classes']
+
+        return net_state
+
+    def get_state(self):
+        net_state = super().get_state()
+        net_state['mem_class_x'] = self.mem_class_x
+        net_state['n_classes'] = self.n_classes
         return net_state
