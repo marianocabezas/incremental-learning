@@ -1064,6 +1064,7 @@ class GDumb(MetaModel):
         accs = list()
         n_batches = len(data)
         for batch_i, (x, y) in enumerate(data):
+            print('{:03d} of {:03d}'.format(batch_i, n_batches))
             if not self.training:
                 # First, we do a forward pass through the network.
                 pred_labels, x_cuda, y_cuda = self.observe(x, y)
