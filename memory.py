@@ -67,7 +67,7 @@ class ClassificationMemoryManager(Dataset):
         return sum([len(k_i) for k_i in self.data])
 
 
-class GDumbManager(ClassificationMemoryManager):
+class GreedyManager(ClassificationMemoryManager):
     def __init__(self, n_memories, n_splits):
         super().__init__(n_memories, n_splits)
 
