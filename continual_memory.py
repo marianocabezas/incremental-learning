@@ -104,42 +104,10 @@ def project5cone5(gradient, memories, beg, en, margin=0.5, eps=1e-3):
         torch.Tensor(np.nan_to_num(x).astype(np.float32)).view(-1, 1)
     )
 
-    # memories_tensor = memories[beg:en].t()
-    # gradient_tensor = gradient[beg:en].contiguous().view(-1)
-    # memories_mean = torch.mean(memories_tensor, axis=0)
-    # memories_sum = torch.sum(memories_tensor, axis=0)
-    #
-    # if len(memories_tensor) == 1:
-    #     x = gradient_tensor - np.min([
-    #         (memories_sum.t().dot(gradient_tensor) /
-    #          memories_sum.t().dot(memories_sum)).cpu(), - margin
-    #     ]) * memories_sum
-    # else:
-    #     memories_del_mean = memories_tensor - memories_mean.reshape(1, -1)
-    #     memories_orth, _, _ = torch.pca_lowrank(memories_del_mean, q=min(2, len(memories)))
-    #     memories_orth = memories_orth.t()
-    #     Pg = gradient_tensor - memories_orth.t().dot(
-    #         memories_orth.dot(gradient_tensor))
-    #     Pg_bar = memories_sum - memories_orth.t().dot(
-    #         memories_orth.dot(memories_sum))
-    #     if memories_sum.t().dot(Pg) > 0:
-    #         x = Pg
-    #     else:
-    #         x = gradient_tensor - np.min([
-    #             memories_sum.t().dot(Pg) /
-    #             memories_sum.t().dot(Pg_bar), -margin
-    #         ]) * memories_sum - memories_orth.t().dot(
-    #             memories_orth.dot(gradient_tensor)) + memories_sum.t(
-    #         ).dot(Pg) / memories_sum.t().dot(
-    #             Pg_bar) * memories_orth.t().dot(
-    #             memories_orth.dot(memories_sum))
-    #
-    # gradient[beg:en].copy_(x.view(-1, 1))
-
 
 class MetaModel(BaseModel):
     def __init__(
-        self, basemodel, best=True, n_memories=0
+        self, basemodel, best=True, memory_manager=None
     ):
         super().__init__()
         self.init = basemodel.init
@@ -147,9 +115,7 @@ class MetaModel(BaseModel):
         self.first = True
         self.model = basemodel
         self.device = basemodel.device
-        self.n_memories = n_memories
-        self.memory_data = []
-        self.memory_labs = []
+        self.memory_manager = memory_manager
         # Counters
         self.mem_cnt = 0
         self.observed_tasks = []
@@ -161,6 +127,7 @@ class MetaModel(BaseModel):
         self.val_functions = self.model.val_functions
 
         self.optimizer_alg = self.model.optimizer_alg
+
 
     def reset_optimiser(self):
         super().reset_optimiser()
@@ -1104,7 +1071,7 @@ class GDumb(MetaModel):
                 torch.cuda.ipc_collect()
             else:
                 self.update_memory(x, y)
-                losses.append(self.model_update(x.shape[0]))
+                losses.append(self.model_update(x.size[0]))
 
             # Mean loss of the global loss (we don't need the loss for each batch).
             mean_loss = np.mean(losses)
