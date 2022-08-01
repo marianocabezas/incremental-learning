@@ -1141,6 +1141,7 @@ class GDumb(MetaModel):
     def model_update(self, batch_size):
         self.model.optimizer_alg.zero_grad()
         losses = list()
+        print([len(mem_x) for mem_x in self.mem_class_x])
         memory_loader = DataLoader(
             [
                 (x_i, y_i) for y_i, mem_x in enumerate(self.mem_class_x)
