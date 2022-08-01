@@ -1147,7 +1147,6 @@ class GDumb(MetaModel):
             ], batch_size=batch_size, shuffle=True
         )
         n_batches = len(memory_loader)
-        print('Updating model of {:02d} batches'.format(n_batches))
         for batch_i, (x, y) in enumerate(memory_loader):
             pred_labels = self.model(x.to(self.device))
             y_cuda = y.to(self.device)
