@@ -1103,22 +1103,21 @@ class GDumb(MetaModel):
                 torch.cuda.empty_cache()
                 torch.cuda.ipc_collect()
             else:
-                print('Training batch {:02d}'.format(batch_i))
                 self.update_memory(x, y)
                 losses.append(self.model_update(data.batch_size))
 
-            # Mean loss of the global loss (we don't need the loss for each batch).
-            mean_loss = np.mean(losses)
+        # Mean loss of the global loss (we don't need the loss for each batch).
+        mean_loss = np.mean(losses)
 
-            if train:
-                return mean_loss
-            else:
-                # If using the validation data, we actually need to compute the
-                # mean of each different loss.
-                mean_losses = np.mean(list(zip(*mid_losses)), axis=1)
-                np_accs = np.array(list(zip(*accs)))
-                mean_accs = np.mean(np_accs, axis=1) if np_accs.size > 0 else []
-            return mean_loss, mean_losses, mean_accs
+        if train:
+            return mean_loss
+        else:
+            # If using the validation data, we actually need to compute the
+            # mean of each different loss.
+            mean_losses = np.mean(list(zip(*mid_losses)), axis=1)
+            np_accs = np.array(list(zip(*accs)))
+            mean_accs = np.mean(np_accs, axis=1) if np_accs.size > 0 else []
+        return mean_loss, mean_losses, mean_accs
 
     def update_memory(self, x, y):
         for x_i, y_i in zip(x, y):
@@ -1141,7 +1140,6 @@ class GDumb(MetaModel):
     def model_update(self, batch_size):
         self.model.optimizer_alg.zero_grad()
         losses = list()
-        print([len(mem_x) for mem_x in self.mem_class_x])
         memory_loader = DataLoader(
             [
                 (x_i, y_i) for y_i, mem_x in enumerate(self.mem_class_x)

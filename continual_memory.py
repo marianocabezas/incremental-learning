@@ -961,18 +961,18 @@ class GDumb(MetaModel):
                 self.memory_manager.update_memory(x, y, self.current_task, self.model)
                 losses.append(self.model_update(x.size[0]))
 
-            # Mean loss of the global loss (we don't need the loss for each batch).
-            mean_loss = np.mean(losses)
+        # Mean loss of the global loss (we don't need the loss for each batch).
+        mean_loss = np.mean(losses)
 
-            if train:
-                return mean_loss
-            else:
-                # If using the validation data, we actually need to compute the
-                # mean of each different loss.
-                mean_losses = np.mean(list(zip(*mid_losses)), axis=1)
-                np_accs = np.array(list(zip(*accs)))
-                mean_accs = np.mean(np_accs, axis=1) if np_accs.size > 0 else []
-            return mean_loss, mean_losses, mean_accs
+        if train:
+            return mean_loss
+        else:
+            # If using the validation data, we actually need to compute the
+            # mean of each different loss.
+            mean_losses = np.mean(list(zip(*mid_losses)), axis=1)
+            np_accs = np.array(list(zip(*accs)))
+            mean_accs = np.mean(np_accs, axis=1) if np_accs.size > 0 else []
+        return mean_loss, mean_losses, mean_accs
 
     def model_update(self, batch_size):
         self.model.optimizer_alg.zero_grad()
