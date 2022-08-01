@@ -117,7 +117,6 @@ class MetaModel(BaseModel):
         self.device = basemodel.device
         self.memory_manager = memory_manager
         # Counters
-        self.mem_cnt = 0
         self.observed_tasks = []
         self.current_task = -1
         self.offset1 = None
@@ -128,6 +127,9 @@ class MetaModel(BaseModel):
 
         self.optimizer_alg = self.model.optimizer_alg
 
+    def prebatch_update(self, batch, batches, x, y):
+        if self.memory_manager is not None:
+            self.memory_manager.update_memory(x, y, self.current_task, self.model)
 
     def reset_optimiser(self):
         super().reset_optimiser()
@@ -138,7 +140,8 @@ class MetaModel(BaseModel):
         net_state = {
             'first': self.first,
             'task': self.current_task,
-            'state': self.state_dict()
+            'manager': self.memory_manager,
+            'state': self.state_dict(),
         }
         return net_state
 
@@ -150,6 +153,7 @@ class MetaModel(BaseModel):
         net_state = torch.load(net_name, map_location=self.device)
         self.first = net_state['first']
         self.current_task = net_state['task']
+        self.memory_manager = net_state['manager']
         self.load_state_dict(net_state['state'])
         return net_state
 
@@ -345,7 +349,18 @@ class EWC(MetaModel):
             train_loader, val_loader, epochs, patience, task, offset1, offset2,
             verbose
         )
-        self.fisher(train_loader)
+        if self.memory_manager is None:
+            self.fisher(train_loader)
+        else:
+            if self.ewc_alpha is None:
+                for n, param in self.ewc_parameters.items():
+                    param['fisher'] = []
+                    param['means'] = []
+            for task in self.observed_tasks:
+                task_memory = self.memory_manager.get_task(self, task)
+                task_loader = DataLoader(task_memory, train_loader.batch_size)
+                self.fisher(task_loader)
+
         for loss_f in self.train_functions:
             if loss_f['name'] is 'ewc':
                 loss_f['weight'] = self.ewc_weight
@@ -377,50 +392,6 @@ class GEM(MetaModel):
         self.memory_labs = [[] for _ in range(n_tasks)]
         self.offsets = []
 
-    def update_memory(self, x, y):
-        # Update ring buffer storing examples from the current task
-        t = self.current_task
-        current_size = len(self.memory_data[t])
-        empty_slots = self.n_memories - current_size
-        end_slots = self.n_memories - self.mem_cnt
-        batch_size = y.data.size(0)
-        if empty_slots > 0 or end_slots < batch_size:
-            new_slots = min(batch_size, max(empty_slots, end_slots))
-            new_mem = list(torch.split(
-                x[:new_slots, ...].detach().cpu(), 1
-            ))
-            new_labs = list(torch.split(
-                y[:new_slots, ...].detach().cpu(), 1
-            ))
-            if empty_slots > 0:
-                self.memory_data[t] += new_mem
-                self.memory_labs[t] += new_labs
-            else:
-                self.memory_data[t][self.mem_cnt:] = new_mem
-                self.memory_labs[t][self.mem_cnt:] = new_labs
-            current_size = len(self.memory_data[t])
-            x = x[new_slots:, ...]
-            y = y[new_slots:, ...]
-            if current_size < self.n_memories:
-                self.mem_cnt = current_size
-            else:
-                self.mem_cnt = 0
-        batch_size = y.data.size(0)
-        if batch_size > 0:
-            end_cnt = min(self.mem_cnt + batch_size, self.n_memories)
-            end_mem = end_cnt - self.mem_cnt
-            new_mem = list(torch.split(
-                x[:end_mem, ...].detach().cpu(), 1
-            ))
-            new_labs = list(torch.split(
-                y[:end_mem, ...].detach().cpu(), 1
-            ))
-            self.memory_data[t][self.mem_cnt:end_cnt] = new_mem
-            self.memory_labs[t][self.mem_cnt:end_cnt] = new_labs
-            self.mem_cnt += end_mem
-            if self.mem_cnt == self.n_memories:
-                self.mem_cnt = 0
-
     def store_grad(self, tid):
         """
             This stores parameter gradients of past tasks.
@@ -446,8 +417,7 @@ class GEM(MetaModel):
             ):
                 self.zero_grad()
 
-                memories_t = torch.cat(self.memory_data[past_task])
-                labels_t = torch.cat(self.memory_labs[past_task])
+                memories_t, labels_t = self.memory_manager.get_task(past_task)
 
                 output = self(memories_t.to(self.device))
                 batch_losses = [
@@ -487,9 +457,6 @@ class GEM(MetaModel):
     def get_state(self):
         net_state = super().get_state()
         net_state['grad_dims'] = self.grad_dims
-        net_state['mem_data'] = self.memory_data
-        net_state['mem_labs'] = self.memory_labs
-        net_state['mem_cnt'] = self.mem_cnt
         net_state['grads'] = self.grads
         net_state['tasks'] = self.observed_tasks
         net_state['n_classes'] = self.n_classes
@@ -498,15 +465,6 @@ class GEM(MetaModel):
     def load_model(self, net_name):
         net_state = super().load_model(net_name)
         self.grad_dims = net_state['grad_dims']
-        self.memory_data = [
-            [mem.cpu() for mem in memories]
-            for memories in net_state['mem_data']
-        ]
-        self.memory_labs = [
-            [mem.cpu() for mem in memories]
-            for memories in net_state['mem_labs']
-        ]
-        self.mem_cnt = net_state['mem_cnt']
         if type(net_state['grads']) is list:
             self.grads = [grad.cpu() for grad in net_state['grads']]
         else:
@@ -517,7 +475,7 @@ class GEM(MetaModel):
         return net_state
 
     def prebatch_update(self, batch, batches, x, y):
-        self.update_memory(x, y)
+        super().prebatch_update(batch, batches, x, y)
         self.update_gradients()
         self.constraint_check()
 
@@ -747,8 +705,6 @@ class iCARL(MetaModel):
         # Memory
         self.memx = None  # stores raw inputs, PxD
         self.memy = None
-        self.mem_class_x = []  # stores exemplars class by class
-        self.mem_class_y = []
         self.offsets = []
 
     def _kl_div_loss(self, offset1, offset2):
@@ -799,58 +755,9 @@ class iCARL(MetaModel):
 
     def epoch_update(self, epochs, loader):
         if (self.model.epoch + 1) == epochs:
-            # Get labels from previous task; we assume labels are consecutive
-            all_labs = torch.LongTensor(np.unique(self.memy.numpy()))
-            num_classes = all_labs.size(0)
-            # Reduce exemplar set by updating value of num. exemplars per class
-            self.num_exemplars = int(
-                self.n_memories / (num_classes + len(self.mem_class_x))
+            self.memory_manager.update_memory(
+                self.memx, self.memy, self.current_task, self.model
             )
-            offset_slice = slice(self.offset1, self.offset2)
-            n_classes = self.offset2 - self.offset1
-            for k in all_labs:
-                indxs = (self.memy == k).nonzero(as_tuple=False).squeeze()
-                cdata = self.memx.index_select(
-                    0, indxs
-                ).to(self.device)  # cdata are exemplar whose label == lab
-
-                # Construct exemplar set for last task
-                model_output = self.model(
-                    cdata
-                )[:, offset_slice].data.clone()
-                mean_feature = model_output.mean(0)
-                exemplars = torch.zeros(
-                    (self.num_exemplars,) + cdata.shape[1:],
-                    device=self.device
-                )
-                batch_size = cdata.size(0)
-                # used to keep track of which examples we have already used
-                taken = torch.zeros(batch_size)
-                prev = torch.zeros(1, n_classes).to(self.device)
-                for ee in range(self.num_exemplars):
-                    mean_cost = mean_feature.expand(batch_size, n_classes)
-                    output_cost = model_output + prev.expand(batch_size, n_classes)
-                    cost = (mean_cost - output_cost / (ee + 1)).norm(
-                            2, 1
-                    ).squeeze()
-                    _, indx = cost.sort(0)
-                    winner = 0
-                    while winner < indx.size(0) and taken[indx[winner]] == 1:
-                        winner += 1
-                    if winner < indx.size(0):
-                        taken[indx[winner]] = 1
-                        exemplars[ee] = cdata[indx[winner]].clone()
-                        prev += model_output[indx[winner], :].data.clone()
-                    else:
-                        exemplars = exemplars[:indx.size(0), :].clone()
-                        self.num_exemplars = indx.size(0)
-                        break
-                # Update memory with exemplars
-                self.mem_class_x.append(exemplars.cpu().clone())
-                # Recompute outputs for distillation purposes
-                self.mem_class_y.append(
-                    self.model(exemplars.to(self.device)).cpu().data.clone()
-                )
             self.memx = None
             self.memy = None
             self.first = False
@@ -878,30 +785,12 @@ class iCARL(MetaModel):
 
     def load_model(self, net_name):
         net_state = super().load_model(net_name)
-        if net_state['memx'] is not None:
-            self.memx = net_state['memx'].cpu()
-        else:
-            self.memx = None
-        if net_state['memy'] is not None:
-            self.memy = net_state['memy'].cpu()
-        else:
-            self.memy = None
-        self.mem_class_x = [
-            data.cpu() for data in net_state['mem_class_x']
-        ]  # stores exemplars class by class
-        self.mem_class_y = [
-            data.cpu() for data in net_state['mem_class_y']
-        ]  # stores exemplars class by class
         self.n_classes = net_state['n_classes']
 
         return net_state
 
     def get_state(self):
         net_state = super().get_state()
-        net_state['mem_class_x'] = self.mem_class_x
-        net_state['mem_class_y'] = self.mem_class_y
-        net_state['memx'] = self.memx
-        net_state['memy'] = self.memy
         net_state['n_classes'] = self.n_classes
         return net_state
 
@@ -1004,7 +893,6 @@ class GDumb(MetaModel):
         self.val_functions = self.model.val_functions
 
         # Memory
-        self.mem_class_x = [[] for _ in range(n_classes)]  # stores exemplars class by class
         self.offsets = []
 
     def mini_batch_loop(
@@ -1070,7 +958,7 @@ class GDumb(MetaModel):
                 torch.cuda.empty_cache()
                 torch.cuda.ipc_collect()
             else:
-                self.update_memory(x, y)
+                self.memory_manager.update_memory(x, y, self.current_task, self.model)
                 losses.append(self.model_update(x.size[0]))
 
             # Mean loss of the global loss (we don't need the loss for each batch).
@@ -1085,24 +973,6 @@ class GDumb(MetaModel):
                 np_accs = np.array(list(zip(*accs)))
                 mean_accs = np.mean(np_accs, axis=1) if np_accs.size > 0 else []
             return mean_loss, mean_losses, mean_accs
-
-    def update_memory(self, x, y):
-        for x_i, y_i in zip(x, y):
-            n_classes = sum([len(x_i) > 0 for x_i in self.mem_class_x])
-            n_class_memories = [len(x_i) for x_i in self.mem_class_x]
-            if n_classes > 0:
-                mem_x_class = self.n_memories / n_classes
-            else:
-                mem_x_class = self.n_memories
-
-            class_size = len(self.mem_class_x[y_i])
-            if class_size == 0 or class_size < mem_x_class:
-                if sum(n_class_memories) >= self.n_memories:
-                    big_class = np.argmax(n_class_memories)
-                    self.mem_class_x[big_class].pop(
-                        np.random.randint(len(self.mem_class_x[big_class]))
-                    )
-                self.mem_class_x[y_i].append(x_i)
 
     def model_update(self, batch_size):
         self.model.optimizer_alg.zero_grad()
@@ -1134,7 +1004,6 @@ class GDumb(MetaModel):
             torch.cuda.ipc_collect()
         return np.mean(losses)
 
-
     def fit(
         self,
         train_loader,
@@ -1158,15 +1027,11 @@ class GDumb(MetaModel):
 
     def load_model(self, net_name):
         net_state = super().load_model(net_name)
-        self.mem_class_x = [
-            data.cpu() for data in net_state['mem_class_x']
-        ]  # stores exemplars class by class
         self.n_classes = net_state['n_classes']
 
         return net_state
 
     def get_state(self):
         net_state = super().get_state()
-        net_state['mem_class_x'] = self.mem_class_x
         net_state['n_classes'] = self.n_classes
         return net_state

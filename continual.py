@@ -1103,8 +1103,9 @@ class GDumb(MetaModel):
                 torch.cuda.empty_cache()
                 torch.cuda.ipc_collect()
             else:
+                print('Training batch {:02d}'.format(batch_i))
                 self.update_memory(x, y)
-                losses.append(self.model_update(x.shape[0]))
+                losses.append(self.model_update(data.batch_size))
 
             # Mean loss of the global loss (we don't need the loss for each batch).
             mean_loss = np.mean(losses)
@@ -1147,6 +1148,7 @@ class GDumb(MetaModel):
             ], batch_size=batch_size, shuffle=True
         )
         n_batches = len(memory_loader)
+        print('Updating model of {:02d} batches'.format(n_batches))
         for batch_i, (x, y) in enumerate(memory_loader):
             pred_labels = self.model(x.to(self.device))
             y_cuda = y.to(self.device)
