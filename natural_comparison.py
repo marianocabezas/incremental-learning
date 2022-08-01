@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from time import strftime
 from copy import deepcopy
 from scipy.special import softmax
-from continual import MetaModel, EWC, Independent, iCARL
+from continual import MetaModel, EWC, Independent, iCARL, GDumb
 from continual import GEM, AGEM, SGEM, NGEM, ParamGEM
 from utils import color_codes, time_to_string
 
@@ -307,6 +307,11 @@ def main(verbose=2):
         icarl_memories = config['icarl_memories']
     except KeyError:
         icarl_memories = 1280
+    # GDumb parameters
+    try:
+        gdumb_memories = config['gdumb_memories']
+    except KeyError:
+        gdumb_memories = 1280
     # GEM parameters
     try:
         gem_weight = config['gem_weight']
@@ -316,7 +321,6 @@ def main(verbose=2):
         gem_memories = config['gem_memories']
     except KeyError:
         gem_memories = 256
-
 
     print(
         '{:}[{:}] {:}<Incremental learning framework>{:}'.format(
@@ -351,17 +355,18 @@ def main(verbose=2):
     ewc_results = deepcopy(naive_results)
     ind_results = deepcopy(naive_results)
     icarl_results = deepcopy(naive_results)
+    gdumb_results = deepcopy(naive_results)
     gem_results = deepcopy(naive_results)
     agem_results = deepcopy(naive_results)
     sgem_results = deepcopy(naive_results)
     ngem_results = deepcopy(naive_results)
     xgem_results = deepcopy(naive_results)
     all_methods = [
-        'naive', 'ewc', 'ind', 'icarl',
+        'naive', 'ewc', 'ind', 'icarl', 'gdumb',
         'gem', 'agem', 'sgem', 'ngem', 'xgem'
     ]
     all_results = [
-        naive_results, ewc_results, ind_results, icarl_results,
+        naive_results, ewc_results, ind_results, icarl_results, gdumb_results,
         gem_results, agem_results, sgem_results, ngem_results, xgem_results
     ]
 
@@ -513,6 +518,16 @@ def main(verbose=2):
         icarl_net.model.load_model(starting_model)
         icarl_net.to(torch.device('cpu'))
 
+        # GDumb. Greedy memory sampler.
+        gdumb_net = GDumb(
+            network(
+                n_outputs=n_classes, lr=lr, pretrained=pretrained
+            ), best=False,
+            n_memories=icarl_memories, n_classes=n_classes
+        )
+        gdumb_net.model.load_model(starting_model)
+        gdumb_net.to(torch.device('cpu'))
+
         # GEM approaches. We group all the GEM-related approaches here for
         # simplicity. All parameters should be shared for a fair comparison.
         gem_net = GEM(
@@ -662,6 +677,30 @@ def main(verbose=2):
                 config, icarl_net, model_name, seed, training_set, validation_set,
                 training_tasks, validation_tasks, testing_tasks,
                 t_i, offset1, offset2, epochs, n_classes, icarl_results
+            )
+
+            # < GDumb >
+            print(
+                '{:}Starting task - GDumb {:02d}/{:02d}{:} - {:02d}/{:02d} '
+                '({:} parameters)'.format(
+                    c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
+                    test_n + 1, len(config['seeds']),
+                    c['b'] + str(n_param) + c['nc']
+                )
+            )
+
+            # We train the naive model on the current task
+            gdumb_net.to(gdumb_net.device)
+            model_name = os.path.join(
+                model_path,
+                '{:}-gdumb-t{:02d}.s{:05d}.pt'.format(
+                    model_base, t_i, seed
+                )
+            )
+            process_net(
+                config, gdumb_net, model_name, seed, training_set, validation_set,
+                training_tasks, validation_tasks, testing_tasks,
+                t_i, offset1, offset2, epochs, n_classes, gdumb_results
             )
 
             # < GEM >

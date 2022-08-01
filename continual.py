@@ -1103,7 +1103,7 @@ class GDumb(MetaModel):
                 torch.cuda.empty_cache()
                 torch.cuda.ipc_collect()
             else:
-                self.memory_update(x, y)
+                self.update_memory(x, y)
                 losses.append(self.model_update(x.size[0]))
 
             # Mean loss of the global loss (we don't need the loss for each batch).
@@ -1119,10 +1119,10 @@ class GDumb(MetaModel):
                 mean_accs = np.mean(np_accs, axis=1) if np_accs.size > 0 else []
             return mean_loss, mean_losses, mean_accs
 
-    def memory_update(self, x, y):
+    def update_memory(self, x, y):
         for x_i, y_i in zip(x, y):
-            n_classes = sum([len(k_i) > 0 for k_i in self.mem_class_y])
-            n_class_memories = [len(k_i) for k_i in self.mem_class_y]
+            n_classes = sum([len(x_i) > 0 for x_i in self.mem_class_x])
+            n_class_memories = [len(x_i) for x_i in self.mem_class_x]
             if n_classes > 0:
                 mem_x_class = self.n_memories
             else:
