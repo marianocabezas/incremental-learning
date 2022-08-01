@@ -1124,9 +1124,10 @@ class GDumb(MetaModel):
             n_classes = sum([len(x_i) > 0 for x_i in self.mem_class_x])
             n_class_memories = [len(x_i) for x_i in self.mem_class_x]
             if n_classes > 0:
-                mem_x_class = self.n_memories
-            else:
                 mem_x_class = self.n_memories / n_classes
+            else:
+                mem_x_class = self.n_memories
+
             class_size = len(self.mem_class_x[y_i])
             if class_size == 0 or class_size < mem_x_class:
                 if sum(n_class_memories) >= self.n_memories:

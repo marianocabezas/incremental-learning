@@ -77,9 +77,10 @@ class GDumbManager(ClassificationMemoryManager):
             n_classes = sum([len(k_i) > 0 for k_i in self.data])
             n_class_memories = [len(k_i) for k_i in self.data]
             if n_classes > 0:
-                mem_x_class = self.n_memories
-            else:
                 mem_x_class = self.n_memories / n_classes
+            else:
+                mem_x_class = self.n_memories
+
             class_size = len(self.data[y_i])
             if class_size == 0 or class_size < mem_x_class:
                 if sum(n_class_memories) >= self.n_memories:
@@ -168,7 +169,7 @@ class iCARLManager(ClassificationMemoryManager):
 
         # < New class memories >
         for k in new_labels:
-            # We construct exemplar set for the new task.
+            # We construct the exemplar set for the new task.
             # We assume that the classes are new and older memories will be
             # overwritten.
             x_k = x[y == k, ...]
