@@ -1144,7 +1144,7 @@ class GDumb(MetaModel):
             [
                 (x_i, y_i) for y_i, mem_x in enumerate(self.mem_class_x)
                 for x_i in mem_x
-            ], batch_size=batch_size, shuffle=True
+            ], batch_size=batch_size, shuffle=True, drop_last=True
         )
         n_batches = len(memory_loader)
         for batch_i, (x, y) in enumerate(memory_loader):
