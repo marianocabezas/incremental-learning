@@ -977,31 +977,31 @@ class GDumb(MetaModel):
     def model_update(self, batch_size):
         self.model.optimizer_alg.zero_grad()
         losses = list()
-        memory_loader = DataLoader(
-            [
-                (x_i, y_i) for y_i, mem_x in enumerate(self.mem_class_x)
-                for x_i in mem_x
-            ], batch_size=batch_size, shuffle=True
-        )
-        n_batches = len(memory_loader)
-        for batch_i, (x, y) in enumerate(memory_loader):
-            pred_labels = self.model(x.to(self.device))
-            y_cuda = y.to(self.device)
-            batch_losses = [
-                l_f['weight'] * l_f['f'](pred_labels, y_cuda)
-                for l_f in self.train_functions
-            ]
-            batch_loss = sum(batch_losses)
-            loss_value = batch_loss.tolist()
-            losses.append(loss_value)
-            batch_loss.backward()
-            self.optimizer_alg.step()
-
-            self.print_progress(
-                batch_i, n_batches, loss_value, np.mean(losses)
+        for (offset1, offset2), memory_set in zip(
+            self.offsets, self.memory_manager.get_tasks()
+        ):
+            memory_loader = DataLoader(
+                self.memory_manager, batch_size=batch_size, shuffle=True
             )
-            torch.cuda.empty_cache()
-            torch.cuda.ipc_collect()
+            n_batches = len(memory_loader)
+            for batch_i, (x, y) in enumerate(memory_loader):
+                pred_labels = self.model(x.to(self.device))[offset1:offset2]
+                y_cuda = y.to(self.device) - offset1
+                batch_losses = [
+                    l_f['weight'] * l_f['f'](pred_labels, y_cuda)
+                    for l_f in self.train_functions
+                ]
+                batch_loss = sum(batch_losses)
+                loss_value = batch_loss.tolist()
+                losses.append(loss_value)
+                batch_loss.backward()
+                self.optimizer_alg.step()
+
+                self.print_progress(
+                    batch_i, n_batches, loss_value, np.mean(losses)
+                )
+                torch.cuda.empty_cache()
+                torch.cuda.ipc_collect()
         return np.mean(losses)
 
     def fit(

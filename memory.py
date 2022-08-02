@@ -3,6 +3,18 @@ import torch
 from torch.utils.data.dataset import Dataset
 
 
+class MemoryContainer(Dataset):
+    def __init__(self, data, labels):
+        self.data = data
+        self.labels = labels
+
+    def __getitem__(self, index):
+        return self.data[index], self.labels[index]
+
+    def __len__(self):
+        return len(self.data)
+
+
 class ClassificationMemoryManager(Dataset):
     def __init__(self, n_memories, n_splits):
         assert n_memories > 0, 'Memory cannot be 0.'
@@ -41,6 +53,13 @@ class ClassificationMemoryManager(Dataset):
 
     def get_split(self, split):
         return self.data[split]
+
+    def get_tasks(self):
+        memory_generator = (
+            MemoryContainer(*self.get_task(t))
+            for t in range(len(self.task_labels))
+        )
+        return memory_generator
 
     def get_task(self, task):
         if task < len(self.task_labels):
