@@ -461,7 +461,11 @@ def main(verbose=2):
                         n_outputs=n_classes, lr=lr, pretrained=pretrained
                     ), False, memory_manager
                 )
-            new_meta.model.load_model(starting_model)
+            if isinstance(new_meta.model, list):
+                for model_i in new_meta.model:
+                    model_i.load_model(starting_model)
+            else:
+                new_meta.model.load_model(starting_model)
             new_meta.to(torch.device('cpu'))
             torch.cuda.empty_cache()
             torch.cuda.ipc_collect()
