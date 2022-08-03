@@ -439,6 +439,7 @@ def main(verbose=2):
                 meta_name, meta_class, memory_class, extra_params = model
             except ValueError:
                 meta_name, meta_class, memory_class = model
+                extra_params = {}
 
             meta_model = getattr(meta, meta_class)
 
