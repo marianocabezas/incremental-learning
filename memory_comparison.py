@@ -7,6 +7,7 @@ import numpy as np
 import importlib
 import yaml
 import torch
+from torch.nn import ModuleList
 from torch.utils.data import DataLoader
 from time import strftime
 from copy import deepcopy
@@ -455,7 +456,7 @@ def main(verbose=2):
                 ), False, memory_manager, **extra_params
             )
 
-            if isinstance(new_meta.model, list):
+            if isinstance(new_meta.model, ModuleList):
                 for model_i in new_meta.model:
                     model_i.load_model(starting_model)
             else:
