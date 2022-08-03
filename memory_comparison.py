@@ -214,18 +214,7 @@ def update_results(
         tst_matrix, ttst_matrix, stst_matrix = test(
             config, net, tst_i, t_i, n_classes, n_tasks, verbose
         )
-        if isinstance(results, list):
-            for results_i in results:
-                results_i[seed]['training'][step, ...] += tr_matrix
-                results_i[seed]['validation'][step, ...] += val_matrix
-                results_i[seed]['testing'][step, ...] += tst_matrix
-                results_i[seed]['task_training'][step, ...] += ttr_matrix
-                results_i[seed]['task_validation'][step, ...] += tval_matrix
-                results_i[seed]['task_testing'][step, ...] += ttst_matrix
-                results_i[seed]['scaled_training'][step, ...] += str_matrix
-                results_i[seed]['scaled_validation'][step, ...] += sval_matrix
-                results_i[seed]['scaled_testing'][step, ...] += stst_matrix
-        else:
+        try:
             results[seed]['training'][step, ...] += tr_matrix
             results[seed]['validation'][step, ...] += val_matrix
             results[seed]['testing'][step, ...] += tst_matrix
@@ -235,6 +224,18 @@ def update_results(
             results[seed]['scaled_training'][step, ...] += str_matrix
             results[seed]['scaled_validation'][step, ...] += sval_matrix
             results[seed]['scaled_testing'][step, ...] += stst_matrix
+        except KeyError:
+            for results_i in results.values():
+                results_i[seed]['training'][step, ...] += tr_matrix
+                results_i[seed]['validation'][step, ...] += val_matrix
+                results_i[seed]['testing'][step, ...] += tst_matrix
+                results_i[seed]['task_training'][step, ...] += ttr_matrix
+                results_i[seed]['task_validation'][step, ...] += tval_matrix
+                results_i[seed]['task_testing'][step, ...] += ttst_matrix
+                results_i[seed]['scaled_training'][step, ...] += str_matrix
+                results_i[seed]['scaled_validation'][step, ...] += sval_matrix
+                results_i[seed]['scaled_testing'][step, ...] += stst_matrix
+
     test_elapsed = time.time() - test_start
     if verbose > 0:
         print('\033[KTesting finished {:}'.format(time_to_string(test_elapsed)))
