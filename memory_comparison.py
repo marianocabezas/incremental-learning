@@ -453,7 +453,7 @@ def main(verbose=2):
             new_meta = meta_model(
                 network(
                     n_outputs=n_classes, lr=lr, pretrained=pretrained
-                ), False, memory_manager, **extra_params
+                ), False, memory_manager, n_classes, n_tasks, **extra_params
             )
 
             if isinstance(new_meta.model, ModuleList):
