@@ -16,14 +16,16 @@ class MemoryContainer(Dataset):
 
 
 class ClassificationMemoryManager(Dataset):
-    def __init__(self, n_memories, n_splits):
+    def __init__(self, n_memories, n_classes, n_tasks):
         assert n_memories > 0, 'Memory cannot be 0.'
-        assert n_splits > 1, 'At least one split is needed.'
+        assert n_classes > 1 and n_tasks > 1,\
+            'At least one split is needed (both class and task).'
         # Init
         self.n_memories = n_memories
-        self.n_splits = n_splits
-        self.memories_x_split = self.n_memories / self.n_splits
-        self.data = [[] for _ in range(self.n_splits)]
+        self.classes = n_classes
+        self.tasks = n_tasks
+        self.memories_x_split = self.n_memories / self.classes
+        self.data = [[] for _ in range(self.classes)]
         self.task_labels = []
 
     def _check_index(self, index):
@@ -87,8 +89,8 @@ class ClassificationMemoryManager(Dataset):
 
 
 class GreedyManager(ClassificationMemoryManager):
-    def __init__(self, n_memories, n_splits):
-        super().__init__(n_memories, n_splits)
+    def __init__(self, n_memories, n_classes, n_tasks):
+        super().__init__(n_memories, n_classes, n_tasks)
 
     def update_memory(self, x, y, t, *args, **kwargs):
         self._update_task_labels(y, t)
@@ -111,8 +113,8 @@ class GreedyManager(ClassificationMemoryManager):
 
 
 class ClassRingBuffer(ClassificationMemoryManager):
-    def __init__(self, n_memories, n_splits):
-        super().__init__(n_memories, n_splits)
+    def __init__(self, n_memories, n_classes, n_tasks):
+        super().__init__(n_memories, n_classes, n_tasks)
 
     def update_memory(self, x, y, t, *args, **kwargs):
         self._update_task_labels(y, t)
@@ -123,9 +125,10 @@ class ClassRingBuffer(ClassificationMemoryManager):
 
 
 class TaskRingBuffer(ClassificationMemoryManager):
-    def __init__(self, n_memories, n_splits):
-        super().__init__(n_memories, n_splits)
-        self.labels = [[] for _ in range(self.n_splits)]
+    def __init__(self, n_memories, n_classes, n_tasks):
+        super().__init__(n_memories, n_classes, n_tasks)
+        self.memories_x_split = self.n_memories / self.tasks
+        self.labels = [[] for _ in range(self.tasks)]
 
     def update_memory(self, x, y, t, *args, **kwargs):
         self._update_task_labels(y, t)
@@ -151,10 +154,10 @@ class TaskRingBuffer(ClassificationMemoryManager):
 
 
 class iCARLManager(ClassificationMemoryManager):
-    def __init__(self, n_memories, n_splits):
-        super().__init__(n_memories, n_splits)
+    def __init__(self, n_memories, n_classes, n_tasks):
+        super().__init__(n_memories, n_classes, n_tasks)
         self.memories_x_split = self.n_memories
-        self.labels = [[] for _ in range(self.n_splits)]
+        self.labels = [[] for _ in range(self.classes)]
 
     def _update_class_exemplars(self, x_k, logits, k, n_classes):
         mean_logits = torch.mean(logits, dim=0)
