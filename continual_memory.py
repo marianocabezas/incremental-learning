@@ -597,7 +597,7 @@ class Independent(MetaModel):
     def __init__(
         self, basemodel, best=True, memory_manager=None, n_tasks=1
     ):
-        super().__init__(basemodel, best, n_tasks)
+        super().__init__(basemodel, best, memory_manager, n_tasks)
         self.model = nn.ModuleList([deepcopy(basemodel) for _ in range(n_tasks)])
         self.first = True
         self.device = basemodel.device
