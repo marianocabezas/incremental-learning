@@ -249,7 +249,7 @@ def save_results(config, json_name, results):
     path = config['json_path']
     json_file = os.path.join(path, json_name)
     results_tmp = deepcopy(results)
-    for meta_name, r_meta in results.item():
+    for meta_name, r_meta in results.items():
         for seed, r_seed in r_meta.items():
             for name, r_numpy in r_seed.items():
                 results_tmp[meta_name][seed][name] = r_numpy.tolist()
