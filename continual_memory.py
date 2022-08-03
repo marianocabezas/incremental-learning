@@ -190,10 +190,10 @@ class MetaModel(BaseModel):
 
 class EWC(MetaModel):
     def __init__(
-        self, basemodel, best=True, n_memories=0, ewc_weight=1e6, ewc_binary=True,
-            ewc_alpha=None
+        self, basemodel, best=True, memory_manager=None,
+        ewc_weight=1e6, ewc_binary=True, ewc_alpha=None
     ):
-        super().__init__(basemodel, best, n_memories)
+        super().__init__(basemodel, best, memory_manager)
         self.ewc_weight = ewc_weight
         self.ewc_binary = ewc_binary
         self.ewc_alpha = ewc_alpha
@@ -376,10 +376,10 @@ class EWC(MetaModel):
 
 class GEM(MetaModel):
     def __init__(
-        self, basemodel, best=True, n_memories=256, memory_strength=0.5,
+        self, basemodel, best=True, memory_manager=None, memory_strength=0.5,
         n_classes=100, n_tasks=1
     ):
-        super().__init__(basemodel, best, n_memories)
+        super().__init__(basemodel, best, memory_manager)
         self.margin = memory_strength
         self.n_classes = n_classes
         self.train_functions = self.model.train_functions
@@ -411,7 +411,7 @@ class GEM(MetaModel):
             cnt += 1
 
     def update_gradients(self):
-        if len(self.observed_tasks) > 1:
+        if len(self.observed_tasks) > 1 and self.memory_manager is not None:
             for past_task, (offset1, offset2) in zip(
                 self.observed_tasks[:-1], self.offsets[:-1]
             ):
@@ -503,11 +503,12 @@ class GEM(MetaModel):
 
 class AGEM(GEM):
     def __init__(
-            self, basemodel, best=True, n_memories=256, memory_strength=0.5,
-            n_classes=100, n_tasks=1
+        self, basemodel, best=True, memory_manager=None, memory_strength=0.5,
+        n_classes=100, n_tasks=1
     ):
         super().__init__(
-            basemodel, best, n_memories, memory_strength, n_classes, n_tasks,
+            basemodel, best, memory_manager, memory_strength,
+            n_classes, n_tasks,
         )
 
     def get_grad(self):
@@ -517,11 +518,12 @@ class AGEM(GEM):
 
 class SGEM(GEM):
     def __init__(
-            self, basemodel, best=True, n_memories=256, memory_strength=0.5,
-            n_classes=100, n_tasks=1
+        self, basemodel, best=True, memory_manager=None, memory_strength=0.5,
+        n_classes=100, n_tasks=1
     ):
         super().__init__(
-            basemodel, best, n_memories, memory_strength, n_classes, n_tasks,
+            basemodel, best, memory_manager, memory_strength,
+            n_classes, n_tasks,
         )
 
     def get_grad(self):
@@ -534,11 +536,12 @@ class SGEM(GEM):
 
 class NGEM(GEM):
     def __init__(
-            self, basemodel, best=True, n_memories=256, memory_strength=0.5,
-            n_classes=100, n_tasks=1
+        self, basemodel, best=True, memory_manager=None, memory_strength=0.5,
+        n_classes=100, n_tasks=1
     ):
         super().__init__(
-            basemodel, best, n_memories, memory_strength, n_classes, n_tasks,
+            basemodel, best, memory_manager, memory_strength,
+            n_classes, n_tasks,
         )
         self.block_grad_dims = []
 
@@ -592,7 +595,7 @@ class NGEM(GEM):
 
 class Independent(MetaModel):
     def __init__(
-        self, basemodel, best=True, n_tasks=1
+        self, basemodel, best=True, memory_manager=None, n_tasks=1
     ):
         super().__init__(basemodel, best, n_tasks)
         self.model = nn.ModuleList([deepcopy(basemodel) for _ in range(n_tasks)])
@@ -635,10 +638,13 @@ class Independent(MetaModel):
 
 class ParamGEM(GEM):
     def __init__(
-        self, basemodel, best=True, n_memories=256, memory_strength=0.5,
+        self, basemodel, best=True, memory_manager=None, memory_strength=0.5,
         n_classes=100, n_tasks=1
     ):
-        super().__init__(basemodel, best, n_memories)
+        super().__init__(
+            basemodel, best, memory_manager, memory_strength,
+            n_classes, n_tasks
+        )
         self.margin = memory_strength
         self.n_classes = n_classes
         self.train_functions = self.model.train_functions
@@ -688,10 +694,10 @@ class ParamGEM(GEM):
 
 class iCARL(MetaModel):
     def __init__(
-        self, basemodel, best=True, n_memories=256, memory_strength=0.5,
+        self, basemodel, best=True, memory_manager=None, memory_strength=0.5,
         n_classes=100, n_tasks=1
     ):
-        super().__init__(basemodel, best, n_memories)
+        super().__init__(basemodel, best, memory_manager)
         self.n_classes = n_classes
         self.train_functions = self.model.train_functions + [
             {
@@ -712,8 +718,8 @@ class iCARL(MetaModel):
         x = []
         y_logits = []
         for k in range(offset1, offset2):
-            x_k = self.mem_class_x[k]
-            y_k = self.mem_class_y[k]
+            x_k = self.memory_manager.data[k]
+            y_k = self.memory_manager.labels[k]
             indx = np.random.randint(0, len(x_k) - 1)
             x.append(x_k[indx].clone())
             y_logits.append(y_k[indx].clone())
@@ -733,7 +739,7 @@ class iCARL(MetaModel):
         return losses
 
     def distillation_loss(self):
-        if not self.first:
+        if not self.first and self.memory_manager is not None:
             if (self.offset2 - self.offset1) == self.n_classes:
                 losses = self._kl_div_loss(0, len(self.mem_class_x))
             else:
@@ -754,7 +760,8 @@ class iCARL(MetaModel):
                 self.memy = torch.cat((self.memy, y.cpu().data.clone()))
 
     def epoch_update(self, epochs, loader):
-        if (self.model.epoch + 1) == epochs:
+        last_epoch = (self.model.epoch + 1) == epochs
+        if last_epoch and self.memory_manager is not None:
             self.memory_manager.update_memory(
                 self.memx, self.memy, self.current_task, self.model
             )
@@ -797,11 +804,12 @@ class iCARL(MetaModel):
 
 class LoggingGEM(GEM):
     def __init__(
-        self, basemodel, best=True, n_memories=256, memory_strength=0.5,
+        self, basemodel, best=True, memory_manager=None, memory_strength=0.5,
         n_classes=100, n_tasks=1
     ):
         super().__init__(
-            basemodel, best, n_memories, memory_strength, n_classes, n_tasks
+            basemodel, best, memory_manager, memory_strength,
+            n_classes, n_tasks
         )
         self.grad_log = {
             'mean': [],
@@ -885,9 +893,9 @@ class LoggingGEM(GEM):
 
 class GDumb(MetaModel):
     def __init__(
-        self, basemodel, best=True, n_memories=256, n_classes=100
+        self, basemodel, best=True, memory_manager=None, n_classes=100
     ):
-        super().__init__(basemodel, best, n_memories)
+        super().__init__(basemodel, best, memory_manager)
         self.n_classes = n_classes
         self.train_functions = self.model.train_functions
         self.val_functions = self.model.val_functions
@@ -958,7 +966,10 @@ class GDumb(MetaModel):
                 torch.cuda.empty_cache()
                 torch.cuda.ipc_collect()
             else:
-                self.memory_manager.update_memory(x, y, self.current_task, self.model)
+                if self.memory_manager is not None:
+                    self.memory_manager.update_memory(
+                        x, y, self.current_task, self.model
+                    )
                 losses.append(self.model_update(x.size[0]))
 
         # Mean loss of the global loss (we don't need the loss for each batch).
@@ -977,31 +988,32 @@ class GDumb(MetaModel):
     def model_update(self, batch_size):
         self.model.optimizer_alg.zero_grad()
         losses = list()
-        for (offset1, offset2), memory_set in zip(
-            self.offsets, self.memory_manager.get_tasks()
-        ):
-            memory_loader = DataLoader(
-                self.memory_manager, batch_size=batch_size, shuffle=True
-            )
-            n_batches = len(memory_loader)
-            for batch_i, (x, y) in enumerate(memory_loader):
-                pred_labels = self.model(x.to(self.device))[offset1:offset2]
-                y_cuda = y.to(self.device) - offset1
-                batch_losses = [
-                    l_f['weight'] * l_f['f'](pred_labels, y_cuda)
-                    for l_f in self.train_functions
-                ]
-                batch_loss = sum(batch_losses)
-                loss_value = batch_loss.tolist()
-                losses.append(loss_value)
-                batch_loss.backward()
-                self.optimizer_alg.step()
-
-                self.print_progress(
-                    batch_i, n_batches, loss_value, np.mean(losses)
+        if self.memory_manager is not None:
+            for (offset1, offset2), memory_set in zip(
+                self.offsets, self.memory_manager.get_tasks()
+            ):
+                memory_loader = DataLoader(
+                    self.memory_manager, batch_size=batch_size, shuffle=True
                 )
-                torch.cuda.empty_cache()
-                torch.cuda.ipc_collect()
+                n_batches = len(memory_loader)
+                for batch_i, (x, y) in enumerate(memory_loader):
+                    pred_y = self.model(x.to(self.device))[offset1:offset2]
+                    y_cuda = y.to(self.device) - offset1
+                    batch_losses = [
+                        l_f['weight'] * l_f['f'](pred_y, y_cuda)
+                        for l_f in self.train_functions
+                    ]
+                    batch_loss = sum(batch_losses)
+                    loss_value = batch_loss.tolist()
+                    losses.append(loss_value)
+                    batch_loss.backward()
+                    self.optimizer_alg.step()
+
+                    self.print_progress(
+                        batch_i, n_batches, loss_value, np.mean(losses)
+                    )
+                    torch.cuda.empty_cache()
+                    torch.cuda.ipc_collect()
         return np.mean(losses)
 
     def fit(
