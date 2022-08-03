@@ -11,8 +11,6 @@ from torch.utils.data import DataLoader
 from time import strftime
 from copy import deepcopy
 from scipy.special import softmax
-from continual import MetaModel, EWC, Independent, iCARL, GDumb
-from continual import GEM, AGEM, SGEM, NGEM, ParamGEM
 from utils import color_codes, time_to_string
 
 
@@ -250,9 +248,10 @@ def save_results(config, json_name, results):
     path = config['json_path']
     json_file = os.path.join(path, json_name)
     results_tmp = deepcopy(results)
-    for seed, r_seed in results.items():
-        for name, r_numpy in r_seed.items():
-            results_tmp[seed][name] = r_numpy.tolist()
+    for meta_name, r_meta in results.item():
+        for seed, r_seed in r_meta.items():
+            for name, r_numpy in r_seed.items():
+                results_tmp[meta_name][seed][name] = r_numpy.tolist()
 
     with open(json_file, 'w') as testing_json:
         json.dump(results_tmp, testing_json)
@@ -288,12 +287,21 @@ def main(verbose=2):
         pretrained = config['pretrained']
     except KeyError:
         pretrained = False
+    try:
+        memories = config['memories']
+    except KeyError:
+        memories = 1000
 
     print(
         '{:}[{:}] {:}<Incremental learning framework>{:}'.format(
             c['c'], strftime("%H:%M:%S"), c['y'], c['nc']
         )
     )
+
+    models = importlib.import_module('models')
+    network = getattr(models, config['network'])
+    meta = importlib.import_module('continual_memory')
+    memory = importlib.import_module('memory')
 
     # We want a common starting point
     d_tr, d_te = load_datasets(config)
@@ -305,7 +313,8 @@ def main(verbose=2):
     # evolution. The main difference here, is that we need different
     # dictionaries for each task (or batch). These might be defined later and
     # we will fill these dictionaries accordingly when that happens.
-    naive_results = {
+    all_results = {}
+    base_results = {
         str(seed): {
             'training': empty_confusion_matrix(n_tasks, n_classes),
             'validation': empty_confusion_matrix(n_tasks, n_classes),
@@ -319,23 +328,10 @@ def main(verbose=2):
         }
         for seed in seeds
     }
-    ewc_results = deepcopy(naive_results)
-    ind_results = deepcopy(naive_results)
-    icarl_results = deepcopy(naive_results)
-    gdumb_results = deepcopy(naive_results)
-    gem_results = deepcopy(naive_results)
-    agem_results = deepcopy(naive_results)
-    sgem_results = deepcopy(naive_results)
-    ngem_results = deepcopy(naive_results)
-    xgem_results = deepcopy(naive_results)
-    all_methods = [
-        'naive', 'ewc', 'ind', 'icarl', 'gdumb',
-        'gem', 'agem', 'sgem', 'ngem', 'xgem'
-    ]
-    all_results = [
-        naive_results, ewc_results, ind_results, icarl_results, gdumb_results,
-        gem_results, agem_results, sgem_results, ngem_results, xgem_results
-    ]
+
+    for model in config['metamodels']:
+        meta_name = model[0]
+        all_results[meta_name] = deepcopy(base_results)
 
     # Main loop with all the seeds
     for test_n, seed in enumerate(seeds):
@@ -346,12 +342,12 @@ def main(verbose=2):
                 c['nc'] + c['y'], seed, c['nc']
             )
         )
+
         # Network init (random weights)
-        models = importlib.import_module('models')
-        network = getattr(models, config['network'])
         np.random.seed(seed)
         torch.manual_seed(seed)
         net = network(n_outputs=n_classes, pretrained=pretrained)
+        all_metas = []
         starting_model = os.path.join(
             model_path,
             '{:}-start.s{:05d}.pt'.format(model_base, seed)
@@ -415,10 +411,10 @@ def main(verbose=2):
         )
 
         # Init results
-        # update_results(
-        #     config, net, seed, 1, training_tasks, validation_tasks, testing_tasks,
-        #     all_results, n_classes, 2
-        # )
+        update_results(
+            config, net, seed, 1, training_tasks, validation_tasks, testing_tasks,
+            all_results, n_classes, 2
+        )
         print(
             '{:}Starting baseline{:} - {:02d}/{:02d} '
             '({:} parameters)'.format(
@@ -437,111 +433,37 @@ def main(verbose=2):
             all_results, n_classes, 2
         )
 
-        # Naive approach. We just partition the data and update the model
-        # with each new batch without caring about previous samples
-        net = MetaModel(
-            network(
-                n_outputs=n_classes, lr=lr, pretrained=pretrained
-            ), best=False
-        )
-        net.model.load_model(starting_model)
-        net.to(torch.device('cpu'))
-        torch.cuda.empty_cache()
-        torch.cuda.ipc_collect()
+        for model in config['metamodels']:
+            try:
+                meta_name, meta_class, memory_class, extra_params = model
+            except ValueError:
+                meta_name, meta_class, memory_class = model
 
-        # Independent approach. We have a duplicate model for each task.
-        # We also use the previously learned blocks for future tasks. This is
-        # called finetune in the original repo. Here we use it by default for
-        # simplicity. Might add the option later.
-        ind_net = Independent(
-            network(
-                n_outputs=n_classes, lr=lr, pretrained=pretrained
-            ), best=False,
-            n_tasks=n_tasks
-        )
-        for net_i in ind_net.model:
-            net_i.load_model(starting_model)
-        ind_net.to(torch.device('cpu'))
+            meta_model = getattr(meta, meta_class)
 
-        # EWC approach. We use a penalty term / regularization loss
-        # to ensure previous data isn't forgotten.
-        ewc_net = EWC(
-            network(
-                n_outputs=n_classes, lr=lr, pretrained=pretrained
-            ), best=False,
-            ewc_weight=ewc_weight, ewc_binary=ewc_binary
-        )
-        ewc_net.model.load_model(starting_model)
-        ewc_net.to(torch.device('cpu'))
+            try:
+                manager = getattr(memory, memory_class)
+                memory_manager = manager(memories, n_classes, n_tasks)
+            except TypeError:
+                memory_manager = None
 
-        # iCARL approach. A mix of exemplar memory and distillation.
-        icarl_net = iCARL(
-            network(
-                n_outputs=n_classes, lr=lr, pretrained=pretrained
-            ), best=False,
-            memory_strength=icarl_weight, n_memories=icarl_memories,
-            n_tasks=n_tasks, n_classes=n_classes
-        )
-        icarl_net.model.load_model(starting_model)
-        icarl_net.to(torch.device('cpu'))
-
-        # GDumb. Greedy memory sampler.
-        gdumb_net = GDumb(
-            network(
-                n_outputs=n_classes, lr=lr / 100, pretrained=pretrained
-            ), best=False,
-            n_memories=icarl_memories, n_classes=n_classes
-        )
-        gdumb_net.model.load_model(starting_model)
-        gdumb_net.to(torch.device('cpu'))
-
-        # GEM approaches. We group all the GEM-related approaches here for
-        # simplicity. All parameters should be shared for a fair comparison.
-        gem_net = GEM(
-            network(
-                n_outputs=n_classes, lr=lr, pretrained=pretrained
-            ), best=False,
-            n_memories=gem_memories, memory_strength=gem_weight,
-            n_tasks=n_tasks, n_classes=n_classes
-        )
-        gem_net.model.load_model(starting_model)
-        gem_net.to(torch.device('cpu'))
-        agem_net = AGEM(
-            network(
-                n_outputs=n_classes, lr=lr, pretrained=pretrained
-            ), best=False,
-            n_memories=gem_memories, memory_strength=gem_weight,
-            n_tasks=n_tasks, n_classes=n_classes
-        )
-        agem_net.model.load_model(starting_model)
-        agem_net.to(torch.device('cpu'))
-        sgem_net = SGEM(
-            network(
-                n_outputs=n_classes, lr=lr, pretrained=pretrained
-            ), best=False,
-            n_memories=gem_memories, memory_strength=gem_weight,
-            n_tasks=n_tasks, n_classes=n_classes
-        )
-        sgem_net.model.load_model(starting_model)
-        sgem_net.to(torch.device('cpu'))
-        ngem_net = NGEM(
-            network(
-                n_outputs=n_classes, lr=lr, pretrained=pretrained
-            ), best=False,
-            n_memories=gem_memories, memory_strength=gem_weight,
-            n_tasks=n_tasks, n_classes=n_classes
-        )
-        ngem_net.model.load_model(starting_model)
-        ngem_net.to(torch.device('cpu'))
-        xgem_net = ParamGEM(
-            network(
-                n_outputs=n_classes, lr=lr, pretrained=pretrained
-            ), best=False,
-            n_memories=gem_memories, memory_strength=gem_weight,
-            n_tasks=n_tasks, n_classes=n_classes
-        )
-        xgem_net.model.load_model(starting_model)
-        xgem_net.to(torch.device('cpu'))
+            try:
+                new_meta = meta_model(
+                    network(
+                        n_outputs=n_classes, lr=lr, pretrained=pretrained
+                    ), False, memory_manager, **extra_params
+                )
+            except TypeError:
+                new_meta = meta_model(
+                    network(
+                        n_outputs=n_classes, lr=lr, pretrained=pretrained
+                    ), False, memory_manager
+                )
+            new_meta.model.load_model(starting_model)
+            new_meta.to(torch.device('cpu'))
+            torch.cuda.empty_cache()
+            torch.cuda.ipc_collect()
+            all_metas.append(new_meta)
 
         for t_i, (training_set, validation_set) in enumerate(
                 zip(training_tasks, validation_tasks)
@@ -554,238 +476,34 @@ def main(verbose=2):
                 offset1 = 0
                 offset2 = n_classes
 
-            # < NAIVE >
-            print(
-                '{:}Starting task - naive {:02d}/{:02d}{:} - {:02d}/{:02d} '
-                '({:} parameters)'.format(
-                    c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
-                    test_n + 1, len(config['seeds']),
-                    c['b'] + str(n_param) + c['nc']
+            for (meta_name, results_i), net in zip(
+                    all_results.items(), all_metas
+            ):
+                print(
+                    '{:}Starting task - {:} {:02d}/{:02d}{:} - {:02d}/{:02d} '
+                    '({:} parameters)'.format(
+                        c['clr'] + c['c'],
+                        c['nc'] + c['y'] + meta_name + c['nc'] + c['c'],
+                        t_i + 1, n_tasks, c['nc'],
+                        test_n + 1, len(config['seeds']),
+                        c['b'] + str(n_param) + c['nc']
+                    )
                 )
-            )
-            # We train the naive model on the current task
-            model_name = os.path.join(
-                model_path,
-                '{:}-naive-t{:02d}.s{:05d}.pt'.format(
-                    model_base, t_i, seed
-                )
-            )
-            process_net(
-                config, net, model_name, seed, training_set, validation_set,
-                training_tasks, validation_tasks, testing_tasks,
-                t_i, offset1, offset2, epochs, n_classes, naive_results
-            )
 
-            # < Independent >
-            print(
-                '{:}Starting task - Independent {:02d}/{:02d}{:} - '
-                '{:02d}/{:02d} ({:} parameters)'.format(
-                    c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
-                    test_n + 1, len(config['seeds']),
-                    c['b'] + str(n_param) + c['nc']
+                # We train the naive model on the current task
+                model_name = os.path.join(
+                    model_path,
+                    '{:}-{:}-t{:02d}.s{:05d}.pt'.format(
+                        model_base, meta_name, t_i, seed
+                    )
                 )
-            )
-            # We train the independent model on the current task
-            model_name = os.path.join(
-                model_path,
-                '{:}-ind-t{:02d}.s{:05d}.pt'.format(
-                    model_base, t_i, seed
+                process_net(
+                    config, net, model_name, seed, training_set, validation_set,
+                    training_tasks, validation_tasks, testing_tasks,
+                    t_i, offset1, offset2, epochs, n_classes, results_i
                 )
-            )
-            process_net(
-                config, ind_net, model_name, seed, training_set, validation_set,
-                training_tasks, validation_tasks, testing_tasks,
-                t_i, offset1, offset2, epochs, n_classes, ind_results
-            )
 
-            # < EWC >
-            print(
-                '{:}Starting task - EWC {:02d}/{:02d}{:} - {:02d}/{:02d} '
-                '({:} parameters)'.format(
-                    c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
-                    test_n + 1, len(config['seeds']),
-                    c['b'] + str(n_param) + c['nc']
-                )
-            )
-
-            # We train the naive model on the current task
-            ewc_net.to(ewc_net.device)
-            model_name = os.path.join(
-                model_path,
-                '{:}-ewc-t{:02d}.s{:05d}.pt'.format(
-                    model_base, t_i, seed
-                )
-            )
-            process_net(
-                config, ewc_net, model_name, seed, training_set, validation_set,
-                training_tasks, validation_tasks, testing_tasks,
-                t_i, offset1, offset2, epochs, n_classes, ewc_results
-            )
-
-            # < iCARL >
-            print(
-                '{:}Starting task - iCARL {:02d}/{:02d}{:} - {:02d}/{:02d} '
-                '({:} parameters)'.format(
-                    c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
-                    test_n + 1, len(config['seeds']),
-                    c['b'] + str(n_param) + c['nc']
-                )
-            )
-
-            # We train the naive model on the current task
-            icarl_net.to(icarl_net.device)
-            model_name = os.path.join(
-                model_path,
-                '{:}-icarl-t{:02d}.s{:05d}.pt'.format(
-                    model_base, t_i, seed
-                )
-            )
-            process_net(
-                config, icarl_net, model_name, seed, training_set, validation_set,
-                training_tasks, validation_tasks, testing_tasks,
-                t_i, offset1, offset2, epochs, n_classes, icarl_results
-            )
-
-            # < GDumb >
-            print(
-                '{:}Starting task - GDumb {:02d}/{:02d}{:} - {:02d}/{:02d} '
-                '({:} parameters)'.format(
-                    c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
-                    test_n + 1, len(config['seeds']),
-                    c['b'] + str(n_param) + c['nc']
-                )
-            )
-
-            # We train the naive model on the current task
-            gdumb_net.to(gdumb_net.device)
-            model_name = os.path.join(
-                model_path,
-                '{:}-gdumb-t{:02d}.s{:05d}.pt'.format(
-                    model_base, t_i, seed
-                )
-            )
-            process_net(
-                config, gdumb_net, model_name, seed, training_set, validation_set,
-                training_tasks, validation_tasks, testing_tasks,
-                t_i, offset1, offset2, epochs, n_classes, gdumb_results
-            )
-
-            # < GEM >
-            # Original GEM
-            print(
-                '{:}Starting task - GEM {:02d}/{:02d}{:} - {:02d}/{:02d} '
-                '({:} parameters)'.format(
-                    c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
-                    test_n + 1, len(config['seeds']),
-                    c['b'] + str(n_param) + c['nc']
-                )
-            )
-            # We train the gem model on the current task
-            model_name = os.path.join(
-                model_path,
-                '{:}-gem-t{:02d}.s{:05d}.pt'.format(
-                    model_base, t_i, seed
-                )
-            )
-            process_net(
-                config, gem_net, model_name, seed, training_set, validation_set,
-                training_tasks, validation_tasks, testing_tasks,
-                t_i, offset1, offset2, epochs, n_classes, gem_results
-            )
-
-            # Average GEM
-            print(
-                '{:}Starting task - AGEM {:02d}/{:02d}{:} - {:02d}/{:02d} '
-                '({:} parameters)'.format(
-                    c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
-                    test_n + 1, len(config['seeds']),
-                    c['b'] + str(n_param) + c['nc']
-                )
-            )
-            # We train the agem model on the current task
-            model_name = os.path.join(
-                model_path,
-                '{:}-agem-t{:02d}.s{:05d}.pt'.format(
-                    model_base, t_i, seed
-                )
-            )
-            process_net(
-                config, agem_net, model_name, seed, training_set, validation_set,
-                training_tasks, validation_tasks, testing_tasks,
-                t_i, offset1, offset2, epochs, n_classes, agem_results
-            )
-
-            # Stochastic GEM
-            print(
-                '{:}Starting task - SGEM {:02d}/{:02d}{:} - {:02d}/{:02d} '
-                '({:} parameters)'.format(
-                    c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
-                    test_n + 1, len(config['seeds']),
-                    c['b'] + str(n_param) + c['nc']
-                )
-            )
-            # We train the sgem model on the current task
-            model_name = os.path.join(
-                model_path,
-                '{:}-sgem-t{:02d}.s{:05d}.pt'.format(
-                    model_base, t_i, seed
-                )
-            )
-            process_net(
-                config, sgem_net, model_name, seed, training_set, validation_set,
-                training_tasks, validation_tasks, testing_tasks,
-                t_i, offset1, offset2, epochs, n_classes, sgem_results
-            )
-
-            # PCA-based GEM
-            print(
-                '{:}Starting task - NGEM {:02d}/{:02d}{:} - {:02d}/{:02d} '
-                '({:} parameters)'.format(
-                    c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
-                    test_n + 1, len(config['seeds']),
-                    c['b'] + str(n_param) + c['nc']
-                )
-            )
-            # We train the ngem model on the current task
-            model_name = os.path.join(
-                model_path,
-                '{:}-ngem-t{:02d}.s{:05d}.pt'.format(
-                    model_base, t_i, seed
-                )
-            )
-            process_net(
-                config, ngem_net, model_name, seed, training_set, validation_set,
-                training_tasks, validation_tasks, testing_tasks,
-                t_i, offset1, offset2, epochs, n_classes, ngem_results
-            )
-
-            # Parameter-based GEM
-            print(
-                '{:}Starting task - XGEM {:02d}/{:02d}{:} - {:02d}/{:02d} '
-                '({:} parameters)'.format(
-                    c['clr'] + c['c'], t_i + 1, n_tasks, c['nc'],
-                    test_n + 1, len(config['seeds']),
-                    c['b'] + str(n_param) + c['nc']
-                )
-            )
-            # We train the xgem model on the current task
-            model_name = os.path.join(
-                model_path,
-                '{:}-xgem-t{:02d}.s{:05d}.pt'.format(
-                    model_base, t_i, seed
-                )
-            )
-            process_net(
-                config, xgem_net, model_name, seed, training_set, validation_set,
-                training_tasks, validation_tasks, testing_tasks,
-                t_i, offset1, offset2, epochs, n_classes, xgem_results
-            )
-
-    for results_i, results_name in zip(all_results, all_methods):
-        save_results(
-            config, '{:}-{:}_results.json'.format(model_base, results_name),
-            results_i
-        )
+    save_results(config, '{:}_results.json'.format(model_base), all_results)
 
 
 if __name__ == '__main__':
