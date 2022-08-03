@@ -449,18 +449,12 @@ def main(verbose=2):
             except TypeError:
                 memory_manager = None
 
-            try:
-                new_meta = meta_model(
-                    network(
-                        n_outputs=n_classes, lr=lr, pretrained=pretrained
-                    ), False, memory_manager, **extra_params
-                )
-            except TypeError:
-                new_meta = meta_model(
-                    network(
-                        n_outputs=n_classes, lr=lr, pretrained=pretrained
-                    ), False, memory_manager
-                )
+            new_meta = meta_model(
+                network(
+                    n_outputs=n_classes, lr=lr, pretrained=pretrained
+                ), False, memory_manager, **extra_params
+            )
+
             if isinstance(new_meta.model, list):
                 for model_i in new_meta.model:
                     model_i.load_model(starting_model)
