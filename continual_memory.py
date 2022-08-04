@@ -976,7 +976,7 @@ class GDumb(MetaModel):
                     self.memory_manager.update_memory(
                         x, y, self.current_task, self.model
                     )
-                losses.append(self.model_update(x.size[0]))
+                losses.append(self.model_update(data.batch_size))
 
         # Mean loss of the global loss (we don't need the loss for each batch).
         mean_loss = np.mean(losses)
