@@ -181,6 +181,7 @@ class iCARLManager(ClassificationMemoryManager):
         current_labels = np.where([len(k_i) > 0 for k_i in self.data])
         new_labels = np.unique(y)
         old_mask = np.isin(current_labels, new_labels, invert=True)
+        print(current_labels, old_mask)
         old_labels = current_labels[old_mask]
         new_classes = len(new_labels)
         old_classes = sum([len(k_i) > 0 for k_i in self.data])
