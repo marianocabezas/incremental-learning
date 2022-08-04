@@ -757,6 +757,7 @@ class iCARL(MetaModel):
         return losses
 
     def distillation_loss(self):
+        print(self.first, self.memory is None)
         if not self.first and self.memory_manager is not None:
             if (self.offset2 - self.offset1) == self.n_classes:
                 losses = self._kl_div_loss(0, len(self.mem_class_x))
