@@ -159,11 +159,11 @@ class iCARLManager(ClassificationMemoryManager):
         self.memories_x_split = self.n_memories
         self.labels = [[] for _ in range(self.classes)]
 
-    def _update_class_exemplars(self, x_k, logits, k, n_classes):
+    def _update_class_exemplars(self, x_k, logits, k):
         mean_logits = torch.mean(logits, dim=0)
         x_list = torch.split(x_k, 1, dim=0)
         y_list = torch.split(logits, 1, dim=0)
-        exemplar_cost = torch.zeros(1, n_classes)
+        exemplar_cost = torch.zeros(1, self.classes)
         for ex_i in range(min(self.memories_x_split, len(x_list))):
             x_samples = len(x_list)
             mean_cost = mean_logits.expand(x_samples, self.classes)
@@ -196,14 +196,14 @@ class iCARLManager(ClassificationMemoryManager):
             # overwritten.
             x_k = x[y == k, ...]
             logits = model(x_k.to(model.device)).cpu()
-            self._update_class_exemplars(x_k, logits, k, n_classes)
+            self._update_class_exemplars(x_k, logits, k)
 
         # < Old class memories >
         # We need to shrink the older classes.
         for k in old_labels:
             x_k = torch.stack(self.data[k], dim=0)
             logits = model(x_k.to(model.device)).cpu()
-            self._update_class_exemplars(x_k, logits, k, n_classes)
+            self._update_class_exemplars(x_k, logits, k)
 
     def get_task(self, task):
         if task < len(self.task_labels):
