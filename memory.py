@@ -161,8 +161,8 @@ class iCARLManager(ClassificationMemoryManager):
 
     def _update_class_exemplars(self, x_k, logits, k):
         mean_logits = torch.mean(logits, dim=0)
-        x_list = torch.split(x_k, 1, dim=0)
-        y_list = torch.split(logits, 1, dim=0)
+        x_list = list(torch.split(x_k, 1, dim=0))
+        y_list = list(torch.split(logits, 1, dim=0))
         exemplar_cost = torch.zeros(1, self.classes)
         for ex_i in range(min(self.memories_x_split, len(x_list))):
             x_samples = len(x_list)
