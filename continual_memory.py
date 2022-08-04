@@ -1003,7 +1003,7 @@ class GDumb(MetaModel):
                 )
                 n_batches = len(memory_loader)
                 for batch_i, (x, y) in enumerate(memory_loader):
-                    pred_y = self.model(x.to(self.device))[offset1:offset2]
+                    pred_y = self.model(x.to(self.device))[:, offset1:offset2]
                     y_cuda = y.to(self.device) - offset1
                     batch_losses = [
                         l_f['weight'] * l_f['f'](pred_y, y_cuda)
