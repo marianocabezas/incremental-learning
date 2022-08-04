@@ -178,11 +178,13 @@ class iCARLManager(ClassificationMemoryManager):
     def update_memory(self, x, y, t, model=None, *args, **kwargs):
         self._update_task_labels(y, t)
         # We get the labels from the new and old tasks
-        current_labels = np.where([len(k_i) > 0 for k_i in self.data])
         new_labels = np.unique(y)
-        old_mask = np.isin(current_labels, new_labels, invert=True)
-        print(current_labels, old_mask)
-        old_labels = current_labels[old_mask]
+        current_labels = np.where([len(k_i) > 0 for k_i in self.data])
+        if len(current_labels) > 0:
+            old_mask = np.isin(current_labels, new_labels, invert=True)
+            old_labels = current_labels[old_mask]
+        else:
+            old_labels = []
         new_classes = len(new_labels)
         old_classes = sum([len(k_i) > 0 for k_i in self.data])
         n_classes = new_classes + old_classes
