@@ -413,10 +413,10 @@ def main(verbose=2):
         )
 
         # Init results
-        update_results(
-            config, net, seed, 1, training_tasks, validation_tasks, testing_tasks,
-            all_results, n_classes, 2
-        )
+        # update_results(
+        #     config, net, seed, 1, training_tasks, validation_tasks, testing_tasks,
+        #     all_results, n_classes, 2
+        # )
         print(
             '{:}Starting baseline{:} - {:02d}/{:02d} '
             '({:} parameters)'.format(
@@ -430,10 +430,10 @@ def main(verbose=2):
             config, seed, net, training_set, validation_set,
             model_name, epochs * n_tasks, n_tasks, None, None, None, 2
         )
-        update_results(
-            config, net, seed,  0, training_tasks, validation_tasks, testing_tasks,
-            all_results, n_classes, 2
-        )
+        # update_results(
+        #     config, net, seed,  0, training_tasks, validation_tasks, testing_tasks,
+        #     all_results, n_classes, 2
+        # )
 
         for model in config['metamodels']:
             try:

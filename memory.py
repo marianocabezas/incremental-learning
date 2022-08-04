@@ -167,11 +167,11 @@ class iCARLManager(ClassificationMemoryManager):
         for ex_i in range(min(self.memories_x_split, len(x_list))):
             x_samples = len(x_list)
             mean_cost = mean_logits.expand(x_samples, self.classes)
-            logits = torch.stack(y_list, dim=0)
+            logits = torch.cat(y_list, dim=0)
             new_cost = (logits + exemplar_cost) / (ex_i + 1)
             cost = torch.linalg.norm(mean_cost - new_cost, dim=1)
             indx = torch.argsort(cost, 0)[0]
-            print(k, cost.shape, logits.shape, mean_cost)
+            print(k, cost.shape, logits.shape, mean_cost.shape)
             self.data[k].append(x_list.pop(indx))
             self.labels[k].append(y_list.pop(indx))
             exemplar_cost += self.data[k][-1]
