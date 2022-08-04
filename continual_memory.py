@@ -780,13 +780,14 @@ class iCARL(MetaModel):
 
     def epoch_update(self, epochs, loader):
         last_epoch = (self.model.epoch + 1) == epochs
-        if last_epoch and self.memory_manager is not None:
-            self.memory_manager.update_memory(
-                self.memx, self.memy, self.current_task, self.model
-            )
+        if last_epoch:
+            self.first = False
             self.memx = None
             self.memy = None
-            self.first = False
+            if self.memory_manager is not None:
+                self.memory_manager.update_memory(
+                    self.memx, self.memy, self.current_task, self.model
+                )
 
     def fit(
         self,
