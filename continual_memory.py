@@ -108,7 +108,7 @@ def project5cone5(gradient, memories, beg, en, margin=0.5, eps=1e-3):
 class MetaModel(BaseModel):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
-        n_classes=100, n_tasks=10
+        n_classes=100, n_tasks=10, lr=None
     ):
         super().__init__()
         self.init = basemodel.init
@@ -117,6 +117,9 @@ class MetaModel(BaseModel):
         self.model = basemodel
         self.device = basemodel.device
         self.memory_manager = memory_manager
+        if lr is not None:
+            self.model.lr = lr
+            self.reset_optimiser()
         # Counters
         self.n_classes = n_classes
         self.n_tasks = n_tasks
@@ -194,10 +197,12 @@ class MetaModel(BaseModel):
 class EWC(MetaModel):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
-        n_classes=100, n_tasks=10,
+        n_classes=100, n_tasks=10, lr=None,
         ewc_weight=1e6, ewc_binary=True, ewc_alpha=None
     ):
-        super().__init__(basemodel, best, memory_manager, n_classes, n_tasks)
+        super().__init__(
+            basemodel, best, memory_manager, n_classes, n_tasks, lr
+        )
         self.ewc_weight = ewc_weight
         self.ewc_binary = ewc_binary
         self.ewc_alpha = ewc_alpha
@@ -381,9 +386,12 @@ class EWC(MetaModel):
 class GEM(MetaModel):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
-        n_classes=100, n_tasks=10, memory_strength=0.5,
+        n_classes=100, n_tasks=10, lr=None,
+        memory_strength=0.5,
     ):
-        super().__init__(basemodel, best, memory_manager, n_classes, n_tasks)
+        super().__init__(
+            basemodel, best, memory_manager, n_classes, n_tasks, lr
+        )
         self.margin = memory_strength
         self.n_classes = n_classes
         self.train_functions = self.model.train_functions
@@ -508,11 +516,11 @@ class GEM(MetaModel):
 class AGEM(GEM):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
-        n_classes=100, n_tasks=10, memory_strength=0.5,
+        n_classes=100, n_tasks=10, lr=None, memory_strength=0.5,
     ):
         super().__init__(
             basemodel, best, memory_manager,
-            n_classes, n_tasks, memory_strength
+            n_classes, n_tasks, lr, memory_strength
         )
 
     def get_grad(self):
@@ -523,11 +531,11 @@ class AGEM(GEM):
 class SGEM(GEM):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
-        n_classes=100, n_tasks=10, memory_strength=0.5,
+        n_classes=100, n_tasks=10, lr=None, memory_strength=0.5,
     ):
         super().__init__(
             basemodel, best, memory_manager,
-            n_classes, n_tasks, memory_strength
+            n_classes, n_tasks, lr, memory_strength
         )
 
     def get_grad(self):
@@ -541,11 +549,11 @@ class SGEM(GEM):
 class NGEM(GEM):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
-        n_classes=100, n_tasks=10, memory_strength=0.5,
+        n_classes=100, n_tasks=10, lr=None, memory_strength=0.5,
     ):
         super().__init__(
             basemodel, best, memory_manager,
-            n_classes, n_tasks, memory_strength
+            n_classes, n_tasks, lr, memory_strength
         )
         self.block_grad_dims = []
 
@@ -600,9 +608,11 @@ class NGEM(GEM):
 class Independent(MetaModel):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
-        n_classes=100, n_tasks=10
+        n_classes=100, n_tasks=10, lr=None
     ):
-        super().__init__(basemodel, best, memory_manager, n_classes, n_tasks)
+        super().__init__(
+            basemodel, best, memory_manager, n_classes, n_tasks, lr
+        )
         self.model = nn.ModuleList([deepcopy(basemodel) for _ in range(n_tasks)])
         self.first = True
         self.device = basemodel.device
@@ -643,12 +653,13 @@ class Independent(MetaModel):
 
 class ParamGEM(GEM):
     def __init__(
-            self, basemodel, best=True, memory_manager=None,
-            n_classes=100, n_tasks=10, memory_strength=0.5,
+        self, basemodel, best=True, memory_manager=None,
+        n_classes=100, n_tasks=10, lr=None,
+        memory_strength=0.5,
     ):
         super().__init__(
             basemodel, best, memory_manager,
-            n_classes, n_tasks, memory_strength
+            n_classes, n_tasks, lr, memory_strength
         )
         self.margin = memory_strength
         self.n_classes = n_classes
@@ -700,9 +711,11 @@ class ParamGEM(GEM):
 class iCARL(MetaModel):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
-        n_classes=100, n_tasks=10, memory_strength=0.5,
+        n_classes=100, n_tasks=10, lr=None, memory_strength=0.5,
     ):
-        super().__init__(basemodel, best, memory_manager, n_classes, n_tasks)
+        super().__init__(
+            basemodel, best, memory_manager, n_classes, n_tasks, lr
+        )
         self.n_classes = n_classes
         self.train_functions = self.model.train_functions + [
             {
@@ -810,11 +823,11 @@ class iCARL(MetaModel):
 class LoggingGEM(GEM):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
-        n_classes=100, n_tasks=10, memory_strength=0.5,
+        n_classes=100, n_tasks=10, lr=None, memory_strength=0.5,
     ):
         super().__init__(
             basemodel, best, memory_manager,
-            n_classes, n_tasks, memory_strength
+            n_classes, n_tasks, lr, memory_strength
         )
         self.grad_log = {
             'mean': [],
@@ -899,9 +912,11 @@ class LoggingGEM(GEM):
 class GDumb(MetaModel):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
-        n_classes=100, n_tasks=10
+        n_classes=100, n_tasks=10, lr=None
     ):
-        super().__init__(basemodel, best, memory_manager, n_classes, n_tasks)
+        super().__init__(
+            basemodel, best, memory_manager, n_classes, n_tasks, lr
+        )
         self.n_classes = n_classes
         self.train_functions = self.model.train_functions
         self.val_functions = self.model.val_functions
