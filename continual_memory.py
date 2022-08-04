@@ -998,8 +998,10 @@ class GDumb(MetaModel):
             for (offset1, offset2), memory_set in zip(
                 self.offsets, self.memory_manager.get_tasks()
             ):
+                print(offset1, offset2)
                 memory_loader = DataLoader(
-                    self.memory_manager, batch_size=batch_size, shuffle=True
+                    self.memory_manager, batch_size=batch_size, shuffle=True,
+                    drop_last=True
                 )
                 n_batches = len(memory_loader)
                 for batch_i, (x, y) in enumerate(memory_loader):
