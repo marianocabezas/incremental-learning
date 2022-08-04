@@ -170,8 +170,8 @@ class iCARLManager(ClassificationMemoryManager):
             new_cost = (logits + exemplar_cost) / (ex_i + 1)
             cost = torch.linalg.norm(mean_cost - new_cost, dim=1)
             indx = torch.argsort(cost, 0)[0]
-            self.data[k].append(x_list.pop(indx))
-            self.labels[k].append(y_list.pop(indx))
+            self.data[k].append(x_list.pop(indx).squeeze(0))
+            self.labels[k].append(y_list.pop(indx).squeeze(0))
             exemplar_cost += self.labels[k][-1]
 
     def update_memory(self, x, y, t, model=None, *args, **kwargs):
