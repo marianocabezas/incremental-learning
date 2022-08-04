@@ -70,7 +70,7 @@ class ClassificationMemoryManager(Dataset):
                 x_i for label in labels for x_i in self.data[label]
             ]
             labels = [
-                torch.tensor(label, dtype=torch.uint8)
+                label.astype(torch.uint8)
                 for label in labels for _ in self.data[label]
             ]
         else:
