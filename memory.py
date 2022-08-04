@@ -166,7 +166,7 @@ class iCARLManager(ClassificationMemoryManager):
         exemplar_cost = torch.zeros(1, n_classes)
         for ex_i in range(min(self.memories_x_split, len(x_list))):
             x_samples = len(x_list)
-            mean_cost = mean_logits.expand(x_samples, n_classes)
+            mean_cost = mean_logits.expand(x_samples, self.classes)
             logits = torch.stack(y_list, dim=0)
             new_cost = (logits + exemplar_cost) / (ex_i + 1)
             cost = torch.linalg.norm(mean_cost - new_cost, dim=1)
