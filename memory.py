@@ -102,7 +102,7 @@ class GreedyManager(ClassificationMemoryManager):
                 mem_x_class = self.n_memories
 
             class_size = len(self.data[y_i])
-            if class_size == 0 or class_size < mem_x_class:
+            if class_size < mem_x_class:
                 if sum(n_class_memories) >= self.n_memories:
                     big_class = np.argmax(n_class_memories)
                     self.data[big_class].pop(
