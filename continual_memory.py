@@ -994,7 +994,7 @@ class GDumb(MetaModel):
     def model_update(self, batch_size):
         self.model.optimizer_alg.zero_grad()
         losses = list()
-        current_bacth = 0
+        current_batch = 0
         n_batches = 0
         if self.memory_manager is not None:
             for (offset1, offset2), memory_set in zip(
@@ -1005,7 +1005,6 @@ class GDumb(MetaModel):
                 )
                 n_batches += len(memory_loader)
                 for batch_i, (x, y) in enumerate(memory_loader):
-                    current_bacth += batch_i
                     pred_y = self.model(x.to(self.device))[:, offset1:offset2]
                     y_cuda = y.to(self.device) - offset1
                     batch_losses = [
@@ -1019,10 +1018,12 @@ class GDumb(MetaModel):
                     self.optimizer_alg.step()
 
                     self.print_progress(
-                        current_bacth, n_batches, loss_value, np.mean(losses)
+                        current_batch + batch_i, n_batches, loss_value,
+                        np.mean(losses)
                     )
                     torch.cuda.empty_cache()
                     torch.cuda.ipc_collect()
+                current_batch += n_batches
         return np.mean(losses)
 
     def fit(
