@@ -741,7 +741,7 @@ class iCARL(MetaModel):
             indx = np.random.randint(0, len(x_k) - 1)
             x.append(x_k[indx].clone())
             y_logits.append(y_k[indx].clone())
-        x = torch.stack(x, dim=0).to(self.device)
+        x = torch.cat(x, dim=0).to(self.device)
         y_logits = torch.stack(y_logits, dim=0).to(self.device)
 
         # Add distillation loss
