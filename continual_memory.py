@@ -999,7 +999,7 @@ class GDumb(MetaModel):
                 self.offsets, self.memory_manager.get_tasks()
             ):
                 memory_loader = DataLoader(
-                    self.memory_manager, batch_size=batch_size, shuffle=True,
+                    memory_set, batch_size=batch_size, shuffle=True,
                     drop_last=True
                 )
                 n_batches = len(memory_loader)
