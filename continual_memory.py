@@ -1006,7 +1006,7 @@ class GDumb(MetaModel):
                     updated = self.memory_manager.update_memory(
                         x, y, self.current_task, self.model
                     )
-                if not updated:
+                if updated:
                     losses.append(self.model_update(
                         batch_i, n_batches, data.batch_size
                     ))
