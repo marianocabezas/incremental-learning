@@ -41,7 +41,9 @@ class MetaModel(BaseModel):
 
     def prebatch_update(self, batch, batches, x, y):
         if self.memory_manager is not None:
-            self.memory_manager.update_memory(x, y, self.current_task, self.model)
+            self.memory_manager.update_memory(
+                x.detach(), y.detach(), self.current_task, self.model
+            )
 
     def reset_optimiser(self):
         super().reset_optimiser()
@@ -680,11 +682,15 @@ class ParamGEM(GEM):
     def prebatch_update(self, batch, batches, x, y):
         if self.epoch == 0:
             if self.memx is None:
-                self.memx = x.cpu().data.clone()
-                self.memy = y.cpu().data.clone()
+                self.memx = x.detach().cpu().data.clone()
+                self.memy = y.detach().cpu().data.clone()
             else:
-                self.memx = torch.cat((self.memx, x.cpu().data.clone()))
-                self.memy = torch.cat((self.memy, y.cpu().data.clone()))
+                self.memx = torch.cat(
+                    (self.memx, x.detach().cpu().data.clone())
+                )
+                self.memy = torch.cat(
+                    (self.memy, y.detach().cpu().data.clone())
+                )
         self.update_gradients()
         self.constraint_check()
 
@@ -899,11 +905,15 @@ class iCARL(MetaModel):
     def prebatch_update(self, batch, batches, x, y):
         if self.epoch == 0:
             if self.memx is None:
-                self.memx = x.cpu().data.clone()
-                self.memy = y.cpu().data.clone()
+                self.memx = x.detach().cpu().data.clone()
+                self.memy = y.detach().cpu().data.clone()
             else:
-                self.memx = torch.cat((self.memx, x.cpu().data.clone()))
-                self.memy = torch.cat((self.memy, y.cpu().data.clone()))
+                self.memx = torch.cat(
+                    (self.memx, x.detach().cpu().data.clone())
+                )
+                self.memy = torch.cat(
+                    (self.memy, y.detach().cpu().data.clone())
+                )
 
     def epoch_update(self, epochs, loader):
         last_epoch = (self.model.epoch + 1) == epochs
@@ -1030,7 +1040,7 @@ class GDumb(MetaModel):
                 updated = self.memory_manager is not None
                 if updated:
                     updated = self.memory_manager.update_memory(
-                        x, y, self.current_task, self.model
+                        x.detach(), y.detach(), self.current_task, self.model
                     )
                 if updated:
                     losses.append(self.model_update(
