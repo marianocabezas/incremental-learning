@@ -470,12 +470,8 @@ def main(verbose=2):
                 zip(training_tasks, validation_tasks)
         ):
 
-            if config['type'] == 'natural-task' or config['type'] == 'natural':
-                offset1 = t_i * nc_per_task
-                offset2 = (t_i + 1) * nc_per_task
-            else:
-                offset1 = 0
-                offset2 = n_classes
+            offset1 = t_i * nc_per_task
+            offset2 = (t_i + 1) * nc_per_task
 
             for (meta_name, results_i), net in zip(
                     all_results.items(), all_metas

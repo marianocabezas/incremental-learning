@@ -9,106 +9,10 @@ from sklearn.decomposition import PCA
 from base import BaseModel
 
 
-def overwrite_grad(pp, newgrad, grad_dims):
-    """
-        This is used to overwrite the gradients with a new gradient
-        vector, whenever violations occur.
-        pp: parameters
-        newgrad: corrected gradient
-        grad_dims: list storing number of parameters at each layer
-    """
-    cnt = 0
-    for param in pp():
-        if param.grad is not None:
-            beg = 0 if cnt == 0 else sum(grad_dims[:cnt])
-            en = sum(grad_dims[:cnt + 1])
-            this_grad = newgrad[beg:en].contiguous().view(
-                param.grad.data.size()
-            )
-            param.grad.data.copy_(this_grad.to(param.device))
-        cnt += 1
-
-
-def project2cone2(gradient, memories, margin=0.5, eps=1e-3):
-    """
-        Solves the GEM dual QP described in the paper given a proposed
-        gradient "gradient", and a memory of task gradients "memories".
-        Overwrites "gradient" with the final projected update.
-
-        input:  gradient, p-vector
-        input:  memories, (t * p)-vector
-        output: x, p-vector
-    """
-    memories_np = np.nan_to_num(
-        memories.t().double().numpy()
-    )
-    gradient_np = np.nan_to_num(
-        gradient.contiguous().view(-1).double().numpy()
-    )
-    t = memories_np.shape[0]
-    P = np.dot(memories_np, memories_np.transpose())
-    P = 0.5 * (P + P.transpose()) + np.eye(t) * eps
-    q = np.dot(memories_np, gradient_np) * -1
-    G = np.eye(t)
-    h = np.zeros(t) + margin
-    try:
-        v = quadprog.solve_qp(P, q, G, h)[0]
-        x = np.dot(v, memories_np) + gradient_np
-    except ValueError:
-        x = gradient
-    return torch.Tensor(x).view(-1, 1)
-    # gradient.copy_(torch.Tensor(x).view(-1, 1))
-
-
-def project5cone5(gradient, memories, beg, en, margin=0.5, eps=1e-3):
-    """
-        First we do orthogonality of memories and then find the null space of
-        their gradients
-    """
-    np.seterr(divide='ignore', invalid='ignore')
-    memories_np = np.nan_to_num(
-        memories[beg:en].t().double().numpy()
-    ).astype(np.float32)
-    gradient_np = np.nan_to_num(
-        gradient[beg:en].contiguous().view(-1).double().numpy()
-    ).astype(np.float32)
-    memories_np_sum = np.sum(memories_np, axis=0)
-    if len(memories_np) == 1:
-        x = gradient_np - np.min([
-            (memories_np_sum.transpose().dot(gradient_np) /
-             memories_np_sum.transpose().dot(memories_np_sum)), -margin
-        ]) * memories_np_sum
-    else:
-        memories_np_mean = np.mean(memories_np, axis=0)
-        memories_np_del_mean = memories_np - memories_np_mean.reshape(1, -1)
-        memories_np_pca = PCA(n_components=min(3, len(memories_np)))
-        memories_np_pca.fit(memories_np_del_mean)
-        memories_np_orth = memories_np_pca.components_
-        Pg = gradient_np - memories_np_orth.transpose().dot(
-            memories_np_orth.dot(gradient_np))
-        Pg_bar = memories_np_sum - memories_np_orth.transpose().dot(
-            memories_np_orth.dot(memories_np_sum))
-        if memories_np_sum.transpose().dot(Pg) > 0:
-            x = Pg
-        else:
-            x = gradient_np - np.min([
-                memories_np_sum.transpose().dot(Pg) /
-                memories_np_sum.transpose().dot(Pg_bar), -margin
-            ]) * memories_np_sum - memories_np_orth.transpose().dot(
-                memories_np_orth.dot(gradient_np)) + memories_np_sum.transpose(
-                ).dot(Pg) / memories_np_sum.transpose().dot(
-                    Pg_bar) * memories_np_orth.transpose().dot(
-                        memories_np_orth.dot(memories_np_sum))
-
-    gradient[beg:en].copy_(
-        torch.Tensor(np.nan_to_num(x).astype(np.float32)).view(-1, 1)
-    )
-
-
 class MetaModel(BaseModel):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
-        n_classes=100, n_tasks=10, lr=None
+        n_classes=100, n_tasks=10, lr=None, task=True
     ):
         super().__init__()
         self.init = basemodel.init
@@ -117,9 +21,11 @@ class MetaModel(BaseModel):
         self.model = basemodel
         self.device = basemodel.device
         self.memory_manager = memory_manager
-        if lr is not None:
-            self.model.lr = lr
+        self.lr = lr
+        if self.lr is not None:
+            self.model.lr = self.lr
             self.reset_optimiser()
+        self.task = task
         # Counters
         self.n_classes = n_classes
         self.n_tasks = n_tasks
@@ -146,6 +52,8 @@ class MetaModel(BaseModel):
         net_state = {
             'first': self.first,
             'task': self.current_task,
+            'lr': self.lr,
+            'task_incremental': self.task,
             'manager': self.memory_manager,
             'state': self.state_dict(),
         }
@@ -160,6 +68,11 @@ class MetaModel(BaseModel):
         self.first = net_state['first']
         self.current_task = net_state['task']
         self.memory_manager = net_state['manager']
+        self.lr = net_state['lr']
+        if self.lr is not None:
+            self.model.lr = self.lr
+            self.reset_optimiser()
+        self.task = net_state['task_incremental']
         self.load_state_dict(net_state['state'])
         return net_state
 
@@ -168,7 +81,7 @@ class MetaModel(BaseModel):
 
     def observe(self, x, y):
         pred_labels, x_cuda, y_cuda = super().observe(x, y)
-        if self.offset1 is not None and self.offset2 is not None:
+        if self.task:
             pred_labels = pred_labels[:, self.offset1:self.offset2]
             y_cuda = y_cuda - self.offset1
 
@@ -197,11 +110,11 @@ class MetaModel(BaseModel):
 class EWC(MetaModel):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
-        n_classes=100, n_tasks=10, lr=None,
+        n_classes=100, n_tasks=10, lr=None, task=True,
         ewc_weight=1e6, ewc_binary=True, ewc_alpha=None
     ):
         super().__init__(
-            basemodel, best, memory_manager, n_classes, n_tasks, lr
+            basemodel, best, memory_manager, n_classes, n_tasks, lr, task
         )
         self.ewc_weight = ewc_weight
         self.ewc_binary = ewc_binary
@@ -386,11 +299,11 @@ class EWC(MetaModel):
 class GEM(MetaModel):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
-        n_classes=100, n_tasks=10, lr=None,
+        n_classes=100, n_tasks=10, lr=None, task=True,
         memory_strength=0.5,
     ):
         super().__init__(
-            basemodel, best, memory_manager, n_classes, n_tasks, lr
+            basemodel, best, memory_manager, n_classes, n_tasks, lr, task
         )
         self.margin = memory_strength
         self.n_classes = n_classes
@@ -422,6 +335,35 @@ class GEM(MetaModel):
                 self.grads[beg:en, tid].copy_(param.grad.cpu().data.view(-1))
             cnt += 1
 
+    def project(self, gradient, memories, eps=1e-3):
+        """
+            Solves the GEM dual QP described in the paper given a proposed
+            gradient "gradient", and a memory of task gradients "memories".
+            Overwrites "gradient" with the final projected update.
+
+            input:  gradient, p-vector
+            input:  memories, (t * p)-vector
+            output: x, p-vector
+        """
+        memories_np = np.nan_to_num(
+            memories.t().double().numpy()
+        )
+        gradient_np = np.nan_to_num(
+            gradient.contiguous().view(-1).double().numpy()
+        )
+        t = memories_np.shape[0]
+        P = np.dot(memories_np, memories_np.transpose())
+        P = 0.5 * (P + P.transpose()) + np.eye(t) * eps
+        q = np.dot(memories_np, gradient_np) * -1
+        G = np.eye(t)
+        h = np.zeros(t) + self.margin
+        try:
+            v = quadprog.solve_qp(P, q, G, h)[0]
+            x = np.dot(v, memories_np) + gradient_np
+        except ValueError:
+            x = gradient
+        return torch.Tensor(x).view(-1, 1)
+
     def update_gradients(self):
         if len(self.observed_tasks) > 1 and self.memory_manager is not None:
             for past_task, (offset1, offset2) in zip(
@@ -430,11 +372,13 @@ class GEM(MetaModel):
                 self.zero_grad()
 
                 memories_t, labels_t = self.memory_manager.get_task(past_task)
-
                 output = self(memories_t.to(self.device))
+                if self.task:
+                    output = output[:, offset1:offset2]
+
                 batch_losses = [
                     l_f['weight'] * l_f['f'](
-                        output[:, offset1:offset2],
+                        output,
                         labels_t.to(self.device)
                     )
                     for l_f in self.train_functions
@@ -445,6 +389,25 @@ class GEM(MetaModel):
     def get_grad(self):
         indx = torch.tensor(self.observed_tasks[:-1], dtype=torch.long)
         return self.grads.index_select(1, indx)
+
+    def overwrite_grad(self, newgrad):
+        """
+            This is used to overwrite the gradients with a new gradient
+            vector, whenever violations occur.
+            pp: parameters
+            newgrad: corrected gradient
+            grad_dims: list storing number of parameters at each layer
+        """
+        cnt = 0
+        for param in self.parameters():
+            if param.grad is not None:
+                beg = 0 if cnt == 0 else sum(self.grad_dims[:cnt])
+                en = sum(self.grad_dims[:cnt + 1])
+                this_grad = newgrad[beg:en].contiguous().view(
+                    param.grad.data.size()
+                )
+                param.grad.data.copy_(this_grad.to(param.device))
+            cnt += 1
 
     def constraint_check(self):
         t = self.current_task
@@ -457,13 +420,11 @@ class GEM(MetaModel):
             dotp = grad_t.t().to(self.device) @ grad.to(self.device)
 
             if (dotp < 0).any():
-                grad_t = project2cone2(
-                    grad_t, grad, self.margin
+                grad_t = self.project(
+                    grad_t, grad
                 )
                 # Copy gradients back
-                overwrite_grad(
-                    self.parameters, grad_t, self.grad_dims
-                )
+                self.overwrite_grad(grad_t)
         return grad_t
 
     def get_state(self):
@@ -516,11 +477,12 @@ class GEM(MetaModel):
 class AGEM(GEM):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
-        n_classes=100, n_tasks=10, lr=None, memory_strength=0.5,
+        n_classes=100, n_tasks=10, lr=None, task=True,
+        memory_strength=0.5,
     ):
         super().__init__(
             basemodel, best, memory_manager,
-            n_classes, n_tasks, lr, memory_strength
+            n_classes, n_tasks, lr, task, memory_strength
         )
 
     def get_grad(self):
@@ -530,12 +492,13 @@ class AGEM(GEM):
 
 class SGEM(GEM):
     def __init__(
-        self, basemodel, best=True, memory_manager=None,
-        n_classes=100, n_tasks=10, lr=None, memory_strength=0.5,
+            self, basemodel, best=True, memory_manager=None,
+            n_classes=100, n_tasks=10, lr=None, task=True,
+            memory_strength=0.5,
     ):
         super().__init__(
             basemodel, best, memory_manager,
-            n_classes, n_tasks, lr, memory_strength
+            n_classes, n_tasks, lr, task, memory_strength
         )
 
     def get_grad(self):
@@ -548,12 +511,13 @@ class SGEM(GEM):
 
 class NGEM(GEM):
     def __init__(
-        self, basemodel, best=True, memory_manager=None,
-        n_classes=100, n_tasks=10, lr=None, memory_strength=0.5,
+            self, basemodel, best=True, memory_manager=None,
+            n_classes=100, n_tasks=10, lr=None, task=True,
+            memory_strength=0.5,
     ):
         super().__init__(
             basemodel, best, memory_manager,
-            n_classes, n_tasks, lr, memory_strength
+            n_classes, n_tasks, lr, task, memory_strength
         )
         self.block_grad_dims = []
 
@@ -571,6 +535,50 @@ class NGEM(GEM):
                 if ind == len(list(self.parameters())) - 1:
                     self.block_grad_dims.append(block_params)
 
+    def project(self, gradient, memories, eps=1e-3):
+        """
+            First we do orthogonality of memories and then find the null space of
+            their gradients
+        """
+        np.seterr(divide='ignore', invalid='ignore')
+        memories_np = np.nan_to_num(
+            memories.t().double().numpy()
+        ).astype(np.float32)
+        gradient_np = np.nan_to_num(
+            gradient.contiguous().view(-1).double().numpy()
+        ).astype(np.float32)
+        memories_np_sum = np.sum(memories_np, axis=0)
+        if len(memories_np) == 1:
+            x = gradient_np - np.min([
+                (memories_np_sum.transpose().dot(gradient_np) /
+                 memories_np_sum.transpose().dot(memories_np_sum)), -self.margin
+            ]) * memories_np_sum
+        else:
+            memories_np_mean = np.mean(memories_np, axis=0)
+            memories_np_del_mean = memories_np - memories_np_mean.reshape(1, -1)
+            memories_np_pca = PCA(n_components=min(3, len(memories_np)))
+            memories_np_pca.fit(memories_np_del_mean)
+            memories_np_orth = memories_np_pca.components_
+            Pg = gradient_np - memories_np_orth.transpose().dot(
+                memories_np_orth.dot(gradient_np))
+            Pg_bar = memories_np_sum - memories_np_orth.transpose().dot(
+                memories_np_orth.dot(memories_np_sum))
+            if memories_np_sum.transpose().dot(Pg) > 0:
+                x = Pg
+            else:
+                x = gradient_np - np.min([
+                    memories_np_sum.transpose().dot(Pg) /
+                    memories_np_sum.transpose().dot(Pg_bar), -self.margin
+                ]) * memories_np_sum - memories_np_orth.transpose().dot(
+                    memories_np_orth.dot(gradient_np)) + memories_np_sum.transpose(
+                ).dot(Pg) / memories_np_sum.transpose().dot(
+                    Pg_bar) * memories_np_orth.transpose().dot(
+                    memories_np_orth.dot(memories_np_sum))
+
+        gradient.copy_(
+            torch.Tensor(np.nan_to_num(x).astype(np.float32)).view(-1, 1)
+        )
+
     def constraint_check(self):
         t = self.current_task
         if len(self.observed_tasks) > 1:
@@ -583,17 +591,12 @@ class NGEM(GEM):
                 en = sum(self.block_grad_dims[:cnt + 1])
                 if beg == en:
                     continue
-                # gradient_gpu = self.grads[:, t].unsqueeze(1).to(self.device)
-                project5cone5(
-                    self.grads[:, t].unsqueeze(1),
-                    self.grads.index_select(1, indx),
-                    # gradient_gpu,
-                    # self.grads.index_select(1, indx).to(self.device),
-                    beg, en, margin=self.margin
+                self.project(
+                    self.grads[:, t].unsqueeze(1)[beg:en],
+                    self.grads.index_select(1, indx)[beg:en],
                 )
-                # self.grads[:, t] = gradient_gpu.squeeze(1).cpu()
             # copy gradients back
-            overwrite_grad(self.parameters, self.grads[:, t], self.grad_dims)
+            self.overwrite_grad(self.grads[:, t])
 
     def get_state(self):
         net_state = super().get_state()
@@ -605,61 +608,15 @@ class NGEM(GEM):
         self.block_grad_dims = net_state['block_dims']
 
 
-class Independent(MetaModel):
-    def __init__(
-        self, basemodel, best=True, memory_manager=None,
-        n_classes=100, n_tasks=10, lr=None
-    ):
-        super().__init__(
-            basemodel, best, memory_manager, n_classes, n_tasks, lr
-        )
-        self.model = nn.ModuleList([deepcopy(basemodel) for _ in range(n_tasks)])
-        self.first = True
-        self.device = basemodel.device
-        # Counters
-        self.observed_tasks = []
-        self.current_task = -1
-
-    def forward(self, *inputs):
-        return self.model[self.current_task](*inputs)
-
-    def reset_optimiser(self):
-        pass
-
-    def fit(
-        self,
-        train_loader,
-        val_loader,
-        epochs=50,
-        patience=5,
-        task=None,
-        offset1=None,
-        offset2=None,
-        verbose=True
-    ):
-        if task is None:
-            self.optimizer_alg = self.model[self.current_task + 1].optimizer_alg
-        else:
-            self.optimizer_alg = self.model[task].optimizer_alg
-        super().fit(
-            train_loader, val_loader, epochs, patience, task, offset1, offset2,
-            verbose
-        )
-        if (self.current_task + 1) < len(self.model):
-            self.model[self.current_task + 1].load_state_dict(
-                self.model[self.current_task].state_dict()
-            )
-
-
 class ParamGEM(GEM):
     def __init__(
-        self, basemodel, best=True, memory_manager=None,
-        n_classes=100, n_tasks=10, lr=None,
-        memory_strength=0.5,
+            self, basemodel, best=True, memory_manager=None,
+            n_classes=100, n_tasks=10, lr=None, task=True,
+            memory_strength=0.5,
     ):
         super().__init__(
             basemodel, best, memory_manager,
-            n_classes, n_tasks, lr, memory_strength
+            n_classes, n_tasks, lr, task, memory_strength
         )
         self.margin = memory_strength
         self.n_classes = n_classes
@@ -697,8 +654,8 @@ class ParamGEM(GEM):
                             grad.to(self.device)
                         )
                         if (dotp < 0).any():
-                            new_grad = project2cone2(
-                                current_grad.unsqueeze(1), grad, self.margin
+                            new_grad = self.project(
+                                current_grad.unsqueeze(1), grad
                             )
                             # Copy the new gradient
                             current_grad = new_grad.contiguous().view(
@@ -708,127 +665,15 @@ class ParamGEM(GEM):
                     p += 1
 
 
-class iCARL(MetaModel):
-    def __init__(
-        self, basemodel, best=True, memory_manager=None,
-        n_classes=100, n_tasks=10, lr=None, memory_strength=0.5,
-    ):
-        super().__init__(
-            basemodel, best, memory_manager, n_classes, n_tasks, lr
-        )
-        self.n_classes = n_classes
-        self.train_functions = self.model.train_functions + [
-            {
-                'name': 'dist',
-                'weight': memory_strength,
-                'f': lambda p, t: self.distillation_loss()
-            }
-        ]
-        self.val_functions = self.model.val_functions
-
-        # Memory
-        self.memx = None  # stores raw inputs, PxD
-        self.memy = None
-        self.offsets = []
-
-    def _kl_div_loss(self, offset1, offset2):
-        losses = []
-        x = []
-        y_logits = []
-        for k in range(offset1, offset2):
-            x_k = self.memory_manager.data[k]
-            y_k = self.memory_manager.labels[k]
-            indx = np.random.randint(0, len(x_k) - 1)
-            x.append(x_k[indx].clone())
-            y_logits.append(y_k[indx].clone())
-        x = torch.stack(x, dim=0).to(self.device)
-        y_logits = torch.stack(y_logits, dim=0).to(self.device)
-
-        # Add distillation loss
-        prediction = F.log_softmax(
-            self.model(x)[:, offset1:offset2], 1
-        )
-        y = F.softmax(y_logits[:, offset1:offset2], 1)
-        losses.append(
-            F.kl_div(
-                prediction, y, reduction='batchmean'
-            ) * (offset2 - offset1)
-        )
-        return losses
-
-    def distillation_loss(self):
-        if not self.first and self.memory_manager is not None:
-            if (self.offset2 - self.offset1) == self.n_classes:
-                losses = self._kl_div_loss(0, len(self.mem_class_x))
-            else:
-                losses = []
-                for offset1, offset2 in self.offsets[:-1]:
-                    losses += self._kl_div_loss(offset1, offset2)
-        else:
-            losses = []
-        return sum(losses)
-
-    def prebatch_update(self, batch, batches, x, y):
-        if self.epoch == 0:
-            if self.memx is None:
-                self.memx = x.cpu().data.clone()
-                self.memy = y.cpu().data.clone()
-            else:
-                self.memx = torch.cat((self.memx, x.cpu().data.clone()))
-                self.memy = torch.cat((self.memy, y.cpu().data.clone()))
-
-    def epoch_update(self, epochs, loader):
-        last_epoch = (self.model.epoch + 1) == epochs
-        if last_epoch:
-            self.first = False
-            if self.memory_manager is not None:
-                self.memory_manager.update_memory(
-                    self.memx, self.memy, self.current_task, self.model
-                )
-            self.memx = None
-            self.memy = None
-
-    def fit(
-        self,
-        train_loader,
-        val_loader,
-        epochs=50,
-        patience=5,
-        task=None,
-        offset1=None,
-        offset2=None,
-        verbose=True
-    ):
-        if offset1 is None:
-            offset1 = 0
-        if offset2 is None:
-            offset2 = self.n_classes
-        self.offsets.append((offset1, offset2))
-        super().fit(
-            train_loader, val_loader, epochs, patience, task, offset1, offset2,
-            verbose
-        )
-
-    def load_model(self, net_name):
-        net_state = super().load_model(net_name)
-        self.n_classes = net_state['n_classes']
-
-        return net_state
-
-    def get_state(self):
-        net_state = super().get_state()
-        net_state['n_classes'] = self.n_classes
-        return net_state
-
-
 class LoggingGEM(GEM):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
-        n_classes=100, n_tasks=10, lr=None, memory_strength=0.5,
+        n_classes=100, n_tasks=10, lr=None, task=True,
+        memory_strength=0.5,
     ):
         super().__init__(
             basemodel, best, memory_manager,
-            n_classes, n_tasks, lr, memory_strength
+            n_classes, n_tasks, lr, task, memory_strength
         )
         self.grad_log = {
             'mean': [],
@@ -910,13 +755,173 @@ class LoggingGEM(GEM):
         return net_state
 
 
+class Independent(MetaModel):
+    def __init__(
+        self, basemodel, best=True, memory_manager=None,
+        n_classes=100, n_tasks=10, lr=None, task=True
+    ):
+        super().__init__(
+            basemodel, best, memory_manager, n_classes, n_tasks, lr, task
+        )
+        self.model = nn.ModuleList([deepcopy(basemodel) for _ in range(n_tasks)])
+        self.first = True
+        self.device = basemodel.device
+        # Counters
+        self.observed_tasks = []
+        self.current_task = -1
+
+    def forward(self, *inputs):
+        return self.model[self.current_task](*inputs)
+
+    def reset_optimiser(self):
+        pass
+
+    def fit(
+        self,
+        train_loader,
+        val_loader,
+        epochs=50,
+        patience=5,
+        task=None,
+        offset1=None,
+        offset2=None,
+        verbose=True
+    ):
+        if task is None:
+            self.optimizer_alg = self.model[self.current_task + 1].optimizer_alg
+        else:
+            self.optimizer_alg = self.model[task].optimizer_alg
+        super().fit(
+            train_loader, val_loader, epochs, patience, task, offset1, offset2,
+            verbose
+        )
+        if (self.current_task + 1) < len(self.model):
+            self.model[self.current_task + 1].load_state_dict(
+                self.model[self.current_task].state_dict()
+            )
+
+
+class iCARL(MetaModel):
+    def __init__(
+        self, basemodel, best=True, memory_manager=None,
+        n_classes=100, n_tasks=10, lr=None, task=True,
+        memory_strength=0.5,
+    ):
+        super().__init__(
+            basemodel, best, memory_manager, n_classes, n_tasks, lr, task
+        )
+        self.n_classes = n_classes
+        self.train_functions = self.model.train_functions + [
+            {
+                'name': 'dist',
+                'weight': memory_strength,
+                'f': lambda p, t: self.distillation_loss()
+            }
+        ]
+        self.val_functions = self.model.val_functions
+
+        # Memory
+        self.memx = None  # stores raw inputs, PxD
+        self.memy = None
+        self.offsets = []
+
+    def _kl_div_loss(self, offset1, offset2):
+        losses = []
+        x = []
+        y_logits = []
+        for k in range(offset1, offset2):
+            x_k = self.memory_manager.data[k]
+            y_k = self.memory_manager.labels[k]
+            indx = np.random.randint(0, len(x_k) - 1)
+            x.append(x_k[indx].clone())
+            y_logits.append(y_k[indx].clone())
+        x = torch.stack(x, dim=0).to(self.device)
+        y_logits = torch.stack(y_logits, dim=0).to(self.device)
+
+        # Add distillation loss
+        prediction = F.log_softmax(
+            self.model(x)[:, offset1:offset2], 1
+        )
+        y = F.softmax(y_logits[:, offset1:offset2], 1)
+        losses.append(
+            F.kl_div(
+                prediction, y, reduction='batchmean'
+            ) * (offset2 - offset1)
+        )
+        return losses
+
+    def distillation_loss(self):
+        if not self.first and self.memory_manager is not None:
+            if self.task:
+                losses = self._kl_div_loss(0, len(self.mem_class_x))
+            else:
+                losses = []
+                for offset1, offset2 in self.offsets[:-1]:
+                    losses += self._kl_div_loss(offset1, offset2)
+        else:
+            losses = []
+        return sum(losses)
+
+    def prebatch_update(self, batch, batches, x, y):
+        if self.epoch == 0:
+            if self.memx is None:
+                self.memx = x.cpu().data.clone()
+                self.memy = y.cpu().data.clone()
+            else:
+                self.memx = torch.cat((self.memx, x.cpu().data.clone()))
+                self.memy = torch.cat((self.memy, y.cpu().data.clone()))
+
+    def epoch_update(self, epochs, loader):
+        last_epoch = (self.model.epoch + 1) == epochs
+        if last_epoch:
+            self.first = False
+            if self.memory_manager is not None:
+                self.memory_manager.update_memory(
+                    self.memx, self.memy, self.current_task, self.model
+                )
+            self.memx = None
+            self.memy = None
+
+    def fit(
+        self,
+        train_loader,
+        val_loader,
+        epochs=50,
+        patience=5,
+        task=None,
+        offset1=None,
+        offset2=None,
+        verbose=True
+    ):
+        if offset1 is None:
+            offset1 = 0
+        if offset2 is None:
+            offset2 = self.n_classes
+        self.offsets.append((offset1, offset2))
+        super().fit(
+            train_loader, val_loader, epochs, patience, task, offset1, offset2,
+            verbose
+        )
+
+    def load_model(self, net_name):
+        net_state = super().load_model(net_name)
+        self.n_classes = net_state['n_classes']
+
+        return net_state
+
+    def get_state(self):
+        net_state = super().get_state()
+        net_state['n_classes'] = self.n_classes
+        return net_state
+
+
 class GDumb(MetaModel):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
-        n_classes=100, n_tasks=10, lr=None
+        n_classes=100, n_tasks=10, lr=None, task=True
     ):
         super().__init__(
-            basemodel, best, memory_manager, n_classes, n_tasks, lr
+            basemodel, best, memory_manager, n_classes, n_tasks, lr, task
         )
         self.n_classes = n_classes
         self.train_functions = self.model.train_functions
@@ -1020,8 +1025,11 @@ class GDumb(MetaModel):
                 )
                 n_batches = len(memory_loader)
                 for batch_i, (x, y) in enumerate(memory_loader):
-                    pred_y = self.model(x.to(self.device))[:, offset1:offset2]
-                    y_cuda = y.to(self.device) - offset1
+                    pred_y = self.model(x.to(self.device))
+                    y_cuda = y.to(self.device)
+                    if self.task:
+                        pred_y = pred_y[:, offset1:offset2]
+                        y_cuda = y_cuda - offset1
                     print(torch.unique(y_cuda), pred_y.shape)
                     batch_losses = [
                         l_f['weight'] * l_f['f'](pred_y, y_cuda)
