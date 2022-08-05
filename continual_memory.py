@@ -629,6 +629,10 @@ class ParamGEM(GEM):
                 self.grads.append(torch.Tensor(param.data.numel(), n_tasks))
         self.memory_data = [[] for _ in range(n_tasks)]
         self.memory_labs = [[] for _ in range(n_tasks)]
+
+        # Memory
+        self.memx = None  # stores raw inputs, PxD
+        self.memy = None
         self.offsets = []
 
     def store_grad(self, tid):
@@ -672,6 +676,28 @@ class ParamGEM(GEM):
                             )
                             param.grad.data.copy_(current_grad.to(param.device))
                     p += 1
+
+    def prebatch_update(self, batch, batches, x, y):
+        if self.epoch == 0:
+            if self.memx is None:
+                self.memx = x.cpu().data.clone()
+                self.memy = y.cpu().data.clone()
+            else:
+                self.memx = torch.cat((self.memx, x.cpu().data.clone()))
+                self.memy = torch.cat((self.memy, y.cpu().data.clone()))
+        self.update_gradients()
+        self.constraint_check()
+
+    def epoch_update(self, epochs, loader):
+        last_epoch = (self.model.epoch + 1) == epochs
+        if last_epoch:
+            self.first = False
+            if self.memory_manager is not None:
+                self.memory_manager.update_memory(
+                    self.memx, self.memy, self.current_task, self.model
+                )
+            self.memx = None
+            self.memy = None
 
 
 class LoggingGEM(GEM):
