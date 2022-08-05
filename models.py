@@ -195,10 +195,14 @@ class ViT_B_16(BaseModel):
         # self.vit_input = models.ViT_B_16_Weights.IMAGENET1K_V1.transforms()
         if pretrained:
             self.vit = models.vit_b_16(
+                image_size=image_size, patch_size=patch_size,
                 weights=models.ViT_B_16_Weights.IMAGENET1K_V1
             )
         else:
-            self.vit = models.vit_b_16()
+            self.vit = models.vision_transformer._vision_transformer(
+                image_size=image_size, patch_size=patch_size,
+                weights=None
+            )
         last_features = self.vit.heads[0].in_features
         self.vit.heads[0] = nn.Linear(last_features, self.n_classes)
 
@@ -259,11 +263,11 @@ class ViT_B_16(BaseModel):
 
 
 def vitb_cifar(n_outputs, lr=1e-3, pretrained=False):
-    return ViT_B_16(32, 2, n_outputs, lr=lr)
+    return ViT_B_16(32, 2, n_outputs, pretrained, lr=lr)
 
 
 def vitb_imagenet(n_outputs, lr=1e-3, pretrained=False):
-    return ViT_B_16(64, 4, n_outputs, lr=lr)
+    return ViT_B_16(64, 4, n_outputs, pretrained, lr=lr)
 
 
 class SimpleUNet(BaseModel):
