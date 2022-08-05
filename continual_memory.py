@@ -831,8 +831,7 @@ class iCARL(MetaModel):
         x = []
         y_logits = []
         for k in range(offset1, offset2):
-            x_k = self.memory_manager.data[k]
-            y_k = self.memory_manager.labels[k]
+            x_k, y_k = self.memory_manager.get_class(k)
             indx = np.random.randint(0, len(x_k) - 1)
             x.append(x_k[indx].clone())
             y_logits.append(y_k[indx].clone())
@@ -994,13 +993,19 @@ class GDumb(MetaModel):
                 torch.cuda.empty_cache()
                 torch.cuda.ipc_collect()
             else:
-                if self.memory_manager is not None:
-                    self.memory_manager.update_memory(
+                updated = self.memory_manager is not None
+                if updated:
+                    updated = self.memory_manager.update_memory(
                         x, y, self.current_task, self.model
                     )
-                losses.append(self.model_update(
-                    batch_i, n_batches, data.batch_size
-                ))
+                if not updated:
+                    losses.append(self.model_update(
+                        batch_i, n_batches, data.batch_size
+                    ))
+                else:
+                    self.print_progress(
+                        batch_i, n_batches, losses[-1], np.mean(losses)
+                    )
 
         # Mean loss of the global loss (we don't need the loss for each batch).
         mean_loss = np.mean(losses)

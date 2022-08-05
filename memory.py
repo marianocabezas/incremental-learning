@@ -49,9 +49,13 @@ class ClassificationMemoryManager(Dataset):
 
     def update_memory(self, x, y, t, *args, **kwargs):
         self._update_task_labels(y, t)
+        updated = False
         for x_i, y_i in zip(x, y):
-            if len(self.data[y_i]) < self.memories_x_split:
+            update = len(self.data[y_i]) < self.memories_x_split
+            updated = update or updated
+            if update:
                 self.data[y_i].append(x_i)
+        return updated
 
     def get_split(self, split):
         return self.data[split]
@@ -77,6 +81,9 @@ class ClassificationMemoryManager(Dataset):
             labels = []
         return data, labels
 
+    def get_class(self, k):
+        return self.data[k], [k] * len(self.data[k])
+
     def __getitem__(self, index):
         index, y = self._check_index(index)
         x = self.data[y][index]
@@ -93,6 +100,7 @@ class GreedyManager(ClassificationMemoryManager):
 
     def update_memory(self, x, y, t, *args, **kwargs):
         self._update_task_labels(y, t)
+        updated = False
         for x_i, y_i in zip(x, y):
             n_classes = sum([len(k_i) > 0 for k_i in self.data])
             n_class_memories = [len(k_i) for k_i in self.data]
@@ -102,13 +110,17 @@ class GreedyManager(ClassificationMemoryManager):
                 mem_x_class = self.n_memories
 
             class_size = len(self.data[y_i])
-            if class_size < mem_x_class:
+            update = class_size < mem_x_class
+            updated = updated or update
+            if update:
                 if sum(n_class_memories) >= self.n_memories:
                     big_class = np.argmax(n_class_memories)
                     self.data[big_class].pop(
                         np.random.randint(len(self.data[big_class]))
                     )
                 self.data[y_i].append(x_i)
+
+        return updated
 
 
 class ClassRingBuffer(ClassificationMemoryManager):
@@ -121,6 +133,7 @@ class ClassRingBuffer(ClassificationMemoryManager):
             if len(self.data[t]) == self.memories_x_split:
                 self.data[t].pop(0)
             self.data[t].append(x_i)
+        return True
 
 
 class TaskRingBuffer(ClassificationMemoryManager):
@@ -137,12 +150,26 @@ class TaskRingBuffer(ClassificationMemoryManager):
                 self.labels[t].pop(0)
             self.data[t].append(x_i)
             self.labels[t].append(y_i)
+        return True
 
     def get_split(self, split):
         return self.data[split], self.labels[split]
 
     def get_task(self, task):
         return self.data[task], self.labels[task]
+
+    def get_class(self, k):
+        data = []
+        labels = []
+        if k in torch.cat(self.task_labels):
+            tasks = [task for task in self.task_labels if k in task]
+            for task in tasks:
+                for x_i, y_i in zip(self.data[task], self.labels[task]):
+                    print(y_i, k)
+                    if y_i == k:
+                        data.append(x_i)
+                        labels.append(y_i)
+        return data, labels
 
     def __getitem__(self, index):
         index, t = self._check_index(index)
@@ -206,6 +233,8 @@ class iCARLManager(ClassificationMemoryManager):
             logits = model(x_k.to(model.device)).cpu()
             self._update_class_exemplars(x_k, logits, k)
 
+        return True
+
     def get_task(self, task):
         if task < len(self.task_labels):
             labels = self.task_labels[task]
@@ -219,6 +248,9 @@ class iCARLManager(ClassificationMemoryManager):
             data = []
             labels = []
         return data, labels
+
+    def get_class(self, k):
+        return self.data[k], self.labels[k]
 
     def get_split(self, split):
         return self.data[split], self.labels[split]
