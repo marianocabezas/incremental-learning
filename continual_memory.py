@@ -521,6 +521,7 @@ class NGEM(GEM):
         )
         self.block_grad_dims = []
 
+        block_params = 0
         for ind, param in enumerate(self.parameters()):
             if ind % 5 == 0:
                 block_params = 0
@@ -997,7 +998,9 @@ class GDumb(MetaModel):
                     self.memory_manager.update_memory(
                         x, y, self.current_task, self.model
                     )
-                losses.append(self.model_update(batch_i, data.batch_size))
+                losses.append(self.model_update(
+                    batch_i, n_batches, data.batch_size
+                ))
 
         # Mean loss of the global loss (we don't need the loss for each batch).
         mean_loss = np.mean(losses)
@@ -1012,7 +1015,7 @@ class GDumb(MetaModel):
             mean_accs = np.mean(np_accs, axis=1) if np_accs.size > 0 else []
         return mean_loss, mean_losses, mean_accs
 
-    def model_update(self,  batch_i, batch_size):
+    def model_update(self,  batch_i, n_batches, batch_size):
         self.model.optimizer_alg.zero_grad()
         losses = list()
         if self.memory_manager is not None:
@@ -1023,14 +1026,12 @@ class GDumb(MetaModel):
                     memory_set, batch_size=batch_size, shuffle=True,
                     drop_last=True
                 )
-                n_batches = len(memory_loader)
                 for x, y in memory_loader:
                     pred_y = self.model(x.to(self.device))
                     y_cuda = y.to(self.device)
                     if self.task:
                         pred_y = pred_y[:, offset1:offset2]
                         y_cuda = y_cuda - offset1
-                    print(torch.unique(y_cuda), pred_y.shape)
                     batch_losses = [
                         l_f['weight'] * l_f['f'](pred_y, y_cuda)
                         for l_f in self.train_functions
