@@ -53,6 +53,9 @@ class BaseModel(nn.Module):
         self.acc_functions = {}
         self.acc = None
 
+    def gram_matrix(self, *inputs):
+        return None
+
     def forward(self, *inputs):
         """
 

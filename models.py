@@ -93,6 +93,13 @@ class ConvNeXtTiny(BaseModel):
         model_params = filter(lambda p: p.requires_grad, self.parameters())
         self.optimizer_alg = torch.optim.SGD(model_params, lr=self.lr)
 
+    def gram_matrix(self, data):
+        data = self.cnext.features[:3](data)
+        flat_data = torch.flatten(data, 2)
+        G = torch.bmm(flat_data, flat_data.transpose(1, 2))
+        norm = data.numel() / len(data)
+        return G / norm
+
     def forward(self, data):
         self.cnext.to(self.device)
         return self.cnext(data)
@@ -155,6 +162,19 @@ class ResNet18(BaseModel):
         model_params = filter(lambda p: p.requires_grad, self.parameters())
         self.optimizer_alg = torch.optim.SGD(model_params, lr=self.lr)
 
+    def gram_matrix(self, data):
+        data = self.resnet.conv1(data)
+        data = self.resnet.bn1(data)
+        data = self.resnet.relu(data)
+        data = self.resnet.maxpool(data)
+        data = self.resnet.layer1(data)
+        data = self.resnet.layer2(data)
+        data = self.resnet.layer3(data)
+        flat_data = torch.flatten(data, 2)
+        G = torch.bmm(flat_data, flat_data.transpose(1, 2))
+        norm = data.numel() / len(data)
+        return G / norm
+
     def forward(self, data):
         self.resnet.to(self.device)
         return self.resnet(data)
@@ -174,17 +194,11 @@ class ViT_B_16(BaseModel):
         self.device = device
         # self.vit_input = models.ViT_B_16_Weights.IMAGENET1K_V1.transforms()
         if pretrained:
-            self.vit = models.vision_transformer._vision_transformer(
-                num_layers=12, num_heads=12, hidden_dim=768, mlp_dim=3072,
-                image_size=image_size, patch_size=patch_size, progress=True,
+            self.vit = models.vit_b_16(
                 weights=models.ViT_B_16_Weights.IMAGENET1K_V1
             )
         else:
-            self.vit = models.vision_transformer._vision_transformer(
-                num_layers=12, num_heads=12, hidden_dim=768, mlp_dim=3072,
-                image_size=image_size, patch_size=patch_size, progress=True,
-                weights=None
-            )
+            self.vit = models.vit_b_16()
         last_features = self.vit.heads[0].in_features
         self.vit.heads[0] = nn.Linear(last_features, self.n_classes)
 
@@ -223,6 +237,19 @@ class ViT_B_16(BaseModel):
         super().reset_optimiser()
         model_params = filter(lambda p: p.requires_grad, self.parameters())
         self.optimizer_alg = torch.optim.SGD(model_params, lr=self.lr)
+
+    def gram_matrix(self, data):
+        data = self.vit._process_input(data)
+        n = data.shape[0]
+        # Expand the class token to the full batch
+        batch_class_token = self.vit.class_token.expand(n, -1, -1)
+        data = torch.cat([batch_class_token, data], dim=1)
+        data = self.vit.encoder(data)
+
+        flat_data = data[:, 1:].unsqueeze(1)
+        G = torch.bmm(flat_data, flat_data.transpose(1, 2))
+        norm = data.numel() / len(data)
+        return G / norm
 
     def forward(self, data):
         # self.vit_input.to(self.device)
