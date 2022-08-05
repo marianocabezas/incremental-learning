@@ -192,14 +192,13 @@ class ViT_B_16(BaseModel):
         self.n_classes = n_outputs
         self.lr = lr
         self.device = device
-        # self.vit_input = models.ViT_B_16_Weights.IMAGENET1K_V1.transforms()
         if pretrained:
             self.vit = models.vit_b_16(
                 image_size=image_size, patch_size=patch_size,
                 weights=models.ViT_B_16_Weights.IMAGENET1K_V1
             )
         else:
-            self.vit = models.vision_transformer._vision_transformer(
+            self.vit = models.vit_b_16(
                 image_size=image_size, patch_size=patch_size,
                 weights=None
             )
@@ -256,8 +255,6 @@ class ViT_B_16(BaseModel):
         return G / norm
 
     def forward(self, data):
-        # self.vit_input.to(self.device)
-        # data = self.vit_input(data)
         self.vit.to(self.device)
         return self.vit(data)
 
