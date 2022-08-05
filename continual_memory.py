@@ -641,6 +641,13 @@ class ParamGEM(GEM):
                     )
                 p += 1
 
+    def project(self, gradient, memories, eps=1e-3):
+        all_gradients = torch.cat([gradient, memories], dim=1)
+        abs_gradients = torch.sum(torch.abs(all_gradients), dim=1)
+        gradients = torch.abs(torch.sum(all_gradients, dim=1))
+        gradient[torch.abs(abs_gradients - gradients) > eps, :] = 0
+        return gradient
+
     def constraint_check(self):
         if len(self.observed_tasks) > 1:
             p = 0
@@ -656,7 +663,8 @@ class ParamGEM(GEM):
                         )
                         if (dotp < 0).any():
                             new_grad = self.project(
-                                current_grad.unsqueeze(1), grad
+                                current_grad.unsqueeze(1).to(self.device),
+                                grad.to(self.device)
                             )
                             # Copy the new gradient
                             current_grad = new_grad.contiguous().view(
