@@ -179,11 +179,11 @@ class TaskRingBuffer(ClassificationMemoryManager):
         return x, y
 
 
-class iCARLManager(ClassificationMemoryManager):
+class MeanClassManager(ClassificationMemoryManager):
     def __init__(self, n_memories, n_classes, n_tasks):
         super().__init__(n_memories, n_classes, n_tasks)
         self.memories_x_split = self.n_memories
-        self.labels = [[] for _ in range(self.classes)]
+        self.logits = [[] for _ in range(self.classes)]
 
     def _update_class_exemplars(self, x_k, logits, k):
         mean_logits = torch.mean(logits, dim=0)
@@ -198,8 +198,8 @@ class iCARLManager(ClassificationMemoryManager):
             cost = torch.linalg.norm(mean_cost - new_cost, dim=1)
             indx = torch.argsort(cost, 0)[0]
             self.data[k].append(x_list.pop(indx).squeeze(0))
-            self.labels[k].append(y_list.pop(indx).squeeze(0))
-            exemplar_cost += self.labels[k][-1]
+            self.logits[k].append(y_list.pop(indx).squeeze(0))
+            exemplar_cost += self.logits[k][-1]
 
     def update_memory(self, x, y, t, model=None, *args, **kwargs):
         self._update_task_labels(y, t)
@@ -235,6 +235,11 @@ class iCARLManager(ClassificationMemoryManager):
 
         return True
 
+
+class iCARLManager(MeanClassManager):
+    def __init__(self, n_memories, n_classes, n_tasks):
+        super().__init__(n_memories, n_classes, n_tasks)
+
     def get_task(self, task):
         if task < len(self.task_labels):
             labels = self.task_labels[task]
@@ -242,7 +247,7 @@ class iCARLManager(ClassificationMemoryManager):
                 x_i for label in labels for x_i in self.data[label]
             ]
             labels = [
-                y_i for label in labels for y_i in self.labels[label]
+                y_i for label in labels for y_i in self.logits[label]
             ]
         else:
             data = []
@@ -250,14 +255,14 @@ class iCARLManager(ClassificationMemoryManager):
         return data, labels
 
     def get_class(self, k):
-        return self.data[k], self.labels[k]
+        return self.data[k], self.logits[k]
 
     def get_split(self, split):
-        return self.data[split], self.labels[split]
+        return self.data[split], self.logits[split]
 
     def __getitem__(self, index):
         index, k = self._check_index(index)
         x = self.data[k][index]
-        y = self.labels[k][index]
+        y = self.logits[k][index]
 
         return x, y
