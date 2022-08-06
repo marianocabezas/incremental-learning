@@ -165,7 +165,6 @@ class TaskRingBuffer(ClassificationMemoryManager):
             tasks = [task for task in self.task_labels if k in task]
             for task in tasks:
                 for x_i, y_i in zip(self.data[task], self.labels[task]):
-                    print(y_i, k)
                     if y_i == k:
                         data.append(x_i)
                         labels.append(y_i)
@@ -223,14 +222,14 @@ class MeanClassManager(ClassificationMemoryManager):
             # We assume that the classes are new and older memories will be
             # overwritten.
             x_k = x[y == k, ...]
-            logits = model(x_k.to(model.device)).cpu()
+            logits = model(x_k.to(model.device)).detach().cpu().clone()
             self._update_class_exemplars(x_k, logits, k)
 
         # < Old class memories >
         # We need to shrink the older classes.
         for k in old_labels:
             x_k = torch.stack(self.data[k], dim=0)
-            logits = model(x_k.to(model.device)).cpu()
+            logits = model(x_k.to(model.device)).detach().cpu().clone()
             self._update_class_exemplars(x_k, logits, k)
 
         return True

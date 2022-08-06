@@ -41,9 +41,14 @@ class MetaModel(BaseModel):
 
     def prebatch_update(self, batch, batches, x, y):
         if self.memory_manager is not None:
-            self.memory_manager.update_memory(
-                x.detach(), y.detach(), self.current_task, self.model
-            )
+            training = self.model.training
+            self.model.eval()
+            with torch.no_grad():
+                self.memory_manager.update_memory(
+                    self.memx, self.memy, self.current_task, self.model
+                )
+            if training:
+                self.model.train()
 
     def reset_optimiser(self):
         super().reset_optimiser()
@@ -700,9 +705,14 @@ class ParamGEM(GEM):
         if last_epoch:
             self.first = False
             if self.memory_manager is not None:
-                self.memory_manager.update_memory(
-                    self.memx, self.memy, self.current_task, self.model
-                )
+                training = self.model.training
+                self.model.eval()
+                with torch.no_grad():
+                    self.memory_manager.update_memory(
+                        self.memx, self.memy, self.current_task, self.model
+                    )
+                if training:
+                    self.model.train()
             self.memx = None
             self.memy = None
 
@@ -921,9 +931,14 @@ class iCARL(MetaModel):
         if last_epoch:
             self.first = False
             if self.memory_manager is not None:
-                self.memory_manager.update_memory(
-                    self.memx, self.memy, self.current_task, self.model
-                )
+                training = self.model.training
+                self.model.eval()
+                with torch.no_grad():
+                    self.memory_manager.update_memory(
+                        self.memx, self.memy, self.current_task, self.model
+                    )
+                if training:
+                    self.model.train()
             self.memx = None
             self.memy = None
 
@@ -1042,9 +1057,14 @@ class GDumb(MetaModel):
             else:
                 updated = self.memory_manager is not None
                 if updated:
-                    updated = self.memory_manager.update_memory(
-                        x.detach(), y.detach(), self.current_task, self.model
-                    )
+                    training = self.model.training
+                    self.model.eval()
+                    with torch.no_grad():
+                        self.memory_manager.update_memory(
+                            self.memx, self.memy, self.current_task, self.model
+                        )
+                    if training:
+                        self.model.train()
                 if updated:
                     losses.append(self.model_update(
                         batch_i, n_batches, data.batch_size
