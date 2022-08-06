@@ -434,6 +434,7 @@ class GEM(MetaModel):
         net_state['grad_dims'] = self.grad_dims
         net_state['grads'] = self.grads
         net_state['tasks'] = self.observed_tasks
+        net_state['offsets'] = self.offsets
         net_state['n_classes'] = self.n_classes
         return net_state
 
@@ -445,6 +446,7 @@ class GEM(MetaModel):
         else:
             self.grads = net_state['grads'].cpu()
         self.observed_tasks = net_state['tasks']
+        self.offsets = net_state['offsets']
         self.n_classes = net_state['n_classes']
 
         return net_state
@@ -635,7 +637,6 @@ class ParamGEM(GEM):
         # Memory
         self.memx = None  # stores raw inputs, PxD
         self.memy = None
-        self.offsets = []
 
     def store_grad(self, tid):
         p = 0
@@ -949,12 +950,14 @@ class iCARL(MetaModel):
 
     def load_model(self, net_name):
         net_state = super().load_model(net_name)
+        self.offsets = net_state['offsets']
         self.n_classes = net_state['n_classes']
 
         return net_state
 
     def get_state(self):
         net_state = super().get_state()
+        net_state['offsets'] = self.offsets
         net_state['n_classes'] = self.n_classes
         return net_state
 
@@ -1078,7 +1081,6 @@ class GDumb(MetaModel):
                 for x, y in memory_loader:
                     pred_y = self.model(x.to(self.device))
                     y_cuda = y.to(self.device)
-                    print(self.offsets, pred_y, y_cuda, offset1, offset2, self.task)
                     if self.task:
                         pred_y = pred_y[:, offset1:offset2]
                         y_cuda = y_cuda - offset1
@@ -1122,11 +1124,13 @@ class GDumb(MetaModel):
 
     def load_model(self, net_name):
         net_state = super().load_model(net_name)
+        self.offsets = net_state['offsets']
         self.n_classes = net_state['n_classes']
 
         return net_state
 
     def get_state(self):
         net_state = super().get_state()
+        net_state['offsets'] = self.offsets
         net_state['n_classes'] = self.n_classes
         return net_state
