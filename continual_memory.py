@@ -1078,6 +1078,7 @@ class GDumb(MetaModel):
                 for x, y in memory_loader:
                     pred_y = self.model(x.to(self.device))
                     y_cuda = y.to(self.device)
+                    print(y_cuda, offset1, offset2, self.task)
                     if self.task:
                         pred_y = pred_y[:, offset1:offset2]
                         y_cuda = y_cuda - offset1
