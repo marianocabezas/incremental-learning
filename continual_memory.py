@@ -45,7 +45,7 @@ class MetaModel(BaseModel):
             self.model.eval()
             with torch.no_grad():
                 self.memory_manager.update_memory(
-                    self.memx, self.memy, self.current_task, self.model
+                    x, y, self.current_task, self.model
                 )
             if training:
                 self.model.train()
@@ -1061,7 +1061,7 @@ class GDumb(MetaModel):
                     self.model.eval()
                     with torch.no_grad():
                         self.memory_manager.update_memory(
-                            self.memx, self.memy, self.current_task, self.model
+                            x, y, self.current_task, self.model
                         )
                     if training:
                         self.model.train()
