@@ -379,7 +379,7 @@ class GEM(MetaModel):
                 self.zero_grad()
 
                 memories_t, labels_t = self.memory_manager.get_task(past_task)
-                output = self(memories_t.to(self.device))
+                output = self(torch.stack(memories_t).to(self.device))
                 if self.task:
                     output = output[:, offset1:offset2]
 
