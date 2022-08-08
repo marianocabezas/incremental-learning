@@ -1060,7 +1060,7 @@ class GDumb(MetaModel):
                     training = self.model.training
                     self.model.eval()
                     with torch.no_grad():
-                        self.memory_manager.update_memory(
+                        updated = self.memory_manager.update_memory(
                             x, y, self.current_task, self.model
                         )
                     if training:
