@@ -385,9 +385,7 @@ class GEM(MetaModel):
                 labels = torch.stack(labels_t).to(self.device)
                 if self.task:
                     output = output[:, offset1:offset2]
-                    labels = labels - self.offset1
-
-                print(output.shape, labels)
+                    labels = labels - offset1
 
                 batch_losses = [
                     l_f['weight'] * l_f['f'](output, labels)
