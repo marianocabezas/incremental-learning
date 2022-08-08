@@ -189,6 +189,8 @@ class MeanClassManager(ClassificationMemoryManager):
         x_list = list(torch.split(x_k, 1, dim=0))
         y_list = list(torch.split(logits, 1, dim=0))
         exemplar_cost = torch.zeros(1, self.classes)
+        self.logits[k] = []
+        self.data[k] = []
         for ex_i in range(min(self.memories_x_split, len(x_list))):
             x_samples = len(x_list)
             mean_cost = mean_logits.expand(x_samples, self.classes)
@@ -215,11 +217,6 @@ class MeanClassManager(ClassificationMemoryManager):
         n_classes = new_classes + old_classes
         # First, we should update the number of exemplars per class
         self.memories_x_split = int(self.n_memories / n_classes)
-        print(
-            new_labels, old_labels, current_labels,
-            new_classes, old_classes, n_classes,
-            self.memories_x_split
-        )
 
         # < New class memories >
         for k in new_labels:

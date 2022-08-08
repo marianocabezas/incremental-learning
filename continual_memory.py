@@ -886,7 +886,6 @@ class iCARL(MetaModel):
         losses = []
         x = []
         y_logits = []
-        print(self.offsets, [len(k_i) for k_i in self.memory_manager.data])
         for k in range(offset1, offset2):
             x_k, y_k = self.memory_manager.get_class(k)
             indx = np.random.randint(0, len(x_k) - 1)
