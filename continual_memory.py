@@ -917,11 +917,9 @@ class iCARL(MetaModel):
     def prebatch_update(self, batch, batches, x, y):
         if self.epoch == 0:
             if self.memx is None:
-                print('First batch')
                 self.memx = x.detach().cpu().data.clone()
                 self.memy = y.detach().cpu().data.clone()
             else:
-                print('New batches')
                 self.memx = torch.cat(
                     (self.memx, x.detach().cpu().data.clone())
                 )
