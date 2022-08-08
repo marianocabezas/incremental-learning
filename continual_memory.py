@@ -387,6 +387,8 @@ class GEM(MetaModel):
                     output = output[:, offset1:offset2]
                     labels = labels - self.offset1
 
+                print(output.shape, labels)
+
                 batch_losses = [
                     l_f['weight'] * l_f['f'](output, labels)
                     for l_f in self.train_functions
