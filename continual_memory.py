@@ -941,7 +941,6 @@ class iCARL(MetaModel):
 
     def epoch_update(self, epochs, loader):
         last_epoch = (self.model.epoch + 1) == epochs
-        print(last_epoch)
         if last_epoch:
             self.first = False
             if self.memory_manager is not None:
