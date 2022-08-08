@@ -915,6 +915,8 @@ class iCARL(MetaModel):
         return sum(losses)
 
     def prebatch_update(self, batch, batches, x, y):
+        if self.task:
+            y = y + self.offset1
         if self.epoch == 0:
             if self.memx is None:
                 self.memx = x.detach().cpu().data.clone()
