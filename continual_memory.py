@@ -92,7 +92,7 @@ class MetaModel(BaseModel):
         pred_labels, x_cuda, y_cuda = super().observe(x, y)
         if self.task:
             pred_labels = pred_labels[:, self.offset1:self.offset2]
-            y_cuda -= - self.offset1
+            y_cuda = y_cuda - self.offset1
 
         return pred_labels, x_cuda, y_cuda
 
@@ -385,7 +385,7 @@ class GEM(MetaModel):
                 labels = torch.stack(labels_t).to(self.device)
                 if self.task:
                     output = output[:, offset1:offset2]
-                    labels -= self.offset1
+                    labels = labels - self.offset1
 
                 batch_losses = [
                     l_f['weight'] * l_f['f'](output, labels)
@@ -1111,7 +1111,7 @@ class GDumb(MetaModel):
                     y_cuda = y.to(self.device)
                     if self.task:
                         pred_y = pred_y[:, offset1:offset2]
-                        y_cuda -= offset1
+                        y_cuda = y_cuda - offset1
                     batch_losses = [
                         l_f['weight'] * l_f['f'](pred_y, y_cuda)
                         for l_f in self.train_functions
