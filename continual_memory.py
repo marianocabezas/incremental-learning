@@ -881,6 +881,7 @@ class iCARL(MetaModel):
         losses = []
         x = []
         y_logits = []
+        print(self.offsets, [len(k_i) for k_i in self.memory_manager.data])
         for k in range(offset1, offset2):
             x_k, y_k = self.memory_manager.get_class(k)
             indx = np.random.randint(0, len(x_k) - 1)
@@ -905,7 +906,6 @@ class iCARL(MetaModel):
         if not self.first and self.memory_manager is not None:
             if self.task:
                 losses = []
-                print(self.offsets)
                 for offset1, offset2 in self.offsets[:-1]:
                     losses += self._kl_div_loss(offset1, offset2)
             else:
