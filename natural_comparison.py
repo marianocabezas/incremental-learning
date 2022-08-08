@@ -131,7 +131,7 @@ def train(
 
         if verbose > 1:
             print(
-                'Training / validation samples samples = '
+                'Training / validation samples = '
                 '{:02d} / {:02d}'.format(
                     len(train_dataset), len(val_dataset)
                 )
