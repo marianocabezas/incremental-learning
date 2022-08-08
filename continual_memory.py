@@ -894,28 +894,19 @@ class iCARL(MetaModel):
         x = torch.stack(x, dim=0).to(self.device)
         y_logits = torch.stack(y_logits, dim=0).to(self.device)
 
-        # Add distillation loss
-        if self.task:
-            prediction = F.log_softmax(
-                self.model(x)[:, offset1:offset2], 1
-            )
-            y = F.softmax(y_logits[:, offset1:offset2], 1)
-            losses.append(
-                F.kl_div(
-                    prediction, y, reduction='batchmean'
-                ) * (offset2 - offset1)
-            )
-        else:
-            prediction = F.log_softmax(
-                self.model(x), 1
-            )
-            y = F.softmax(y_logits, 1)
-
-            losses.append(
-                F.kl_div(
-                    prediction, y, reduction='batchmean'
-                ) * self.n_classes
-            )
+        # Add distillation loss.
+        # In the task incremental case, offsets will select the required tasks,
+        # while on the class incremental case, offsets will be 0 and the number
+        # of classes when passed to the loss. Therefore, we don't need to check for that.
+        prediction = F.log_softmax(
+            self.model(x)[:, offset1:offset2], 1
+        )
+        y = F.softmax(y_logits[:, offset1:offset2], 1)
+        losses.append(
+            F.kl_div(
+                prediction, y, reduction='batchmean'
+            ) * (offset2 - offset1)
+        )
         return losses
 
     def distillation_loss(self):
