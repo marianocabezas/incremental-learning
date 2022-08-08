@@ -382,15 +382,13 @@ class GEM(MetaModel):
 
                 memories_t, labels_t = self.memory_manager.get_task(past_task)
                 output = self(torch.stack(memories_t).to(self.device))
+                labels = torch.stack(labels_t).to(self.device)
                 if self.task:
                     output = output[:, offset1:offset2]
-                    labels_t -= self.offset1
+                    labels -= self.offset1
 
                 batch_losses = [
-                    l_f['weight'] * l_f['f'](
-                        output,
-                        torch.stack(labels_t).to(self.device)
-                    )
+                    l_f['weight'] * l_f['f'](output, labels)
                     for l_f in self.train_functions
                 ]
                 sum(batch_losses).backward()
