@@ -92,7 +92,7 @@ class MetaModel(BaseModel):
         pred_labels, x_cuda, y_cuda = super().observe(x, y)
         if self.task:
             pred_labels = pred_labels[:, self.offset1:self.offset2]
-            y_cuda = y_cuda - self.offset1
+            y_cuda -= - self.offset1
 
         return pred_labels, x_cuda, y_cuda
 
@@ -900,16 +900,22 @@ class iCARL(MetaModel):
                 self.model(x)[:, offset1:offset2], 1
             )
             y = F.softmax(y_logits[:, offset1:offset2], 1)
+            losses.append(
+                F.kl_div(
+                    prediction, y, reduction='batchmean'
+                ) * (offset2 - offset1)
+            )
         else:
             prediction = F.log_softmax(
                 self.model(x), 1
             )
             y = F.softmax(y_logits, 1)
-        losses.append(
-            F.kl_div(
-                prediction, y, reduction='batchmean'
-            ) * (offset2 - offset1)
-        )
+
+            losses.append(
+                F.kl_div(
+                    prediction, y, reduction='batchmean'
+                ) * self.n_classes
+            )
         return losses
 
     def distillation_loss(self):
