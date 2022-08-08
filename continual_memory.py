@@ -40,6 +40,8 @@ class MetaModel(BaseModel):
         self.optimizer_alg = self.model.optimizer_alg
 
     def prebatch_update(self, batch, batches, x, y):
+        if self.task:
+            y = y + self.offset1
         if self.memory_manager is not None:
             training = self.model.training
             self.model.eval()
@@ -382,6 +384,7 @@ class GEM(MetaModel):
                 output = self(torch.stack(memories_t).to(self.device))
                 if self.task:
                     output = output[:, offset1:offset2]
+                    labels_t -= self.offset1
 
                 batch_losses = [
                     l_f['weight'] * l_f['f'](
@@ -686,6 +689,8 @@ class ParamGEM(GEM):
                     p += 1
 
     def prebatch_update(self, batch, batches, x, y):
+        if self.task:
+            y = y + self.offset1
         if self.epoch == 0:
             if self.memx is None:
                 self.memx = x.detach().cpu().data.clone()
@@ -891,10 +896,16 @@ class iCARL(MetaModel):
         y_logits = torch.stack(y_logits, dim=0).to(self.device)
 
         # Add distillation loss
-        prediction = F.log_softmax(
-            self.model(x)[:, offset1:offset2], 1
-        )
-        y = F.softmax(y_logits[:, offset1:offset2], 1)
+        if self.task:
+            prediction = F.log_softmax(
+                self.model(x)[:, offset1:offset2], 1
+            )
+            y = F.softmax(y_logits[:, offset1:offset2], 1)
+        else:
+            prediction = F.log_softmax(
+                self.model(x), 1
+            )
+            y = F.softmax(y_logits, 1)
         losses.append(
             F.kl_div(
                 prediction, y, reduction='batchmean'
@@ -1107,7 +1118,7 @@ class GDumb(MetaModel):
                     y_cuda = y.to(self.device)
                     if self.task:
                         pred_y = pred_y[:, offset1:offset2]
-                        y_cuda = y_cuda - offset1
+                        y_cuda -= offset1
                     batch_losses = [
                         l_f['weight'] * l_f['f'](pred_y, y_cuda)
                         for l_f in self.train_functions
