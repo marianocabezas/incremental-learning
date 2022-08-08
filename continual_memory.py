@@ -905,6 +905,7 @@ class iCARL(MetaModel):
         if not self.first and self.memory_manager is not None:
             if self.task:
                 losses = []
+                print(offsets)
                 for offset1, offset2 in self.offsets[:-1]:
                     losses += self._kl_div_loss(offset1, offset2)
             else:

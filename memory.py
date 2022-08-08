@@ -265,3 +265,29 @@ class iCARLManager(MeanClassManager):
         y = self.logits[k][index]
 
         return x, y
+
+
+class GramClassManager(ClassificationMemoryManager):
+    def __init__(self, n_memories, n_classes, n_tasks):
+        super().__init__(n_memories, n_classes, n_tasks)
+        self.memories_x_split = self.n_memories // n_classes
+        self.grams = [[] for _ in range(self.classes)]
+
+    def update_memory(self, x, y, t, model=None, *args, **kwargs):
+        self._update_task_labels(y, t)
+        for x_i, y_i in zip(x, y):
+            class_size = len(self.data[y_i])
+            if class_size < self.memories_x_split:
+                self.data[y_i].append(x_i)
+            else:
+                new_gram = model.gram_matrix(x_i.unsqueeze(0)).detach()
+                old_grams = torch.stack(self.grams[y_i], dim=0)
+                gram_diff = old_grams.unsqueeze(0) - new_gram
+                gram_cost = torch.linalg.norm(gram_diff.flatten(1), dim=1)
+                indx = torch.argsort(gram_cost, 0)[0]
+                self.grams[y_i].pop(indx)
+                self.grams[y_i].append(new_gram)
+                self.data[y_i].pop(indx)
+                self.data[y_i].append(x_i)
+
+        return True
