@@ -619,7 +619,7 @@ class NGEM(GEM):
         self.block_grad_dims = net_state['block_dims']
 
 
-class ParamGEM(GEM):
+class ResetGEM(GEM):
     def __init__(
             self, basemodel, best=True, memory_manager=None,
             n_classes=100, n_tasks=10, lr=None, task=True,
@@ -629,30 +629,10 @@ class ParamGEM(GEM):
             basemodel, best, memory_manager,
             n_classes, n_tasks, lr, task, memory_strength
         )
-        self.margin = memory_strength
-        self.n_classes = n_classes
-        self.train_functions = self.model.train_functions
-        self.val_functions = self.model.val_functions
-        self.grads = []
-        for param in self.model.parameters():
-            if param.requires_grad:
-                self.grads.append(torch.Tensor(param.data.numel(), n_tasks))
-        self.memory_data = [[] for _ in range(n_tasks)]
-        self.memory_labs = [[] for _ in range(n_tasks)]
 
         # Memory
         self.memx = None  # stores raw inputs, PxD
         self.memy = None
-
-    def store_grad(self, tid):
-        p = 0
-        for param in self.parameters():
-            if param.requires_grad:
-                if param.grad is not None:
-                    self.grads[p][:, tid].copy_(
-                        param.grad.cpu().data.flatten()
-                    )
-                p += 1
 
     def project(self, gradient, memories, eps=1e-3):
         all_gradients = torch.cat([gradient, memories], dim=1)
@@ -660,31 +640,6 @@ class ParamGEM(GEM):
         gradients = torch.abs(torch.sum(all_gradients, dim=1))
         gradient[torch.abs(abs_gradients - gradients) > eps, :] = 0
         return gradient
-
-    def constraint_check(self):
-        if len(self.observed_tasks) > 1:
-            p = 0
-            indx = torch.tensor(self.observed_tasks[:-1], dtype=torch.long)
-            for param in self.parameters():
-                if param.requires_grad:
-                    if param.grad is not None:
-                        current_grad = param.grad.cpu().data.flatten()
-                        grad = self.grads[p].index_select(1, indx)
-                        dotp = torch.mm(
-                            current_grad.unsqueeze(0).to(self.device),
-                            grad.to(self.device)
-                        )
-                        if (dotp < 0).any():
-                            new_grad = self.project(
-                                current_grad.unsqueeze(1).to(self.device),
-                                grad.to(self.device)
-                            )
-                            # Copy the new gradient
-                            current_grad = new_grad.contiguous().view(
-                                param.grad.data.size()
-                            )
-                            param.grad.data.copy_(current_grad.to(param.device))
-                    p += 1
 
     def prebatch_update(self, batch, batches, x, y):
         if self.task:
@@ -718,6 +673,61 @@ class ParamGEM(GEM):
                     self.model.train()
             self.memx = None
             self.memy = None
+
+
+class ParamGEM(ResetGEM):
+    def __init__(
+            self, basemodel, best=True, memory_manager=None,
+            n_classes=100, n_tasks=10, lr=None, task=True,
+            memory_strength=0.5,
+    ):
+        super().__init__(
+            basemodel, best, memory_manager,
+            n_classes, n_tasks, lr, task, memory_strength
+        )
+        self.grads = []
+        for param in self.model.parameters():
+            if param.requires_grad:
+                self.grads.append(torch.Tensor(param.data.numel(), n_tasks))
+
+        # Memory
+        self.memx = None  # stores raw inputs, PxD
+        self.memy = None
+
+    def store_grad(self, tid):
+        p = 0
+        for param in self.parameters():
+            if param.requires_grad:
+                if param.grad is not None:
+                    self.grads[p][:, tid].copy_(
+                        param.grad.cpu().data.flatten()
+                    )
+                p += 1
+
+    def constraint_check(self):
+        if len(self.observed_tasks) > 1:
+            p = 0
+            indx = torch.tensor(self.observed_tasks[:-1], dtype=torch.long)
+            for param in self.parameters():
+                if param.requires_grad:
+                    if param.grad is not None:
+                        current_grad = param.grad.cpu().data.flatten()
+                        grad = self.grads[p].index_select(1, indx)
+                        dotp = torch.mm(
+                            current_grad.unsqueeze(0).to(self.device),
+                            grad.to(self.device)
+                        )
+                        if (dotp < 0).any():
+                            new_grad = self.project(
+                                current_grad.unsqueeze(1).to(self.device),
+                                grad.to(self.device)
+                            )
+                            # Copy the new gradient
+                            current_grad = new_grad.contiguous().view(
+                                param.grad.data.size()
+                            )
+                            param.grad.data.copy_(current_grad.to(param.device))
+                    p += 1
 
 
 class LoggingGEM(GEM):
