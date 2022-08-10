@@ -94,7 +94,8 @@ class ConvNeXtTiny(BaseModel):
         self.optimizer_alg = torch.optim.SGD(model_params, lr=self.lr)
 
     def gram_matrix(self, data):
-        data = self.cnext.features[:3](data)
+        # data = self.cnext.features[:3](data)
+        data = self.cnext.features[:2](data)
         flat_data = torch.flatten(data, 2)
         G = torch.bmm(flat_data, flat_data.transpose(1, 2))
         norm = data.numel() / len(data)
@@ -169,7 +170,7 @@ class ResNet18(BaseModel):
         data = self.resnet.maxpool(data)
         data = self.resnet.layer1(data)
         data = self.resnet.layer2(data)
-        data = self.resnet.layer3(data)
+        # data = self.resnet.layer3(data)
         flat_data = torch.flatten(data, 2)
         G = torch.bmm(flat_data, flat_data.transpose(1, 2))
         norm = data.numel() / len(data)
