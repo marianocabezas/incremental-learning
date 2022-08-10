@@ -311,9 +311,9 @@ def main(verbose=2):
     n_classes = max(d_tr[-1][0][-1], d_te[-1][0][-1])
     nc_per_task = n_classes // n_tasks
 
-    # We also need dictionaries for the training tasks so we can track their
+    # We also need dictionaries for the training tasks, so we can track their
     # evolution. The main difference here, is that we need different
-    # dictionaries for each task (or batch). These might be defined later and
+    # dictionaries for each task (or batch). These might be defined later, and
     # we will fill these dictionaries accordingly when that happens.
     all_results = {}
     base_results = {
