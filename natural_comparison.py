@@ -302,7 +302,7 @@ def main(verbose=2):
 
     models = importlib.import_module('models')
     network = getattr(models, config['network'])
-    meta = importlib.import_module('continual_memory')
+    meta = importlib.import_module('continual')
     memory = importlib.import_module('memory')
 
     # We want a common starting point

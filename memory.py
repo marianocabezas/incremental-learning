@@ -282,14 +282,110 @@ class GramClassManager(ClassificationMemoryManager):
             if class_size < self.memories_x_split:
                 self.data[y_i].append(x_i)
             else:
-                new_gram = model.gram_matrix(x_i.unsqueeze(0)).detach()
-                old_grams = torch.stack(self.grams[y_i], dim=0)
+                data = x_i.unsqueeze(0).to(model.device)
+                new_gram = model.gram_matrix(data).detach()
+                old_grams = torch.stack(
+                    self.grams[y_i], dim=0
+                ).to(model.device)
                 gram_diff = old_grams.unsqueeze(0) - new_gram
                 gram_cost = torch.linalg.norm(gram_diff.flatten(1), dim=1)
                 indx = torch.argsort(gram_cost, 0)[0]
                 self.grams[y_i].pop(indx)
-                self.grams[y_i].append(new_gram)
+                self.grams[y_i].append(new_gram.cpu())
                 self.data[y_i].pop(indx)
+                self.data[y_i].append(x_i.detach().cpu())
+
+        return True
+
+
+class PrototypeClassManager(ClassificationMemoryManager):
+    def __init__(self, n_memories, n_classes, n_tasks):
+        super().__init__(n_memories, n_classes, n_tasks)
+        self.memories_x_split = self.n_memories // n_classes
+        self.grams = [[] for _ in range(self.classes)]
+        self.logits = [[] for _ in range(self.classes)]
+        # Prototypes per class
+        self.max_types = max(1, self.memories_x_split // self.classes)
+
+    def update_memory(self, x, y, t, model=None, *args, **kwargs):
+        self._update_task_labels(y, t)
+        # We reset the grams and logits because the network might have been
+        # updated.
+        self.grams = [[] for _ in range(self.classes)]
+        self.logits = [[] for _ in range(self.classes)]
+        for x_i, y_i in zip(x, y):
+            class_size = len(self.data[y_i])
+            # If the current class buffer is not full we just push the new
+            # memories.
+            if class_size < self.memories_x_split:
                 self.data[y_i].append(x_i)
+            else:
+                # If the class is full, things get interesting and we need
+                # to prepare the intermediate logits and grams.
+                if len(self.logits[y_i]) == 0:
+                    data = torch.stack(self.data[y_i]).to(model.device)
+                    self.logits[y_i] = list(
+                        torch.split(model(data).detach(), 1, dim=0)
+                    )
+                if len(self.grams[y_i]) == 0:
+                    data = torch.stack(self.data[y_i]).to(model.device)
+                    grams = model.gram_matrix(data).detach()
+                    self.grams[y_i] = [
+                        g[torch.triu(torch.ones_like(g)) > 0]
+                        for g in torch.split(grams, 1, dim=0)
+                    ]
+
+                # Now we need to get logit and gram of the new memory and
+                # push it into the manager. That makes comparison later
+                # easier. That also means we might be pushing a new memory
+                # we might need to remove.
+                data = x_i.unsqueeze(0).to(model.device)
+                new_gram = model.gram_matrix(data).detach()
+                gram_mask = torch.triu(torch.ones_like(new_gram)) > 0
+                new_logit = model(data).detach()
+                prototype = torch.argmax(new_logit)
+                self.grams[y_i].append(new_gram[gram_mask])
+                self.data[y_i].append(x_i)
+                self.logits[y_i].append(new_logit)
+
+                # Now it's time to check the current distribution of
+                # prototypes. The goal is to have a balanced number of
+                # prototypes and only keep the prototypes the furthest
+                # from the assumed Normal distribution of grams.
+                old_types = torch.argmax(
+                    torch.cat(self.logits[y_i], dim=0), dim=1
+                )
+                grams = torch.stack(self.grams[y_i], dim=0)
+                class_mask = old_types == prototype
+                # If the current prototype buffer is not at full capacity
+                # we need to look for the biggest prototype buffer and
+                # remove a memory from there.
+                if torch.sum(class_mask) <= self.max_types:
+                    type_count = torch.stack([
+                        torch.sum(old_types == t)
+                        for t in range(self.classes)
+                    ])
+                    prototype = torch.argmax(type_count)
+                    class_mask = old_types == prototype
+                # Once the prototypes are selected it's just a matter of
+                # finding the "closest one" to the distribution with the
+                # Mahalanobis distance.
+                t_grams = grams[class_mask, ...]
+                indices = torch.where(class_mask)[0]
+                grams_mean = t_grams.mean(0, keepdim=True)
+                true_cov = torch.cov(t_grams.t())
+                grams_cov = torch.diag(torch.diag(true_cov))
+                grams_cov_i = torch.inverse(grams_cov)
+                grams_norm = t_grams - grams_mean
+                distances0 = [
+                    torch.sqrt(
+                        (g_norm @ grams_cov_i) @ g_norm.t()
+                    ).cpu().numpy().tolist()
+                    for g_norm in grams_norm
+                ]
+                indx = indices[np.argmin(distances0)]
+                self.grams[y_i].pop(indx)
+                self.data[y_i].pop(indx)
+                self.logits[y_i].pop(indx)
 
         return True
