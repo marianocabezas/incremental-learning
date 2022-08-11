@@ -370,12 +370,16 @@ class PrototypeClassManager(ClassificationMemoryManager):
                 # Once the prototypes are selected it's just a matter of
                 # finding the "closest one" to the distribution with the
                 # Mahalanobis distance.
+                # Due to the large number of features with low values, we
+                # ignore the covariances between features (which erroneously
+                # assumes independence) and we ignore variances of 0.
                 t_grams = grams[class_mask, ...]
                 indices = torch.where(class_mask)[0]
                 grams_mean = t_grams.mean(0, keepdim=True)
-                true_cov = torch.cov(t_grams.t())
-                grams_cov = torch.diag(torch.diag(true_cov))
-                grams_cov_i = torch.inverse(grams_cov)
+                gram_cov = torch.cov(t_grams.t())
+                variances = torch.diag(gram_cov)
+                variances[variances > 0] = 1 / variances[variances > 0]
+                grams_cov_i = torch.diag(variances)
                 grams_norm = t_grams - grams_mean
                 distances0 = [
                     torch.sqrt(
