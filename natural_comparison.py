@@ -349,7 +349,7 @@ def main(verbose=2):
         np.random.seed(seed)
         torch.manual_seed(seed)
         net = network(n_outputs=n_classes, pretrained=pretrained)
-        all_metas = []
+        all_metas = {}
         starting_model = os.path.join(
             model_path,
             '{:}-start.s{:05d}.pt'.format(model_base, seed)
@@ -450,21 +450,20 @@ def main(verbose=2):
             except TypeError:
                 memory_manager = None
 
-            new_meta = meta_model(
+            all_metas[meta_name] = meta_model(
                 network(
                     n_outputs=n_classes, lr=lr, pretrained=pretrained
                 ), False, memory_manager, n_classes, n_tasks, **extra_params
             )
 
-            if isinstance(new_meta.model, ModuleList):
-                for model_i in new_meta.model:
+            if isinstance(all_metas[meta_name].model, ModuleList):
+                for model_i in all_metas[meta_name].model:
                     model_i.load_model(starting_model)
             else:
-                new_meta.model.load_model(starting_model)
-            new_meta.to(torch.device('cpu'))
+                all_metas[meta_name].model.load_model(starting_model)
+            all_metas[meta_name].to(torch.device('cpu'))
             torch.cuda.empty_cache()
             torch.cuda.ipc_collect()
-            all_metas.append(new_meta)
 
         for t_i, (training_set, validation_set) in enumerate(
                 zip(training_tasks, validation_tasks)
@@ -473,9 +472,7 @@ def main(verbose=2):
             offset1 = t_i * nc_per_task
             offset2 = (t_i + 1) * nc_per_task
 
-            for (meta_name, results_i), net in zip(
-                    all_results.items(), all_metas
-            ):
+            for meta_name, results_i in all_results.items():
                 print(
                     '{:}Starting task - {:} {:02d}/{:02d}{:} - {:02d}/{:02d} '
                     '({:} parameters)'.format(
@@ -495,7 +492,8 @@ def main(verbose=2):
                     )
                 )
                 process_net(
-                    config, net, model_name, seed, training_set, validation_set,
+                    config, all_metas[meta_name], model_name, seed,
+                    training_set, validation_set,
                     training_tasks, validation_tasks, testing_tasks,
                     t_i, offset1, offset2, epochs, n_classes, results_i
                 )
