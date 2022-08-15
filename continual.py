@@ -887,6 +887,10 @@ class Independent(MetaModel):
             basemodel, best, memory_manager, n_classes, n_tasks, lr, task
         )
         self.model = nn.ModuleList([deepcopy(basemodel) for _ in range(n_tasks)])
+        if self.lr is not None:
+            for model in self.model:
+                model.lr = self.lr
+                model.reset_optimiser()
         self.first = True
         self.device = basemodel.device
         # Counters
@@ -897,9 +901,7 @@ class Independent(MetaModel):
         return self.model[self.current_task](*inputs)
 
     def reset_optimiser(self):
-        for task in range(len(self.model)):
-            self.model[task].lr = self.lr
-            self.model[task].reset_optimiser()
+        pass
 
     def fit(
         self,
