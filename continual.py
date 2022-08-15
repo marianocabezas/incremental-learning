@@ -892,16 +892,14 @@ class Independent(MetaModel):
         # Counters
         self.observed_tasks = []
         self.current_task = -1
-        if self.lr is not None:
-            for model in self.model:
-                model.lr = self.lr
-                model.reset_optimiser()
 
     def forward(self, *inputs):
         return self.model[self.current_task](*inputs)
 
     def reset_optimiser(self):
-        pass
+        for model in self.model:
+            model.lr = self.lr
+            model.reset_optimiser()
 
     def fit(
         self,
