@@ -897,9 +897,9 @@ class Independent(MetaModel):
         return self.model[self.current_task](*inputs)
 
     def reset_optimiser(self):
-        for model in self.model:
-            model.lr = self.lr
-            model.reset_optimiser()
+        for task in range(len(self.model)):
+            self.model[task].lr = self.lr
+            self.model[task].reset_optimiser()
 
     def fit(
         self,
