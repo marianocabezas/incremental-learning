@@ -128,8 +128,6 @@ class EWC(MetaModel):
         self.ewc_weight = ewc_weight
         self.ewc_binary = ewc_binary
         self.ewc_alpha = ewc_alpha
-        self.observed_tasks = []
-        self.current_task = -1
 
         self.train_functions = self.model.train_functions + [
             {
@@ -893,9 +891,6 @@ class Independent(MetaModel):
                 model.reset_optimiser()
         self.first = True
         self.device = basemodel.device
-        # Counters
-        self.observed_tasks = []
-        self.current_task = -1
 
     def forward(self, *inputs):
         return self.model[self.current_task](*inputs)
