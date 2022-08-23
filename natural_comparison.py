@@ -151,6 +151,7 @@ def test(config, net, testing, task, n_classes, n_tasks, verbose=0):
     # Init
     matrix = np.zeros((n_classes, n_classes))
     task_matrix = np.zeros((n_classes, n_classes))
+    pred_task_matrix = np.zeros((n_classes, n_classes))
     scaled_matrix = np.zeros((n_classes, n_classes))
     datasets = importlib.import_module('datasets')
     dataset = getattr(datasets, config['validation'])(testing[0], testing[1])
@@ -174,7 +175,7 @@ def test(config, net, testing, task, n_classes, n_tasks, verbose=0):
                     time_to_string(test_eta),
                 ), end='\r'
             )
-        prediction = net.inference(
+        prediction, pred_task = net.inference(
             x.cpu().numpy(), nonbatched=False, task=task
         )
         scaled_prediction = np.concatenate([
@@ -188,14 +189,16 @@ def test(config, net, testing, task, n_classes, n_tasks, verbose=0):
         ) + offset1
         scaled_predicted = np.argmax(scaled_prediction, axis=1)
         target = y.cpu().numpy()
-        for t_i, p_i, tp_i, sp_i in zip(
-                target, predicted, task_predicted, scaled_predicted
+
+        for t_i, p_i, tp_i, sp_i, tk_i in zip(
+                target, predicted, task_predicted, scaled_predicted, pred_task
         ):
             matrix[t_i, p_i] += 1
             task_matrix[t_i, tp_i] += 1
             scaled_matrix[t_i, sp_i] += 1
+            pred_task_matrix[task, tk_i] += 1
 
-    return matrix, task_matrix, scaled_matrix
+    return matrix, task_matrix, scaled_matrix, pred_task_matrix
 
 
 def update_results(
@@ -206,13 +209,13 @@ def update_results(
     n_tasks = len(testing)
     test_start = time.time()
     for t_i, (tr_i, val_i, tst_i) in enumerate(zip(training, validation, testing)):
-        tr_matrix, ttr_matrix, str_matrix = test(
+        tr_matrix, ttr_matrix, str_matrix, tktr_matrix = test(
             config, net, tr_i, t_i, n_classes, n_tasks, verbose
         )
-        val_matrix, tval_matrix, sval_matrix = test(
+        val_matrix, tval_matrix, sval_matrix, tkval_matrix = test(
             config, net, val_i, t_i, n_classes, n_tasks, verbose
         )
-        tst_matrix, ttst_matrix, stst_matrix = test(
+        tst_matrix, ttst_matrix, stst_matrix, tktst_matrix = test(
             config, net, tst_i, t_i, n_classes, n_tasks, verbose
         )
         try:
@@ -225,6 +228,9 @@ def update_results(
             results[seed]['scaled_training'][step, ...] += str_matrix
             results[seed]['scaled_validation'][step, ...] += sval_matrix
             results[seed]['scaled_testing'][step, ...] += stst_matrix
+            results[seed]['predtask_training'][step, ...] += tktr_matrix
+            results[seed]['predtask_validation'][step, ...] += tkval_matrix
+            results[seed]['predtask_testing'][step, ...] += tktst_matrix
         except KeyError:
             for results_i in results.values():
                 results_i[seed]['training'][step, ...] += tr_matrix
@@ -236,6 +242,9 @@ def update_results(
                 results_i[seed]['scaled_training'][step, ...] += str_matrix
                 results_i[seed]['scaled_validation'][step, ...] += sval_matrix
                 results_i[seed]['scaled_testing'][step, ...] += stst_matrix
+                results_i[seed]['predtask_training'][step, ...] += tktr_matrix
+                results_i[seed]['predtask_validation'][step, ...] += tkval_matrix
+                results_i[seed]['predtask_testing'][step, ...] += tktst_matrix
 
     test_elapsed = time.time() - test_start
     if verbose > 0:
@@ -327,6 +336,9 @@ def main(verbose=2):
             'scaled_training': empty_confusion_matrix(n_tasks, n_classes),
             'scaled_validation': empty_confusion_matrix(n_tasks, n_classes),
             'scaled_testing': empty_confusion_matrix(n_tasks, n_classes),
+            'predtask_training': empty_confusion_matrix(n_tasks, n_classes),
+            'predtask_validation': empty_confusion_matrix(n_tasks, n_classes),
+            'predtask_testing': empty_confusion_matrix(n_tasks, n_classes),
         }
         for seed in seeds
     }

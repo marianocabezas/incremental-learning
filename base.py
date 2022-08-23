@@ -358,9 +358,6 @@ class BaseModel(nn.Module):
         self.epoch = best_e
         self.load_state_dict(self.best_state)
 
-    def embeddings(self, data, nonbatched=True):
-        return self.inference(data, nonbatched)
-
     def inference(self, data, nonbatched=True, task=None):
         temp_task = task
         if temp_task is not None and hasattr(self, 'current_task'):
@@ -392,7 +389,7 @@ class BaseModel(nn.Module):
         if temp_task is not None and hasattr(self, 'current_task'):
             self.current_task = temp_task
 
-        return np_output
+        return np_output, np.array([task] * len(output))
 
     def patch_inference(
         self, data, patch_size, batch_size, case=0, n_cases=1, t_start=None

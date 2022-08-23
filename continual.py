@@ -33,6 +33,8 @@ class MetaModel(BaseModel):
         self.current_task = -1
         self.offset1 = None
         self.offset2 = None
+        self.grams = []
+        self.logits = []
 
         self.train_functions = self.model.train_functions
         self.val_functions = self.model.val_functions
@@ -52,6 +54,66 @@ class MetaModel(BaseModel):
             if training:
                 self.model.train()
 
+    def fill_grams(self, batch_size=None):
+        if self.memory_manager is not None:
+            self.grams = []
+            for task_data in self.memory_manager.get_tasks():
+                task_loader = DataLoader(task_data, batch_size=batch_size)
+                task_grams = []
+                for x, _ in task_loader:
+                    new_grams = self.model.gram_matrix(x.to(self.device)).cpu()
+                    for g in new_grams:
+                        task_grams.append(
+                            g[torch.triu(torch.ones_like(g)) > 0]
+                        )
+                self.grams.append(torch.stack(task_grams))
+
+    def fill_logits(self, batch_size=None):
+        if self.memory_manager is not None:
+            self.logits = []
+            for task_data in self.memory_manager.get_tasks():
+                task_loader = DataLoader(task_data, batch_size=batch_size)
+                task_logits = []
+                for x, _ in task_loader:
+                    logits = self.model.gram_matrix(x.to(self.device)).cpu()
+                    task_logits.append(logits)
+                self.logits.append(torch.cat(task_logits))
+
+    def task_inference(self, data, nonbatched=True):
+        if nonbatched:
+            task = self.current_task
+        else:
+            task = np.array([self.current_task] * len(data))
+        if self.memory_manager is not None:
+            if len(self.grams) == 0:
+                self.fill_grams()
+            with torch.no_grad():
+                x_cuda = torch.from_numpy(data).to(self.device)
+                if nonbatched:
+                    x_cuda = x_cuda.unsqueeze(0)
+                torch.cuda.empty_cache()
+                grams_tensor = torch.stack(self.grams)
+                grams_mean = torch.mean(grams_tensor, dim=1, keepdim=True)
+                grams_cov = [torch.cov(g) for g in grams_tensor]
+                grams_var = [torch.diag(cov) for cov in grams_cov]
+                for var_i in grams_var:
+                    var_i[var_i > 0] = 1 / var_i[var_i > 0]
+                grams_icov = torch.stack([
+                    torch.diag(var_i) for var_i in grams_var
+                ])
+
+                new_grams = self.model.gram_matrix(x_cuda)
+                grams_mask = torch.triu(torch.ones_like(new_grams)) > 0
+                g_tensor = new_grams[grams_mask].view((1, len(new_grams), -1))
+                g_norm = g_tensor - grams_mean
+                distances = torch.stack([
+                    torch.diag((g_i @ icov_i.t()) @ g_i.t())
+                    for g_i, icov_i in zip(g_norm, grams_icov)
+                ])
+                task = torch.argmax(distances, dim=0).numpy()
+
+        return task
+
     def reset_optimiser(self):
         super().reset_optimiser()
         self.model.reset_optimiser()
@@ -64,6 +126,8 @@ class MetaModel(BaseModel):
             'lr': self.lr,
             'task_incremental': self.task,
             'manager': self.memory_manager,
+            'grams': self.grams,
+            'logits': self.logits,
             'state': self.state_dict(),
         }
         return net_state
@@ -77,6 +141,8 @@ class MetaModel(BaseModel):
         self.first = net_state['first']
         self.current_task = net_state['task']
         self.memory_manager = net_state['manager']
+        self.grams = net_state['grams']
+        self.logits = net_state['logits']
         self.lr = net_state['lr']
         if self.lr is not None:
             self.model.lr = self.lr
