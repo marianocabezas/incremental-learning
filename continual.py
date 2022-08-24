@@ -1227,13 +1227,12 @@ class DyTox(MetaModel):
         lambda_w=0.1
     ):
         super().__init__(
-            basemodel, best, memory_manager, n_classes, n_tasks, lr, task
+            basemodel.cpu(), best, memory_manager, n_classes, n_tasks, lr, task
         )
         self.classes_x_task = self.n_classes // self.n_tasks
         self.sab = sab
         self.tab = tab
         self.embed_dim = embed_dim
-        self.model = None
         self.alpha_w = torch.tensor(0)
         self.original_functions = basemodel.train_functions
         self.train_functions = self.original_functions + [
@@ -1268,8 +1267,6 @@ class DyTox(MetaModel):
         if model_params is None:
             model_params = filter(lambda p: p.requires_grad, self.parameters())
         super().reset_optimiser(model_params)
-        self.model.reset_optimiser(model_params)
-        self.optimizer_alg = self.model.optimizer_alg
 
     def fit(
         self,
