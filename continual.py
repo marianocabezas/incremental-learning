@@ -1296,13 +1296,13 @@ class DyTox(MetaModel):
         return net_state
 
 
-class TaskGEM(DyTox, IndependentGEM):
+class TaskGEM(DyTox, ParamGEM):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
         n_classes=100, n_tasks=10, lr=None, task=True,
         tab=1, heads=12, embed_dim=384, memory_strength=0.5,
     ):
-        IndependentGEM.__init__(
+        ParamGEM.__init__(
             self, basemodel, best, memory_manager,
             n_classes, n_tasks, lr, task,
             memory_strength
@@ -1320,7 +1320,7 @@ class TaskGEM(DyTox, IndependentGEM):
         self.classifiers = nn.ModuleList([])
 
     def mini_batch_loop(self, data, train=True):
-        return IndependentGEM.mini_batch_loop(self, data, train)
+        return ParamGEM.mini_batch_loop(self, data, train)
 
     def fit(
         self,
@@ -1347,7 +1347,7 @@ class TaskGEM(DyTox, IndependentGEM):
         return net_state
 
     def get_state(self):
-        net_state = IndependentGEM.get_state(self)
+        net_state = ParamGEM.get_state(self)
         net_state['task_tokens'] = self.task_tokens
         return net_state
 
