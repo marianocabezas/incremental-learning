@@ -102,6 +102,10 @@ class ConvNeXtTiny(BaseModel):
         norm = data.numel() / len(data)
         return G / norm
 
+    def tokenize(self, data):
+        data = self.cnext.features(data)
+        return data.flatten(2).permute(0, 2, 1)
+
     def forward(self, data):
         self.cnext.to(self.device)
         return self.cnext(data)
@@ -181,6 +185,17 @@ class ResNet18(BaseModel):
     def forward(self, data):
         self.resnet.to(self.device)
         return self.resnet(data)
+
+    def tokenize(self, data):
+        data = self.resnet.conv1(data)
+        data = self.resnet.bn1(data)
+        data = self.resnet.relu(data)
+        data = self.resnet.maxpool(data)
+        data = self.resnet.layer1(data)
+        data = self.resnet.layer2(data)
+        data = self.resnet.layer3(data)
+        data = self.resnet.layer4(data)
+        return data.flatten(2).permute(0, 2, 1)
 
 
 class ViT_B_16(BaseModel):

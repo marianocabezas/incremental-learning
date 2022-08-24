@@ -1380,7 +1380,7 @@ class DyTox(MetaModel):
         return net_state
 
 
-class TaskResetGEM(DyTox, IndependentGEM):
+class TaskGEM(DyTox, IndependentGEM):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
         n_classes=100, n_tasks=10, lr=None, task=True,
