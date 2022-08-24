@@ -467,12 +467,14 @@ def main(verbose=2):
                     n_outputs=n_classes, lr=lr, pretrained=pretrained
                 ), False, memory_manager, n_classes, n_tasks, **extra_params
             )
-
-            if isinstance(all_metas[meta_name].model, ModuleList):
-                for model_i in all_metas[meta_name].model:
-                    model_i.load_model(starting_model)
-            else:
-                all_metas[meta_name].model.load_model(starting_model)
+            try:
+                if isinstance(all_metas[meta_name].model, ModuleList):
+                    for model_i in all_metas[meta_name].model:
+                        model_i.load_model(starting_model)
+                else:
+                    all_metas[meta_name].model.load_model(starting_model)
+            except AttributeError:
+                pass
             all_metas[meta_name].to(torch.device('cpu'))
             torch.cuda.empty_cache()
             torch.cuda.ipc_collect()
