@@ -480,7 +480,7 @@ class BaseModel(nn.Module):
 
         return seg
 
-    def reset_optimiser(self):
+    def reset_optimiser(self, model_params=None):
         """
         Abstract function to rest the optimizer.
         :return: Nothing.
@@ -1193,6 +1193,34 @@ class SelfAttention(nn.Module):
         features = torch.bmm(value, att_map)
 
         return features
+
+
+class SelfAttentionBlock(nn.Module):
+    def __init__(self, embed_dim, mlp_dim, heads):
+        super().__init__()
+        self.ln1 = nn.LayerNorm(embed_dim, eps=1e-6)
+        self.attention = nn.MultiheadAttention(embed_dim, heads)
+        self.ln2 = nn.LayerNorm(embed_dim, eps=1e-6)
+        self.mlp = nn.Linear(embed_dim, mlp_dim)
+
+    def forward(self, x_in, q_in=None):
+        x = self.ln1(x_in)
+        if q_in is not None:
+            q = self.ln1(q_in)
+            x = torch.cat([q, x], dim=1)
+            x, _ = self.attention(
+                query=q, key=x, value=x, need_weights=False
+            )
+        else:
+            x, _ = self.attention(
+                query=x, key=x, value=x, need_weights=False
+            )
+        x = x + x_in
+
+        y = self.ln2(x)
+        y = self.mlp(y)
+
+        return x + y
 
 
 class ViTEncoder(nn.Module):

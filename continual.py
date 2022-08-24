@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 import numpy as np
 import quadprog
 from sklearn.decomposition import PCA
-from base import BaseModel
+from base import BaseModel, SelfAttentionBlock
 
 
 class MetaModel(BaseModel):
@@ -114,14 +114,15 @@ class MetaModel(BaseModel):
 
         return task
 
-    def reset_optimiser(self):
-        super().reset_optimiser()
-        self.model.reset_optimiser()
+    def reset_optimiser(self, model_params=None):
+        super().reset_optimiser(model_params)
+        self.model.reset_optimiser(model_params)
         self.optimizer_alg = self.model.optimizer_alg
 
     def get_state(self):
         net_state = {
             'first': self.first,
+            'n_classes': self.n_classes,
             'task': self.current_task,
             'lr': self.lr,
             'task_incremental': self.task,
@@ -129,6 +130,7 @@ class MetaModel(BaseModel):
             'grams': self.grams,
             'logits': self.logits,
             'state': self.state_dict(),
+
         }
         return net_state
 
@@ -139,6 +141,7 @@ class MetaModel(BaseModel):
     def load_model(self, net_name):
         net_state = torch.load(net_name, map_location=self.device)
         self.first = net_state['first']
+        self.n_classes = net_state['n_classes']
         self.current_task = net_state['task']
         self.memory_manager = net_state['manager']
         self.grams = net_state['grams']
@@ -308,11 +311,6 @@ class EWC(MetaModel):
 
         self.first = False
 
-    def reset_optimiser(self):
-        super().reset_optimiser()
-        self.model.reset_optimiser()
-        self.optimizer_alg = self.model.optimizer_alg
-
     def get_state(self):
         net_state = super().get_state()
         net_state['ewc_param'] = self.ewc_parameters
@@ -379,9 +377,6 @@ class GEM(MetaModel):
             basemodel, best, memory_manager, n_classes, n_tasks, lr, task
         )
         self.margin = memory_strength
-        self.n_classes = n_classes
-        self.train_functions = self.model.train_functions
-        self.val_functions = self.model.val_functions
         self.grad_dims = []
         for param in self.model.parameters():
             self.grad_dims.append(param.data.numel())
@@ -505,7 +500,6 @@ class GEM(MetaModel):
         net_state['grads'] = self.grads
         net_state['tasks'] = self.observed_tasks
         net_state['offsets'] = self.offsets
-        net_state['n_classes'] = self.n_classes
         return net_state
 
     def load_model(self, net_name):
@@ -517,7 +511,6 @@ class GEM(MetaModel):
             self.grads = net_state['grads'].cpu()
         self.observed_tasks = net_state['tasks']
         self.offsets = net_state['offsets']
-        self.n_classes = net_state['n_classes']
 
         return net_state
 
@@ -961,7 +954,7 @@ class Independent(MetaModel):
     def forward(self, *inputs):
         return self.model[self.current_task](*inputs)
 
-    def reset_optimiser(self):
+    def reset_optimiser(self, model_params=None):
         pass
 
     def fit(
@@ -998,7 +991,6 @@ class iCARL(MetaModel):
         super().__init__(
             basemodel, best, memory_manager, n_classes, n_tasks, lr, task
         )
-        self.n_classes = n_classes
         self.train_functions = self.model.train_functions + [
             {
                 'name': 'dist',
@@ -1107,14 +1099,12 @@ class iCARL(MetaModel):
     def load_model(self, net_name):
         net_state = super().load_model(net_name)
         self.offsets = net_state['offsets']
-        self.n_classes = net_state['n_classes']
 
         return net_state
 
     def get_state(self):
         net_state = super().get_state()
         net_state['offsets'] = self.offsets
-        net_state['n_classes'] = self.n_classes
         return net_state
 
 
@@ -1126,9 +1116,6 @@ class GDumb(MetaModel):
         super().__init__(
             basemodel, best, memory_manager, n_classes, n_tasks, lr, task
         )
-        self.n_classes = n_classes
-        self.train_functions = self.model.train_functions
-        self.val_functions = self.model.val_functions
 
         # Memory
         self.offsets = []
@@ -1286,12 +1273,84 @@ class GDumb(MetaModel):
     def load_model(self, net_name):
         net_state = super().load_model(net_name)
         self.offsets = net_state['offsets']
-        self.n_classes = net_state['n_classes']
 
         return net_state
 
     def get_state(self):
         net_state = super().get_state()
         net_state['offsets'] = self.offsets
-        net_state['n_classes'] = self.n_classes
         return net_state
+
+
+class DyTox(MetaModel):
+    def __init__(
+        self, basemodel, best=True, memory_manager=None,
+        n_classes=100, n_tasks=10, lr=None, task=True,
+        sab=5, tab=1, heads=12, embed_dim=384, patch_size=4
+    ):
+        super().__init__(
+            basemodel, best, memory_manager, n_classes, n_tasks, lr, task
+        )
+        self.sab = sab
+        self.tab = tab
+        self.embed_dim = embed_dim
+        self.model = None
+
+        # Memory
+        self.tokenizer = nn.Conv2d(3, embed_dim, patch_size, patch_size)
+        self.task_tokens = nn.ParameterList([])
+        self.sab_list = nn.ModuleList([
+            SelfAttentionBlock(embed_dim, embed_dim, heads)
+            for _ in range(sab)
+        ])
+        self.tab_list = nn.ModuleList([
+            SelfAttentionBlock(embed_dim, embed_dim, heads)
+            for _ in range(tab)
+        ])
+        self.classifiers = nn.ModuleList([])
+
+    def reset_optimiser(self, model_params=None):
+        if model_params is None:
+            model_params = filter(lambda p: p.requires_grad, self.parameters())
+        super().reset_optimiser(model_params)
+        self.model.reset_optimiser(model_params)
+        self.optimizer_alg = self.model.optimizer_alg
+
+    def fit(
+        self,
+        train_loader,
+        val_loader,
+        epochs=50,
+        patience=5,
+        task=None,
+        offset1=None,
+        offset2=None,
+        verbose=True
+    ):
+        self.task_tokens.append(
+            nn.Parameter(torch.rand(self.embed_dim), requires_grad=True)
+        )
+        self.classifiers.append(nn.Linear(self.embed_dim, self.n_classes))
+        self.reset_optimiser()
+        super().fit(
+            train_loader, val_loader, epochs, patience, task, offset1, offset2,
+            verbose
+        )
+
+    def forward(self, x):
+        self.tokenizer.to(self.device)
+        tokens = self.tokenizer(x).flatten(2).permute(0, 2, 1)
+        for sab in self.sab_list:
+            sab.to(self.device)
+            tokens = sab(tokens)
+        predictions = []
+        for t_token, clf in zip(self.task_tokens, self.classifiers):
+            query = torch.repeat_interleave(t_token, len(tokens), dim=0)
+            for tab in self.tab_list:
+                tab.to(self.device)
+                tokens = tab(tokens, query.to(self.device))
+            clf.to(self.device)
+            predictions.append(clf(tokens[:, 0]))
+
+        return torch.cat(predictions, dim=-1)
+

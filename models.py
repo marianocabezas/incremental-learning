@@ -88,9 +88,10 @@ class ConvNeXtTiny(BaseModel):
                 )
             )
 
-    def reset_optimiser(self):
-        super().reset_optimiser()
-        model_params = filter(lambda p: p.requires_grad, self.parameters())
+    def reset_optimiser(self, model_params=None):
+        super().reset_optimiser(model_params)
+        if model_params is None:
+            model_params = filter(lambda p: p.requires_grad, self.parameters())
         self.optimizer_alg = torch.optim.SGD(model_params, lr=self.lr)
 
     def gram_matrix(self, data):
@@ -158,9 +159,10 @@ class ResNet18(BaseModel):
                 )
             )
 
-    def reset_optimiser(self):
-        super().reset_optimiser()
-        model_params = filter(lambda p: p.requires_grad, self.parameters())
+    def reset_optimiser(self, model_params=None):
+        super().reset_optimiser(model_params)
+        if model_params is None:
+            model_params = filter(lambda p: p.requires_grad, self.parameters())
         self.optimizer_alg = torch.optim.SGD(model_params, lr=self.lr)
 
     def gram_matrix(self, data):
@@ -237,9 +239,10 @@ class ViT_B_16(BaseModel):
                 )
             )
 
-    def reset_optimiser(self):
-        super().reset_optimiser()
-        model_params = filter(lambda p: p.requires_grad, self.parameters())
+    def reset_optimiser(self, model_params=None):
+        super().reset_optimiser(model_params)
+        if model_params is None:
+            model_params = filter(lambda p: p.requires_grad, self.parameters())
         self.optimizer_alg = torch.optim.SGD(model_params, lr=self.lr)
 
     def gram_matrix(self, data):
@@ -360,9 +363,10 @@ class SimpleUNet(BaseModel):
                 )
             )
 
-    def reset_optimiser(self):
-        super().reset_optimiser()
-        model_params = filter(lambda p: p.requires_grad, self.parameters())
+    def reset_optimiser(self, model_params=None):
+        super().reset_optimiser(model_params)
+        if model_params is None:
+            model_params = filter(lambda p: p.requires_grad, self.parameters())
         self.optimizer_alg = torch.optim.Adam(model_params)
 
     def forward(self, data):
@@ -530,9 +534,10 @@ class SimpleResNet(BaseModel):
                 )
             )
 
-    def reset_optimiser(self):
-        super().reset_optimiser()
-        model_params = filter(lambda p: p.requires_grad, self.parameters())
+    def reset_optimiser(self, model_params=None):
+        super().reset_optimiser(model_params)
+        if model_params is None:
+            model_params = filter(lambda p: p.requires_grad, self.parameters())
         self.optimizer_alg = torch.optim.Adam(model_params, lr=1e-4)
 
     def forward(self, data):
@@ -660,9 +665,10 @@ class AttentionUNet(BaseModel):
                 )
             )
 
-    def reset_optimiser(self):
-        super().reset_optimiser()
-        model_params = filter(lambda p: p.requires_grad, self.parameters())
+    def reset_optimiser(self, model_params=None):
+        super().reset_optimiser(model_params)
+        if model_params is None:
+            model_params = filter(lambda p: p.requires_grad, self.parameters())
         self.optimizer_alg = torch.optim.Adam(model_params)
 
     def forward(self, data):
@@ -759,9 +765,10 @@ class DualHeadedUNet(BaseModel):
                 )
             )
 
-    def reset_optimiser(self):
-        super().reset_optimiser()
-        model_params = filter(lambda p: p.requires_grad, self.parameters())
+    def reset_optimiser(self, model_params=None):
+        super().reset_optimiser(model_params)
+        if model_params is None:
+            model_params = filter(lambda p: p.requires_grad, self.parameters())
         self.optimizer_alg = torch.optim.Adam(model_params)
 
     def forward(self, source, target):
