@@ -56,6 +56,9 @@ class BaseModel(nn.Module):
     def gram_matrix(self, *inputs):
         return None
 
+    def tokenize(self, *inputs):
+        return self(*inputs).flatten(2).permute(0, 2, 1)
+
     def forward(self, *inputs):
         """
 

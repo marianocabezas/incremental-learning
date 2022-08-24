@@ -1296,7 +1296,7 @@ class DyTox(MetaModel):
         self.embed_dim = embed_dim
         self.model = None
 
-        # Memory
+        # Transformers
         self.tokenizer = nn.Conv2d(3, embed_dim, patch_size, patch_size)
         self.task_tokens = nn.ParameterList([])
         self.sab_list = nn.ModuleList([
@@ -1348,13 +1348,7 @@ class DyTox(MetaModel):
             data_results = np.mean(task_results, axis=1)
         return data_results
 
-
-    def forward(self, x):
-        self.tokenizer.to(self.device)
-        tokens = self.tokenizer(x).flatten(2).permute(0, 2, 1)
-        for sab in self.sab_list:
-            sab.to(self.device)
-            tokens = sab(tokens)
+    def _class_forward(self, tokens):
         predictions = []
         for t_token, clf in zip(self.task_tokens, self.classifiers):
             query = torch.repeat_interleave(t_token, len(tokens), dim=0)
@@ -1366,3 +1360,81 @@ class DyTox(MetaModel):
 
         return torch.cat(predictions, dim=-1)
 
+    def forward(self, x):
+        self.tokenizer.to(self.device)
+        tokens = self.tokenizer(x).flatten(2).permute(0, 2, 1)
+        for sab in self.sab_list:
+            sab.to(self.device)
+            tokens = sab(tokens)
+        return self._class_forward(tokens)
+
+    def load_model(self, net_name):
+        net_state = super().load_model(net_name)
+        self.task_tokens = net_state['task_tokens']
+
+        return net_state
+
+    def get_state(self):
+        net_state = super().get_state()
+        net_state['task_tokens'] = self.task_tokens
+        return net_state
+
+
+class TaskResetGEM(DyTox, ResetGEM):
+    def __init__(
+        self, basemodel, best=True, memory_manager=None,
+        n_classes=100, n_tasks=10, lr=None, task=True,
+        tab=1, heads=12, embed_dim=384, memory_strength=0.5,
+    ):
+        ResetGEM.__init__(
+            self, basemodel, best, memory_manager,
+            n_classes, n_tasks, lr, task,
+            memory_strength
+        )
+        self.tab = tab
+        self.embed_dim = embed_dim
+        self.model = None
+
+        # Transformers
+        self.task_tokens = nn.ParameterList([])
+        self.tab_list = nn.ModuleList([
+            SelfAttentionBlock(embed_dim, embed_dim, heads)
+            for _ in range(tab)
+        ])
+        self.classifiers = nn.ModuleList([])
+
+    def mini_batch_loop(self, data, train=True):
+        return ResetGEM.mini_batch_loop(self, data, train)
+
+    def fit(
+        self,
+        train_loader,
+        val_loader,
+        epochs=50,
+        patience=5,
+        task=None,
+        offset1=None,
+        offset2=None,
+        verbose=True
+    ):
+        DyTox.fit(
+            self, train_loader, val_loader, epochs, patience,
+            task, offset1, offset2, verbose
+        )
+
+    def reset_optimiser(self, model_params=None):
+        DyTox.reset_optimiser(self, model_params)
+
+    def load_model(self, net_name):
+        net_state = super().load_model(net_name)
+
+        return net_state
+
+    def get_state(self):
+        net_state = ResetGEM.get_state(self)
+        net_state['task_tokens'] = self.task_tokens
+        return net_state
+
+    def forward(self, x):
+        tokens = self.model.tokenize(x)
+        return super()._class_forward(tokens)
