@@ -1223,6 +1223,7 @@ class DyTox(MetaModel):
             SelfAttentionBlock(embed_dim, embed_dim, heads)
             for _ in range(tab)
         ])
+        self.ln = nn.LayerNorm(self.embed_dim, eps=1e-6)
         self.classifiers = nn.ModuleList([])
 
     def reset_optimiser(self, model_params=None):
@@ -1270,7 +1271,10 @@ class DyTox(MetaModel):
             query = torch.repeat_interleave(t_token, len(tokens), dim=0)
             for tab in self.tab_list:
                 tab.to(self.device)
-                tokens = tab(tokens, query.to(self.device))
+                self.ln.to(self.device)
+                tokens = tab(
+                    self.ln(tokens), self.ln(query.to(self.device))
+                )
             clf.to(self.device)
             predictions.append(clf(tokens[:, 0]))
 
