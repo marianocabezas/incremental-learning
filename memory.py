@@ -60,10 +60,11 @@ class ClassificationMemoryManager(Dataset):
     def get_split(self, split):
         return self.data[split]
 
-    def get_tasks(self):
+    def get_tasks(self, max_task=None):
+        if max_task is None:
+            max_task = len(self.task_labels)
         memory_generator = (
-            MemoryContainer(*self.get_task(t))
-            for t in range(len(self.task_labels))
+            MemoryContainer(*self.get_task(t)) for t in range(max_task)
         )
         return memory_generator
 
