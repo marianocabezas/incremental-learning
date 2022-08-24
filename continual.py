@@ -41,6 +41,45 @@ class MetaModel(BaseModel):
 
         self.optimizer_alg = self.model.optimizer_alg
 
+    def _kl_div_loss(self, offset1, offset2):
+        losses = []
+        x = []
+        y_logits = []
+        for k in range(offset1, offset2):
+            x_k, y_k = self.memory_manager.get_class(k)
+            indx = np.random.randint(0, len(x_k) - 1)
+            x.append(x_k[indx].clone())
+            y_logits.append(y_k[indx].clone())
+        x = torch.stack(x, dim=0).to(self.device)
+        y_logits = torch.stack(y_logits, dim=0).to(self.device)
+
+        # Add distillation loss.
+        # In the task incremental case, offsets will select the required tasks,
+        # while on the class incremental case, offsets will be 0 and the number
+        # of classes when passed to the loss. Therefore, we don't need to check for that.
+        prediction = F.log_softmax(
+            self.model(x)[:, offset1:offset2], 1
+        )
+        y = F.softmax(y_logits[:, offset1:offset2], 1)
+        losses.append(
+            F.kl_div(
+                prediction, y, reduction='batchmean'
+            ) * (offset2 - offset1)
+        )
+        return losses
+
+    def distillation_loss(self):
+        if not self.first and self.memory_manager is not None:
+            if self.task:
+                losses = []
+                for offset1, offset2 in self.offsets[:-1]:
+                    losses += self._kl_div_loss(offset1, offset2)
+            else:
+                losses = self._kl_div_loss(0, self.n_classes)
+        else:
+            losses = []
+        return sum(losses)
+
     def prebatch_update(self, batch, batches, x, y):
         if self.task:
             y = y + self.offset1
@@ -183,6 +222,27 @@ class MetaModel(BaseModel):
         if self.current_task not in self.observed_tasks:
             self.observed_tasks.append(self.current_task)
         super().fit(train_loader, val_loader, epochs, patience, verbose)
+
+
+class MetaModelMemory(MetaModel):
+    def __init__(
+            self, basemodel, best=True, memory_manager=None,
+            n_classes=100, n_tasks=10, lr=None, task=True
+    ):
+        super().__init__(
+            basemodel, best, memory_manager, n_classes, n_tasks, lr, task
+        )
+
+    def mini_batch_loop(self, data, train=True):
+        data_results = super().mini_batch_loop(data, train)
+        if self.memory_manager is not None:
+            max_task = self.current_task - 1
+            task_results = [data_results]
+            for task_data in self.memory_manager.get_tasks(max_task):
+                task_loader = DataLoader(task_data, data.batch_size)
+                task_results.append(super().mini_batch_loop(task_loader, train))
+            data_results = np.mean(task_results, axis=1)
+        return data_results
 
 
 class EWC(MetaModel):
@@ -921,45 +981,6 @@ class iCARL(MetaModel):
         self.memy = None
         self.offsets = []
 
-    def _kl_div_loss(self, offset1, offset2):
-        losses = []
-        x = []
-        y_logits = []
-        for k in range(offset1, offset2):
-            x_k, y_k = self.memory_manager.get_class(k)
-            indx = np.random.randint(0, len(x_k) - 1)
-            x.append(x_k[indx].clone())
-            y_logits.append(y_k[indx].clone())
-        x = torch.stack(x, dim=0).to(self.device)
-        y_logits = torch.stack(y_logits, dim=0).to(self.device)
-
-        # Add distillation loss.
-        # In the task incremental case, offsets will select the required tasks,
-        # while on the class incremental case, offsets will be 0 and the number
-        # of classes when passed to the loss. Therefore, we don't need to check for that.
-        prediction = F.log_softmax(
-            self.model(x)[:, offset1:offset2], 1
-        )
-        y = F.softmax(y_logits[:, offset1:offset2], 1)
-        losses.append(
-            F.kl_div(
-                prediction, y, reduction='batchmean'
-            ) * (offset2 - offset1)
-        )
-        return losses
-
-    def distillation_loss(self):
-        if not self.first and self.memory_manager is not None:
-            if self.task:
-                losses = []
-                for offset1, offset2 in self.offsets[:-1]:
-                    losses += self._kl_div_loss(offset1, offset2)
-            else:
-                losses = self._kl_div_loss(0, self.n_classes)
-        else:
-            losses = []
-        return sum(losses)
-
     def prebatch_update(self, batch, batches, x, y):
         if self.task:
             y = y + self.offset1
@@ -1202,15 +1223,32 @@ class DyTox(MetaModel):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
         n_classes=100, n_tasks=10, lr=None, task=True,
-        sab=5, tab=1, heads=12, embed_dim=384, patch_size=4
+        sab=5, tab=1, heads=12, embed_dim=384, patch_size=4,
+        lambda_w=0.1
     ):
         super().__init__(
             basemodel, best, memory_manager, n_classes, n_tasks, lr, task
         )
+        self.classes_x_task = self.n_classes // self.n_tasks
         self.sab = sab
         self.tab = tab
         self.embed_dim = embed_dim
         self.model = None
+        self.alpha_w = torch.tensor(0)
+        self.original_functions = basemodel.train_functions
+        self.train_functions = self.original_functions + [
+            {
+                'name': 'dist',
+                'weight': self.alpha_w,
+                'f': lambda p, t: self.distillation_loss()
+            },
+            # {
+            #     'name': 'div',
+            #     'weight': lambda_w,
+            #     'f': lambda p, t: self.divergence_loss()
+            # },
+
+        ]
 
         # Transformers
         self.tokenizer = nn.Conv2d(3, embed_dim, patch_size, patch_size)
@@ -1247,23 +1285,14 @@ class DyTox(MetaModel):
         self.task_tokens.append(
             nn.Parameter(torch.rand(self.embed_dim), requires_grad=True)
         )
-        self.classifiers.append(nn.Linear(self.embed_dim, self.n_classes))
+        self.classifiers.append(nn.Linear(self.embed_dim, self.classes_x_task))
         self.reset_optimiser()
         super().fit(
             train_loader, val_loader, epochs, patience, task, offset1, offset2,
             verbose
         )
-
-    def mini_batch_loop(self, data, train=True):
-        data_results = super().mini_batch_loop(data, train)
-        if self.memory_manager is not None:
-            max_task = self.current_task - 1
-            task_results = [data_results]
-            for task_data in self.memory_manager.get_tasks(max_task):
-                task_loader = DataLoader(task_data, data.batch_size)
-                task_results.append(super().mini_batch_loop(task_loader, train))
-            data_results = np.mean(task_results, axis=1)
-        return data_results
+        n_tasks = len(self.observed_tasks)
+        self.alpha_w.fill(n_tasks * self.classes_x_task / (n_tasks + 1))
 
     def _class_forward(self, tokens):
         predictions = []
