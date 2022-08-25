@@ -48,6 +48,15 @@ class MetaModel(BaseModel):
 
         self.optimizer_alg = self.model.optimizer_alg
 
+    def _update_cum_grad(self, norm):
+        p = 0
+        for param in self.parameters():
+            if param.requires_grad:
+                if param.grad is not None:
+                    flat_grad = param.grad.cpu().detach().data.flatten()
+                    self.cum_grad[p] += flat_grad / norm
+                p += 1
+
     def _kl_div_loss(self, offset1, offset2):
         losses = []
         x = []
@@ -99,13 +108,7 @@ class MetaModel(BaseModel):
                 )
             if training:
                 self.model.train()
-        p = 0
-        for param in self.parameters():
-            if param.requires_grad:
-                if param.grad is not None:
-                    flat_grad = param.grad.cpu().detach().data.flatten()
-                    self.cum_grad[p] += flat_grad / batches
-                p += 1
+        self._update_cum_grad(batches)
 
     def fill_grams(self, batch_size=None):
         if self.memory_manager is not None:
@@ -1315,6 +1318,15 @@ class DyTox(MetaModel):
         if model_params is None:
             model_params = filter(lambda p: p.requires_grad, self.parameters())
         super().reset_optimiser(model_params)
+
+    def _update_cum_grad(self, norm):
+        p = 0
+        for param in self.model.parameters():
+            if param.requires_grad:
+                if param.grad is not None:
+                    flat_grad = param.grad.cpu().detach().data.flatten()
+                    self.cum_grad[p] += flat_grad / norm
+                    p += 1
 
     def fit(
         self,
