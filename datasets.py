@@ -418,6 +418,25 @@ class NaturalDataset(Dataset):
         return len(self.data)
 
 
+class MultiDataset(Dataset):
+    """
+    Dataset that combines multiple datasets into one.
+    """
+
+    def __init__(self, datasets):
+        self.datasets = datasets
+        self.lengths = np.cumsum([len(d) for d in self.datasets])
+
+    def __getitem__(self, index):
+        set_index = np.min(np.where(self.lengths > index))
+        lengths = [0] + self.lengths.tolist()
+        true_index = index - lengths[set_index]
+        return self.datasets[set_index][true_index]
+
+    def __len__(self):
+        return self.lengths[-1]
+
+
 class DiffusionDataset(Dataset):
     def __init__(
             self, dmri, rois, directions, bvalues, patch_size=32,

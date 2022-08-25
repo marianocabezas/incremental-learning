@@ -7,6 +7,7 @@ import numpy as np
 import quadprog
 from sklearn.decomposition import PCA
 from base import BaseModel, SelfAttentionBlock
+from datasets import MultiDataset
 
 
 class MetaModel(BaseModel):
@@ -248,15 +249,11 @@ class MetaModelMemory(MetaModel):
         )
 
     def mini_batch_loop(self, data, train=True):
-        data_results = super().mini_batch_loop(data, train)
         if self.memory_manager is not None:
             max_task = self.current_task - 1
-            task_results = [data_results]
-            for task_data in self.memory_manager.get_tasks(max_task):
-                task_loader = DataLoader(task_data, data.batch_size)
-                task_results.append(super().mini_batch_loop(task_loader, train))
-            data_results = np.mean(task_results, axis=1)
-        return data_results
+            memory_sets = list(self.memory_manager.get_tasks(max_task))
+            data.dataset = MultiDataset([data] + memory_sets)
+        return super().mini_batch_loop(data, train)
 
 
 class EWC(MetaModel):
