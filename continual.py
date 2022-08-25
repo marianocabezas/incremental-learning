@@ -1294,11 +1294,12 @@ class DyTox(MetaModel):
     def _class_forward(self, tokens):
         predictions = []
         for t_token, clf in zip(self.task_tokens, self.classifiers):
-            query = torch.repeat_interleave(t_token, len(tokens), dim=0)
+            query = torch.repeat_interleave(
+                t_token.view(1, 1, -1), len(tokens), dim=0
+            )
             for tab in self.tab_list:
                 tab.to(self.device)
                 self.ln.to(self.device)
-                print(tokens.shape, query.shape)
                 tokens = tab(
                     self.ln(tokens), self.ln(query.to(self.device))
                 )
@@ -1378,7 +1379,6 @@ class TaskGEM(DyTox, ParamGEM):
 
     def get_state(self):
         net_state = ParamGEM.get_state(self)
-        net_state['task_tokens'] = self.task_tokens
         return net_state
 
     def forward(self, x):
