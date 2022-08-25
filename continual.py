@@ -1298,6 +1298,7 @@ class DyTox(MetaModel):
             for tab in self.tab_list:
                 tab.to(self.device)
                 self.ln.to(self.device)
+                print(tokens.shape, query.shape)
                 tokens = tab(
                     self.ln(tokens), self.ln(query.to(self.device))
                 )
@@ -1339,8 +1340,7 @@ class TaskGEM(DyTox, ParamGEM):
         )
         self.tab = tab
         self.embed_dim = embed_dim
-        self.model = None
-
+        self.train_functions = self.original_functions
         # Transformers
         self.task_tokens = nn.ParameterList([])
         self.tab_list = nn.ModuleList([
@@ -1383,4 +1383,4 @@ class TaskGEM(DyTox, ParamGEM):
 
     def forward(self, x):
         tokens = self.model.tokenize(x)
-        return super()._class_forward(tokens)
+        return self._class_forward(tokens)
