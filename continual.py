@@ -785,7 +785,7 @@ class ParamGEM(ResetGEM):
             if param.requires_grad:
                 self.grads.append(torch.Tensor(param.data.numel(), n_tasks))
                 self.bad_grads.append(
-                    torch.zeros(param.data.numel(), dtype=torch.int32)
+                    torch.zeros(param.data.numel(), dtype=torch.float32)
                 )
 
     def store_grad(self, tid):
