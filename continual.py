@@ -1028,6 +1028,13 @@ class iCARL(MetaModel):
                 self.memy = torch.cat(
                     (self.memy, y.detach().cpu().data.clone())
                 )
+        p = 0
+        for param in self.parameters():
+            if param.requires_grad:
+                if param.grad is not None:
+                    flat_grad = param.grad.cpu().detach().data.flatten()
+                    self.cum_grad[p] += flat_grad / batches
+                p += 1
 
     def epoch_update(self, epochs, loader):
         last_epoch = (self.model.epoch + 1) == epochs
