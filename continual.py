@@ -766,9 +766,13 @@ class ParamGEM(ResetGEM):
             n_classes, n_tasks, lr, task, memory_strength
         )
         self.grads = []
+        self.bad_grads = []
         for param in self.model.parameters():
             if param.requires_grad:
                 self.grads.append(torch.Tensor(param.data.numel(), n_tasks))
+                self.bad_grads.append(
+                    torch.zeros(param.data.numel(), dtype=torch.int32)
+                )
 
     def store_grad(self, tid):
         p = 0
@@ -802,8 +806,23 @@ class ParamGEM(ResetGEM):
                             current_grad = new_grad.contiguous().view(
                                 param.grad.data.size()
                             )
+                            self.bad_grads[p] += current_grad == new_grad.cpu()
                             param.grad.data.copy_(current_grad.to(param.device))
                     p += 1
+
+    def get_state(self):
+        net_state = super().get_state()
+        net_state['bad_grads'] = self.bad_grads
+        return net_state
+
+    def load_model(self, net_name):
+        net_state = super().load_model(net_name)
+        if type(net_state['bad_grads']) is list:
+            self.bad_grads = [grad.cpu() for grad in net_state['bad_grads']]
+        else:
+            self.bad_grads = net_state['bad_grads'].cpu()
+
+        return net_state
 
 
 class IndependentGEM(ParamGEM):
