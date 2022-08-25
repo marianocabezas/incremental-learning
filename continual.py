@@ -39,7 +39,7 @@ class MetaModel(BaseModel):
         for param in self.model.parameters():
             if param.requires_grad:
                 self.cum_grad.append(
-                    torch.zeros(param.data.numel(), dtype=torch.int32)
+                    torch.zeros(param.data.numel(), dtype=torch.float32)
                 )
 
         self.train_functions = self.model.train_functions
