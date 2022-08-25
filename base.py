@@ -1202,7 +1202,9 @@ class SelfAttentionBlock(nn.Module):
     def __init__(self, embed_dim, mlp_dim, heads):
         super().__init__()
         self.ln1 = nn.LayerNorm(embed_dim, eps=1e-6)
-        self.attention = nn.MultiheadAttention(embed_dim, heads)
+        self.attention = nn.MultiheadAttention(
+            embed_dim, heads, batch_first=True
+        )
         self.ln2 = nn.LayerNorm(embed_dim, eps=1e-6)
         self.mlp = nn.Linear(embed_dim, mlp_dim)
 
