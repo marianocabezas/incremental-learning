@@ -1289,6 +1289,13 @@ class DyTox(MetaModel):
             # },
 
         ]
+        self.model.freeze()
+        self.cum_grad = []
+        for param in self.parameters():
+            if param.requires_grad:
+                self.cum_grad.append(
+                    torch.zeros(param.data.numel(), dtype=torch.float32)
+                )
 
         # Transformers
         self.tokenizer = nn.Conv2d(3, embed_dim, patch_size, patch_size)
