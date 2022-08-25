@@ -35,6 +35,12 @@ class MetaModel(BaseModel):
         self.offset2 = None
         self.grams = []
         self.logits = []
+        self.cum_grad = []
+        for param in self.model.parameters():
+            if param.requires_grad:
+                self.cum_grad.append(
+                    torch.zeros(param.data.numel(), dtype=torch.int32)
+                )
 
         self.train_functions = self.model.train_functions
         self.val_functions = self.model.val_functions
@@ -92,6 +98,13 @@ class MetaModel(BaseModel):
                 )
             if training:
                 self.model.train()
+        p = 0
+        for param in self.parameters():
+            if param.requires_grad:
+                if param.grad is not None:
+                    flat_grad = param.grad.cpu().detach().data.flatten()
+                    self.cum_grad[p] += flat_grad / batches
+                p += 1
 
     def fill_grams(self, batch_size=None):
         if self.memory_manager is not None:
@@ -166,10 +179,10 @@ class MetaModel(BaseModel):
             'lr': self.lr,
             'task_incremental': self.task,
             'manager': self.memory_manager,
+            'cum_grad': self.cum_grad,
             'grams': self.grams,
             'logits': self.logits,
             'state': self.state_dict(),
-
         }
         return net_state
 
@@ -183,6 +196,7 @@ class MetaModel(BaseModel):
         self.n_classes = net_state['n_classes']
         self.current_task = net_state['task']
         self.memory_manager = net_state['manager']
+        self.cum_grad = net_state['cum_grad']
         self.grams = net_state['grams']
         self.logits = net_state['logits']
         self.lr = net_state['lr']
