@@ -1211,6 +1211,7 @@ class SelfAttentionBlock(nn.Module):
         if q_in is not None:
             q = self.ln1(q_in)
             x = torch.cat([q, x], dim=1)
+            print(x.shape, q.shape)
             x, _ = self.attention(
                 query=q, key=x, value=x, need_weights=False
             )
