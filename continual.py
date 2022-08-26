@@ -50,7 +50,7 @@ class MetaModel(BaseModel):
 
     def _update_cum_grad(self, norm):
         p = 0
-        for param in self.parameters():
+        for param in self.model.parameters():
             if param.requires_grad:
                 if param.grad is not None:
                     flat_grad = param.grad.cpu().detach().data.flatten()
@@ -169,6 +169,18 @@ class MetaModel(BaseModel):
                 task = torch.argmax(distances, dim=0).numpy()
 
         return task
+
+    def reset_parameters(self, flat_grads, th=0):
+        p = 0
+        for param in self.model.parameters():
+            if param.requires_grad:
+                grad_mask = (flat_grads[p] > th).view(param.data.shape)
+                new_param = torch.zeros(
+                    torch.sum(grad_mask), dtype=torch.float32
+                )
+                nn.init.xavier_uniform(new_param)
+                param.data[grad_mask].fill_(new_param)
+                p += 1
 
     def reset_optimiser(self, model_params=None):
         super().reset_optimiser(model_params)
