@@ -812,6 +812,8 @@ class ParamGEM(ResetGEM):
                     self.grads[p][:, tid].copy_(
                         param.grad.cpu().data.flatten()
                     )
+                else:
+                    self.grads[p][:, tid].fill_(0.0)
                 p += 1
 
     def constraint_check(self):
