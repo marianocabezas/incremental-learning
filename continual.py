@@ -838,7 +838,7 @@ class ParamGEM(ResetGEM):
                             current_grad = new_grad.contiguous().view(
                                 param.grad.data.size()
                             )
-                            self.bad_grads[p] += current_grad == new_grad.cpu()
+                            self.bad_grads[p] += current_grad != new_grad.cpu()
                             param.grad.data.copy_(current_grad.to(param.device))
                     p += 1
 
