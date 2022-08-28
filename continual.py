@@ -1363,7 +1363,7 @@ class DyTox(MetaModel):
             verbose
         )
         n_tasks = len(self.observed_tasks)
-        self.alpha_w.fill(n_tasks * self.classes_x_task / (n_tasks + 1))
+        self.alpha_w.fill_(n_tasks * self.classes_x_task / (n_tasks + 1))
 
     def _class_forward(self, tokens):
         predictions = []
