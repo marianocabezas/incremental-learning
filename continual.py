@@ -1316,7 +1316,10 @@ class DyTox(MetaModel):
 
         # Transformers
         self.tokenizer = nn.Conv2d(3, embed_dim, patch_size, patch_size)
-        self.task_tokens = nn.ParameterList([])
+        self.task_tokens = nn.ParameterList([
+            nn.Parameter(torch.rand(self.embed_dim), requires_grad=True)
+            for _ in range(n_tasks)
+        ])
         self.sab_list = nn.ModuleList([
             SelfAttentionBlock(embed_dim, embed_dim, heads)
             for _ in range(sab)
@@ -1326,7 +1329,10 @@ class DyTox(MetaModel):
             for _ in range(tab)
         ])
         self.ln = nn.LayerNorm(self.embed_dim, eps=1e-6)
-        self.classifiers = nn.ModuleList([])
+        self.classifiers = nn.ModuleList([
+            nn.Linear(self.embed_dim, self.classes_x_task)
+            for _ in range(n_tasks)
+        ])
 
     def reset_optimiser(self, model_params=None):
         if model_params is None:
@@ -1353,11 +1359,6 @@ class DyTox(MetaModel):
         offset2=None,
         verbose=True
     ):
-        self.task_tokens.append(
-            nn.Parameter(torch.rand(self.embed_dim), requires_grad=True)
-        )
-        self.classifiers.append(nn.Linear(self.embed_dim, self.classes_x_task))
-        self.reset_optimiser()
         super().fit(
             train_loader, val_loader, epochs, patience, task, offset1, offset2,
             verbose
