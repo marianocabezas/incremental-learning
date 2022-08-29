@@ -266,12 +266,12 @@ class MetaModelMemory(MetaModel):
         )
 
     def mini_batch_loop(self, data, train=True):
-        if self.memory_manager is not None and self.current_task > 0:
+        if self.memory_manager is not None and self.current_task > 0 and train:
             max_task = self.current_task - 1
             memory_sets = list(self.memory_manager.get_tasks(max_task))
             new_dataset = MultiDataset([data] + memory_sets)
             data = DataLoader(
-                new_dataset, data.batch_size, data.shuffle,
+                new_dataset, data.batch_size, True,
                 num_workers=data.num_workers
             )
         return super().mini_batch_loop(data, train)
