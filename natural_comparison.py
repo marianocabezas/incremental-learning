@@ -178,6 +178,7 @@ def test(config, net, testing, task, n_classes, n_tasks, verbose=0):
         prediction, pred_task = net.inference(
             x.cpu().numpy(), nonbatched=False, task=task
         )
+        print(prediction.shape)
         scaled_prediction = np.concatenate([
             softmax(prediction[:, t_i * nc_x_t:(t_i + 1) * nc_x_t], axis=1)
             for t_i in range(n_tasks)
