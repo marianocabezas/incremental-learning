@@ -212,7 +212,9 @@ class MetaModel(BaseModel):
         self.n_classes = net_state['n_classes']
         self.current_task = net_state['task']
         self.memory_manager = net_state['manager']
-        self.cum_grad = net_state['cum_grad']
+        self.cum_grad = [
+            grad.cpu() for grad in net_state['cum_grad'
+        ]
         self.grams = net_state['grams']
         self.logits = net_state['logits']
         self.lr = net_state['lr']
