@@ -986,6 +986,9 @@ class Independent(MetaModel):
     def reset_optimiser(self, model_params=None):
         pass
 
+    def _update_cum_grad(self, norm):
+        pass
+
     def fit(
         self,
         train_loader,
