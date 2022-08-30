@@ -269,7 +269,7 @@ class MetaModelMemory(MetaModel):
         if self.memory_manager is not None and self.current_task > 0 and train:
             max_task = self.current_task - 1
             memory_sets = list(self.memory_manager.get_tasks(max_task))
-            new_dataset = MultiDataset([data] + memory_sets)
+            new_dataset = MultiDataset([data.dataset] + memory_sets)
             data = DataLoader(
                 new_dataset, data.batch_size, True,
                 num_workers=data.num_workers
