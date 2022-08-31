@@ -265,6 +265,8 @@ class MetaModelMemory(MetaModel):
 
     def mini_batch_loop(self, data, train=True):
         if self.memory_manager is not None and self.current_task > 0 and train:
+            if self.offset1 is not None:
+                self.offset1 = 0
             max_task = self.current_task - 1
             memory_sets = list(self.memory_manager.get_tasks(max_task))
             new_dataset = MultiDataset([data.dataset] + memory_sets)
