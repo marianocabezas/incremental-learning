@@ -220,7 +220,7 @@ class MetaModel(BaseModel):
             self.model.lr = self.lr
             self.reset_optimiser()
         self.task = net_state['task_incremental']
-        self.load_state_dict(net_state['state'].to(self.device))
+        self.load_state_dict(net_state['state'])
         return net_state
 
     def forward(self, *inputs):
