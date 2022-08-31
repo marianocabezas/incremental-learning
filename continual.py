@@ -207,14 +207,12 @@ class MetaModel(BaseModel):
         torch.save(net_state, net_name)
 
     def load_model(self, net_name):
-        net_state = torch.load(net_name, map_location=self.device)
+        net_state = torch.load(net_name, map_location=torch.device('cpu'))
         self.first = net_state['first']
         self.n_classes = net_state['n_classes']
         self.current_task = net_state['task']
         self.memory_manager = net_state['manager']
-        self.cum_grad = [
-            grad.cpu() for grad in net_state['cum_grad']
-        ]
+        self.cum_grad = net_state['cum_grad']
         self.grams = net_state['grams']
         self.logits = net_state['logits']
         self.lr = net_state['lr']
@@ -222,7 +220,7 @@ class MetaModel(BaseModel):
             self.model.lr = self.lr
             self.reset_optimiser()
         self.task = net_state['task_incremental']
-        self.load_state_dict(net_state['state'])
+        self.load_state_dict(net_state['state'].to(self.device))
         return net_state
 
     def forward(self, *inputs):
