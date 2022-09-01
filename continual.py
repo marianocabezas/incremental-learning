@@ -506,10 +506,10 @@ class GEM(MetaModel):
             output: x, p-vector
         """
         memories_np = np.nan_to_num(
-            memories.t().double().numpy()
+            memories.t().double().cpu().numpy()
         )
         gradient_np = np.nan_to_num(
-            gradient.contiguous().view(-1).double().numpy()
+            gradient.contiguous().view(-1).double().cpu().numpy()
         )
         t = memories_np.shape[0]
         P = np.dot(memories_np, memories_np.transpose())
