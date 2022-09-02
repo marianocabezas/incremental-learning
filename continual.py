@@ -837,11 +837,7 @@ class ParamGEM(ResetGEM):
                                 grad.to(self.device)
                             )
                             # Copy the new gradient
-                            print(
-                                self.bad_grads[p].shape, current_grad.shape,
-                                new_grad.shape
-                            )
-                            self.bad_grads[p] += current_grad != new_grad.cpu()
+                            self.bad_grads[p] += current_grad != new_grad.squeeze().cpu()
                             final_grad = new_grad.contiguous().view(
                                 param.grad.data.size()
                             ).to(param.device)
