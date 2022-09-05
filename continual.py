@@ -1288,7 +1288,7 @@ class GDumb(MetaModel):
 class DyTox(MetaModel):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
-        n_classes=100, n_tasks=10, lr=None,
+        n_classes=100, n_tasks=10, lr=None, task=False,
         sab=5, tab=1, heads=12, embed_dim=384, patch_size=4
     ):
         super().__init__(
@@ -1417,7 +1417,7 @@ class DyTox(MetaModel):
 class TaskGEM(DyTox, ParamGEM):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
-        n_classes=100, n_tasks=10, lr=None,
+        n_classes=100, n_tasks=10, lr=None, task=False,
         tab=1, heads=12, embed_dim=384, memory_strength=0.5,
     ):
         ParamGEM.__init__(
