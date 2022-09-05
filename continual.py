@@ -1288,12 +1288,12 @@ class GDumb(MetaModel):
 class DyTox(MetaModel):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
-        n_classes=100, n_tasks=10, lr=None, task=True,
-        sab=5, tab=1, heads=12, embed_dim=384, patch_size=4,
-        lambda_w=0.1
+        n_classes=100, n_tasks=10, lr=None,
+        sab=5, tab=1, heads=12, embed_dim=384, patch_size=4
     ):
         super().__init__(
-            basemodel.cpu(), best, memory_manager, n_classes, n_tasks, lr, task
+            basemodel.cpu(), best, memory_manager,
+            n_classes, n_tasks, lr, False
         )
         self.classes_x_task = self.n_classes // self.n_tasks
         self.sab = sab
@@ -1376,7 +1376,10 @@ class DyTox(MetaModel):
 
     def _class_forward(self, tokens):
         predictions = []
-        for t_token, clf in zip(self.task_tokens, self.classifiers):
+        for t_token, clf in zip(
+            self.task_tokens[:self.current_task],
+            self.classifiers[:self.current_task]
+        ):
             query = torch.repeat_interleave(
                 t_token.view(1, 1, -1), len(tokens), dim=0
             )
@@ -1414,12 +1417,12 @@ class DyTox(MetaModel):
 class TaskGEM(DyTox, ParamGEM):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
-        n_classes=100, n_tasks=10, lr=None, task=True,
+        n_classes=100, n_tasks=10, lr=None,
         tab=1, heads=12, embed_dim=384, memory_strength=0.5,
     ):
         ParamGEM.__init__(
             self, basemodel, best, memory_manager,
-            n_classes, n_tasks, lr, task,
+            n_classes, n_tasks, lr, False,
             memory_strength
         )
         self.tab = tab
