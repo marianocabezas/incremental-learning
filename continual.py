@@ -1377,8 +1377,8 @@ class DyTox(MetaModel):
     def _class_forward(self, tokens):
         predictions = []
         for t_token, clf in zip(
-            self.task_tokens[:self.current_task],
-            self.classifiers[:self.current_task]
+            self.task_tokens[:self.current_task + 1],
+            self.classifiers[:self.current_task + 1]
         ):
             query = torch.repeat_interleave(
                 t_token.view(1, 1, -1), len(tokens), dim=0
