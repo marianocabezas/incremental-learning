@@ -1239,14 +1239,17 @@ class GDumb(MetaModel):
                     batch_loss = sum(batch_losses)
                     loss_value = batch_loss.tolist()
                     losses.append(loss_value)
-                    batch_loss.backward()
-                    self.optimizer_alg.step()
+                    try:
+                        batch_loss.backward()
+                        self.optimizer_alg.step()
 
-                    self.print_progress(
-                        batch_i, n_batches, loss_value, np.mean(losses)
-                    )
-                    torch.cuda.empty_cache()
-                    torch.cuda.ipc_collect()
+                        self.print_progress(
+                            batch_i, n_batches, loss_value, np.mean(losses)
+                        )
+                        torch.cuda.empty_cache()
+                        torch.cuda.ipc_collect()
+                    except RuntimeError:
+                        pass
         return np.mean(losses)
 
     def fit(
