@@ -1341,6 +1341,7 @@ class DyTox(MetaModel):
             nn.Linear(self.embed_dim, self.classes_x_task)
             for _ in range(n_tasks)
         ])
+        self.reset_optimiser()
 
     def reset_optimiser(self, model_params=None):
         if model_params is None:

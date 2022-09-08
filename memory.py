@@ -394,3 +394,134 @@ class PrototypeClassManager(ClassificationMemoryManager):
                 self.logits[y_i].pop(indx)
 
         return True
+
+
+class NewPrototypeClassManager(ClassificationMemoryManager):
+    def __init__(self, n_memories, n_classes, n_tasks):
+        super().__init__(n_memories, n_classes, n_tasks)
+        self.memories_x_split = self.n_memories // n_classes
+        # Prototypes per class
+        self.max_types = max(1, self.memories_x_split // self.classes)
+
+    def update_memory(self, x, y, t, model=None, *args, **kwargs):
+        self._update_task_labels(y, t)
+        # We reset the grams and logits because the network might have been
+        # updated.
+        for x_i, y_i in zip(x, y):
+            self.data[y_i].append(x_i)
+
+        for y_i in sorted(np.unique(y.cpu())):
+            class_size = len(self.data[y_i])
+            # If the buffer for the class is over the top, things get
+            # interesting and we need to prepare the intermediate logits
+            # and the class gram matrix.
+            if class_size > self.memories_x_split:
+                extra = (class_size - self.memories_x_split)
+                data = torch.stack(self.data[y_i]).to(model.device)
+                prototypes = torch.argmax(model(data).detach())
+                features = model.tokenize(data).flatten(1).detach()
+
+                # Prototype check.
+                # We want to represent as many "prototypes" as possible.
+                # That means we need to see which "prototypes" have
+                # more representation and remove examples from them.
+                # This involves the following steps:
+                # 1 - Counting the number of examples per prototype
+                # and sorting them:
+                proto_count = torch.stack([
+                    torch.count_nonzero(prototypes == k)
+                    for k in sorted(torch.unique(prototypes))
+                ])
+                proto_sort, proto_idx = torch.sort(proto_count, descending=True)
+
+                # 2 - Checking which of these prototypes need to be depleted.
+                # While the idea in principle is simple, the implementation
+                # is not. To avoid doing it example by example which takes
+                # time (for loops are slow), we need to:
+                # 2.1 get the differential between sorted prototypes:
+                #  Note: The last prototype has no differential.
+                proto_diff = proto_sort - torch.roll(proto_sort, -1)
+                proto_diff[-1] = 0
+                # arranged_diff = np.copy(proto_diff)
+                # zero_found = False
+                # zero_idx = 0
+                # for idx, num in enumerate(proto_diff):
+                #     if num == 0 and not zero_found:
+                #         zero_found = True
+                #         zero_idx = idx
+                #     elif num > 0:
+                #         if zero_found:
+                #             arranged_diff[zero_idx] = num
+                #             arranged_diff[idx] = 0
+                #         zero_found = False
+
+                # 2.2 take into account that these differentials
+                #  "increase" as we go down the list of sorted
+                #  prototypes. What that means is that if we have
+                #  two classes of prototypes we need to deplete,
+                #  we will have to evenly distribute the number
+                #  of removed examples. Consequently, the differential
+                #  with respect to the 3rd class is now doubled.
+                proto_diffcum = proto_diff * np.arange(1, len(proto_diff) + 1)
+                proto_extra = torch.cumsum(proto_diffcum, 0) - extra
+
+                # 2.3 determine which prototype classes need
+                #  to be depleted with the previous info.
+                #  The cumulative extra gives us an idea of
+                #  after which prototype class we will reach
+                #  enough depletion. Ideally, a prototype class
+                #  with 0 would be the stopping point. However,
+                #  the most likely scenario as that we go from
+                #  negative to positive.
+                empty_classes = torch.where(proto_extra > 0)[0]
+                if len(empty_classes) > 0:
+                    last_class = empty_classes[0].numpy().tolist()
+                else:
+                    last_class = len(proto_extra) - 1
+                extra_idx = proto_idx[:last_class + 1].numpy()
+
+                # 2.4 if we reach a positive value (not 0),
+                #  we can define the fixed amount of samples
+                #  to remote per class.
+                fixed_array = np.cumsum(proto_diff.numpy()[:last_class][::-1]).tolist()[::-1]
+                fixed_array += [0]
+                fixed_array = np.array(fixed_array, dtype=np.uint8)
+                fixed_extra = np.sum(fixed_array)
+
+                # 2.5 finally, we only need to distribute the examples
+                #  among the prototypes. We will start by penalizing
+                #  big classes first. For example, if we have 3 extra
+                #  memories and 4 prototype classes, we will remove
+                #  memories from the first 3.
+                tosplit_extra = int(extra - fixed_extra)
+                tosplit_classes = last_class + 1
+                split_extra = tosplit_extra // tosplit_classes
+                remain_extra = tosplit_extra % tosplit_classes
+
+                # 2.6 put all that together! It's a matter of
+                #  merging the "fixed" part, the "split" fraction
+                #  and the remainder.
+                split_array = split_extra * np.ones(tosplit_classes, dtype=np.uint8)
+
+                remain_array = np.ones(tosplit_classes, dtype=np.uint8)
+                remain_array[remain_extra:] = 0
+
+                final_array = fixed_array + split_array + remain_array
+
+                # Gram computation.
+                # This is a proxy to see how correlated the memories are.
+                # We want "unique" memories, so we need to discard memories
+                # that are "similar".
+                for k, n_del_mem in zip(extra_idx, final_array):
+                    k_mask = prototypes == k
+                    feat_k = features[k_mask]
+                    k_indices = np.where(k_mask)[0]
+                    gram = (feat_k @ feat_k.t()) * (1 - torch.eye(len(feat_k)))
+                    gram_process = torch.mean(gram, dim=1)
+                    _, gram_idx = torch.sort(gram_process, descending=True)
+                    true_idx = k_indices[gram_idx[:n_del_mem].numpy()]
+
+                    for indx in true_idx:
+                        self.data[y_i].pop(indx)
+
+        return True
