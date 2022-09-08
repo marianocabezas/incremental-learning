@@ -512,6 +512,7 @@ class NewPrototypeClassManager(ClassificationMemoryManager):
                 # This is a proxy to see how correlated the memories are.
                 # We want "unique" memories, so we need to discard memories
                 # that are "similar".
+                del_idx = []
                 for k, n_del_mem in zip(extra_idx, final_array):
                     k_mask = prototypes == k
                     feat_k = features[k_mask]
@@ -519,9 +520,10 @@ class NewPrototypeClassManager(ClassificationMemoryManager):
                     gram = (feat_k @ feat_k.t()) * (1 - torch.eye(len(feat_k)))
                     gram_process = torch.mean(gram, dim=1)
                     _, gram_idx = torch.sort(gram_process, descending=True)
-                    true_idx = k_indices[gram_idx[:n_del_mem].numpy()]
-
-                    for indx in true_idx:
-                        self.data[y_i].pop(indx)
+                    del_idx.extend(k_indices[gram_idx[:n_del_mem].numpy()].tolist())
+                self.data[y_i] = [
+                    elem for n, elem in enumerate(self.data[y_i])
+                    if n not in del_idx
+                ]
 
         return True
