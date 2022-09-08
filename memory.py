@@ -442,18 +442,6 @@ class NewPrototypeClassManager(ClassificationMemoryManager):
                 #  Note: The last prototype has no differential.
                 proto_diff = proto_sort - torch.roll(proto_sort, -1)
                 proto_diff[-1] = 0
-                # arranged_diff = np.copy(proto_diff)
-                # zero_found = False
-                # zero_idx = 0
-                # for idx, num in enumerate(proto_diff):
-                #     if num == 0 and not zero_found:
-                #         zero_found = True
-                #         zero_idx = idx
-                #     elif num > 0:
-                #         if zero_found:
-                #             arranged_diff[zero_idx] = num
-                #             arranged_diff[idx] = 0
-                #         zero_found = False
 
                 # 2.2 take into account that these differentials
                 #  "increase" as we go down the list of sorted
