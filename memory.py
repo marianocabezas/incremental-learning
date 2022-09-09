@@ -419,6 +419,7 @@ class NewPrototypeClassManager(ClassificationMemoryManager):
                 extra = (class_size - self.memories_x_split)
                 data = torch.stack(self.data[y_i]).to(model.device)
                 prototypes = torch.argmax(model(data)).cpu()
+                print(prototypes.shape)
                 features = model.tokenize(data).flatten(1)
 
                 # Prototype check.
@@ -432,6 +433,7 @@ class NewPrototypeClassManager(ClassificationMemoryManager):
                     torch.count_nonzero(prototypes == k)
                     for k in sorted(torch.unique(prototypes))
                 ])
+                print(prototypes.shape)
                 proto_sort, proto_idx = torch.sort(
                     proto_count, descending=True
                 )
@@ -502,6 +504,7 @@ class NewPrototypeClassManager(ClassificationMemoryManager):
                 # This is a proxy to see how correlated the memories are.
                 # We want "unique" memories, so we need to discard memories
                 # that are "similar".
+                print(prototypes.shape)
                 del_idx = []
                 for k, n_del_mem in zip(extra_idx, final_array):
                     k_mask = prototypes == k
