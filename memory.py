@@ -418,8 +418,7 @@ class NewPrototypeClassManager(ClassificationMemoryManager):
             if class_size > self.memories_x_split:
                 extra = (class_size - self.memories_x_split)
                 data = torch.stack(self.data[y_i]).to(model.device)
-                prototypes = torch.argmax(model(data)).cpu()
-                print(prototypes.shape)
+                prototypes = torch.argmax(model(data), dim=1).cpu()
                 features = model.tokenize(data).flatten(1)
 
                 # Prototype check.
@@ -433,7 +432,6 @@ class NewPrototypeClassManager(ClassificationMemoryManager):
                     torch.count_nonzero(prototypes == k)
                     for k in sorted(torch.unique(prototypes))
                 ])
-                print(prototypes.shape)
                 proto_sort, proto_idx = torch.sort(
                     proto_count, descending=True
                 )
