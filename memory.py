@@ -418,7 +418,7 @@ class NewPrototypeClassManager(ClassificationMemoryManager):
             if class_size > self.memories_x_split:
                 extra = (class_size - self.memories_x_split)
                 data = torch.stack(self.data[y_i]).to(model.device)
-                prototypes = torch.argmax(model(data).detach())
+                prototypes = torch.argmax(model(data).detach()).cpu()
                 features = model.tokenize(data).flatten(1).detach()
 
                 # Prototype check.
@@ -432,7 +432,9 @@ class NewPrototypeClassManager(ClassificationMemoryManager):
                     torch.count_nonzero(prototypes == k)
                     for k in sorted(torch.unique(prototypes))
                 ])
-                proto_sort, proto_idx = torch.sort(proto_count, descending=True)
+                proto_sort, proto_idx = torch.sort(
+                    proto_count, descending=True
+                )
 
                 # 2 - Checking which of these prototypes need to be depleted.
                 # While the idea in principle is simple, the implementation
