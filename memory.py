@@ -419,7 +419,7 @@ class NewPrototypeClassManager(ClassificationMemoryManager):
                 extra = (class_size - self.memories_x_split)
                 data = torch.stack(self.data[y_i]).to(model.device)
                 prototypes = torch.argmax(model(data), dim=1).cpu()
-                features = model.tokenize(data).flatten(1)
+                features = model.tokenize(data).flatten(1).cpu()
 
                 # Prototype check.
                 # We want to represent as many "prototypes" as possible.
