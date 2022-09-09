@@ -1198,12 +1198,16 @@ class GDumb(MetaModel):
                         batch_i, n_batches, data.batch_size
                     ))
                 else:
-                    self.print_progress(
-                        batch_i, n_batches, losses[-1], np.mean(losses)
-                    )
+                    if len(losses) > 0:
+                        self.print_progress(
+                            batch_i, n_batches, losses[-1], np.mean(losses)
+                        )
 
         # Mean loss of the global loss (we don't need the loss for each batch).
-        mean_loss = np.mean(losses)
+        if len(losses) > 0:
+            mean_loss = np.mean(losses)
+        else:
+            mean_loss = np.inf
 
         if train:
             return mean_loss
