@@ -409,7 +409,7 @@ class NewPrototypeClassManager(ClassificationMemoryManager):
         # updated.
         for x_i, y_i in zip(x, y):
             self.data[y_i].append(x_i)
-        print([len(x_i) for x_i in self.data])
+
         for y_i in sorted(np.unique(y.cpu())):
             class_size = len(self.data[y_i])
             # If the buffer for the class is over the top, things get
@@ -509,7 +509,8 @@ class NewPrototypeClassManager(ClassificationMemoryManager):
                     k_indices = np.where(k_mask)[0]
                     print(
                         extra_idx, class_size, final_array, self.memories_x_split,
-                        feat_k.shape, features.shape, k_mask.shape, k_indices
+                        feat_k.shape, features.shape,
+                        prototypes.shape, k_mask.shape, k_indices
                     )
                     gram = (feat_k @ feat_k.t()) * (1 - torch.eye(len(feat_k)))
                     gram_process = torch.mean(gram, dim=1)
