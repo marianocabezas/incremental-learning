@@ -506,8 +506,8 @@ class NewPrototypeClassManager(ClassificationMemoryManager):
                 for k, n_del_mem in zip(extra_idx, final_array):
                     k_mask = prototypes == k
                     feat_k = features[k_mask]
-                    print(feat_k.shape, features.shape)
                     k_indices = np.where(k_mask)[0]
+                    print(feat_k.shape, features.shape, k_mask.shape, k_indices)
                     gram = (feat_k @ feat_k.t()) * (1 - torch.eye(len(feat_k)))
                     gram_process = torch.mean(gram, dim=1)
                     _, gram_idx = torch.sort(gram_process, descending=True)
