@@ -409,7 +409,7 @@ class NewPrototypeClassManager(ClassificationMemoryManager):
         # updated.
         for x_i, y_i in zip(x, y):
             self.data[y_i].append(x_i)
-        print([len(x_i) for x_i self.data])
+        print([len(x_i) for x_i in self.data])
         for y_i in sorted(np.unique(y.cpu())):
             class_size = len(self.data[y_i])
             # If the buffer for the class is over the top, things get
