@@ -502,7 +502,6 @@ class NewPrototypeClassManager(ClassificationMemoryManager):
                 # This is a proxy to see how correlated the memories are.
                 # We want "unique" memories, so we need to discard memories
                 # that are "similar".
-                print(prototypes.shape)
                 del_idx = []
                 for k, n_del_mem in zip(extra_idx, final_array):
                     k_mask = prototypes == k
