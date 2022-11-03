@@ -124,10 +124,13 @@ class BaseModel(nn.Module):
                 ]
                 batch_loss = sum(batch_losses)
                 if self.training:
-                    batch_loss.backward()
-                    self.prebatch_update(batch_i, len(data), x_cuda, y_cuda)
-                    self.optimizer_alg.step()
-                    self.batch_update(batch_i, len(data), x_cuda, y_cuda)
+                    try:
+                        batch_loss.backward()
+                        self.prebatch_update(batch_i, len(data), x_cuda, y_cuda)
+                        self.optimizer_alg.step()
+                        self.batch_update(batch_i, len(data), x_cuda, y_cuda)
+                    except RuntimeError:
+                        self.prebatch_update(batch_i, len(data), x_cuda, y_cuda)
 
             else:
                 # Validation losses (applied to the validation data)
