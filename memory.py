@@ -440,7 +440,7 @@ class NewPrototypeClassManager(ClassificationMemoryManager):
                 # While the idea in principle is simple, the implementation
                 # is not. To avoid doing it example by example which takes
                 # time (for loops are slow), we need to:
-                # 2.1 get the differential between sorted prototypes:
+                # 2.1 get the differential between sorted prototypes.
                 #  Note: The last prototype has no differential.
                 proto_diff = proto_sort - torch.roll(proto_sort, -1)
                 proto_diff[-1] = 0
