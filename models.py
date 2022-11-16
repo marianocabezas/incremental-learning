@@ -215,7 +215,7 @@ class ResNet18(BaseModel):
         flat_4 = data.flatten(1)
         data = self.resnet.layer4(data)
         flat_5 = data.flatten(1)
-        return torch.cat([flat_1, flat_2, flat_3, flat_4, flat_5])
+        return torch.cat([flat_1, flat_2, flat_3, flat_4, flat_5], dim=1)
 
 
 class ViT_B_16(BaseModel):
