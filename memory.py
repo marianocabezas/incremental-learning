@@ -412,14 +412,14 @@ class NewPrototypeClassManager(ClassificationMemoryManager):
 
         for y_i in sorted(np.unique(y.cpu())):
             class_size = len(self.data[y_i])
-            # If the buffer for the class is over the top, things get
-            # interesting and we need to prepare the intermediate logits
-            # and the class gram matrix.
+            # If the buffer for the class is full, things get interesting, and
+            # we need to prepare the intermediate logits and the class gram
+            # matrix.
             if class_size > self.memories_x_split:
                 extra = (class_size - self.memories_x_split)
                 data = torch.stack(self.data[y_i]).to(model.device)
                 prototypes = torch.argmax(model(data), dim=1).cpu()
-                features = model.tokenize(data).flatten(1).cpu()
+                features = model.features(data).cpu()
 
                 # Prototype check.
                 # We want to represent as many "prototypes" as possible.
@@ -461,7 +461,7 @@ class NewPrototypeClassManager(ClassificationMemoryManager):
                 #  after which prototype class we will reach
                 #  enough depletion. Ideally, a prototype class
                 #  with 0 would be the stopping point. However,
-                #  the most likely scenario as that we go from
+                #  the most likely scenario is that we go from
                 #  negative to positive.
                 empty_classes = torch.where(proto_extra > 0)[0]
                 if len(empty_classes) > 0:
@@ -473,7 +473,9 @@ class NewPrototypeClassManager(ClassificationMemoryManager):
                 # 2.4 if we reach a positive value (not 0),
                 #  we can define the fixed amount of samples
                 #  to remote per class.
-                fixed_array = np.cumsum(proto_diff.numpy()[:last_class][::-1]).tolist()[::-1]
+                fixed_array = np.cumsum(
+                    proto_diff.numpy()[:last_class][::-1]
+                ).tolist()[::-1]
                 fixed_array += [0]
                 fixed_array = np.array(fixed_array, dtype=np.uint8)
                 fixed_extra = np.sum(fixed_array)
@@ -491,7 +493,8 @@ class NewPrototypeClassManager(ClassificationMemoryManager):
                 # 2.6 put all that together! It's a matter of
                 #  merging the "fixed" part, the "split" fraction
                 #  and the remainder.
-                split_array = split_extra * np.ones(tosplit_classes, dtype=np.uint8)
+                tosplit = np.ones(tosplit_classes, dtype=np.uint8)
+                split_array = split_extra * tosplit
 
                 remain_array = np.ones(tosplit_classes, dtype=np.uint8)
                 remain_array[remain_extra:] = 0
