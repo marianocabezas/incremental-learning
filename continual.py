@@ -272,7 +272,7 @@ class MetaModelMemory(MetaModel):
             new_dataset = MultiDataset([data.dataset] + memory_sets)
             data = DataLoader(
                 new_dataset, data.batch_size, True,
-                num_workers=data.num_workers
+                num_workers=data.num_workers, drop_last=True
             )
         return super().mini_batch_loop(data, train)
 
