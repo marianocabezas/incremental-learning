@@ -114,7 +114,10 @@ class MetaModel(BaseModel):
         if self.memory_manager is not None:
             self.grams = []
             for task_data in self.memory_manager.get_tasks():
-                task_loader = DataLoader(task_data, batch_size=batch_size)
+                task_loader = DataLoader(
+                    task_data, batch_size=batch_size,
+                    drop_last=True
+                )
                 task_grams = []
                 for x, _ in task_loader:
                     new_grams = self.model.gram_matrix(x.to(self.device)).cpu()
@@ -443,7 +446,9 @@ class EWC(MetaModel):
                     param['means'] = []
             for task in self.observed_tasks:
                 task_memory = self.memory_manager.get_task(self, task)
-                task_loader = DataLoader(task_memory, train_loader.batch_size)
+                task_loader = DataLoader(
+                    task_memory, train_loader.batch_size, drop_last=True
+                )
                 self.fisher(task_loader)
 
         for loss_f in self.train_functions:
