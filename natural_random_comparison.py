@@ -232,8 +232,8 @@ def test(config, net, testing, task, n_classes, verbose=0):
         )]
         target = y.cpu().numpy()
 
-        for t_i, p_i, tp_i, sp_i, tk_i in zip(
-                target, predicted, task_predicted, pred_task
+        for t_i, p_i, tp_i, tk_i in zip(
+            target, predicted, task_predicted, pred_task
         ):
             matrix[t_i, p_i] += 1
             task_matrix[t_i, tp_i] += 1
@@ -243,8 +243,8 @@ def test(config, net, testing, task, n_classes, verbose=0):
 
 
 def update_results(
-    config, net, seed, nc_per_task, step, training, validation, testing, results, n_classes,
-    verbose=0
+    config, net, seed, nc_per_task, step, training, validation, testing,
+    results, n_classes, verbose=0
 ):
     seed = str(seed)
     k = str(nc_per_task)
