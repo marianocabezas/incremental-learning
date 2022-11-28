@@ -461,7 +461,7 @@ class NewPrototypeClassManager(ClassificationMemoryManager):
                 #  after which prototype class we will reach
                 #  enough depletion. Ideally, a prototype class
                 #  with 0 would be the stopping point. However,
-                #  the most likely scenario as that we go from
+                #  the most likely scenario is that we go from
                 #  negative to positive.
                 empty_classes = torch.where(proto_extra > 0)[0]
                 if len(empty_classes) > 0:
@@ -473,7 +473,9 @@ class NewPrototypeClassManager(ClassificationMemoryManager):
                 # 2.4 if we reach a positive value (not 0),
                 #  we can define the fixed amount of samples
                 #  to remote per class.
-                fixed_array = np.cumsum(proto_diff.numpy()[:last_class][::-1]).tolist()[::-1]
+                fixed_array = np.cumsum(
+                    proto_diff.numpy()[:last_class][::-1]
+                ).tolist()[::-1]
                 fixed_array += [0]
                 fixed_array = np.array(fixed_array, dtype=np.uint8)
                 fixed_extra = np.sum(fixed_array)
@@ -491,7 +493,8 @@ class NewPrototypeClassManager(ClassificationMemoryManager):
                 # 2.6 put all that together! It's a matter of
                 #  merging the "fixed" part, the "split" fraction
                 #  and the remainder.
-                split_array = split_extra * np.ones(tosplit_classes, dtype=np.uint8)
+                tosplit = np.ones(tosplit_classes, dtype=np.uint8)
+                split_array = split_extra * tosplit
 
                 remain_array = np.ones(tosplit_classes, dtype=np.uint8)
                 remain_array[remain_extra:] = 0

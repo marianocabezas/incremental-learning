@@ -7,6 +7,10 @@ from shutil import copyfile
 import matplotlib.pyplot as plt
 
 
+"""
+Segmentation metrics
+"""
+
 def dsc_f(data_dict):
     metric_list = [
         2 * tpv / (2 * tpv + fnv + fpv)
@@ -97,6 +101,11 @@ def f1_f(data_dict):
     return metric_list
 
 
+"""
+Classification metrics
+"""
+
+
 def acc_f(data_dict):
     metric_list = [
         (tp + tn) / (tp + tn + fp + fn) if (tp + tn + fp + fn) > 0 else 0
@@ -136,3 +145,104 @@ def t1r_f(data_dict):
         )
     ]
     return metric_list
+
+
+"""
+Memory metrics
+"""
+
+
+def fwt(metrics_grid):
+    if len(metrics_grid.shape) == 2:
+        if metrics_grid.shape[0] == metrics_grid.shape[1] + 2:
+            m_previous = np.diag(metrics_grid[2:-1, 1:])
+            m_init = metrics_grid[1, 1:]
+            return np.mean(m_previous - m_init)
+        else:
+            metrics_avg = np.mean(metrics_grid, axis=1)
+            m_previous = metrics_avg[2:-1]
+            m_init = metrics_avg[1]
+    else:
+        m_previous = metrics_grid[2:-1]
+        m_init = metrics_grid[1]
+    return np.mean(m_previous - m_init)
+
+
+def bwt(metrics_grid):
+    if len(metrics_grid.shape) == 2:
+        if metrics_grid.shape[0] == metrics_grid.shape[1] + 2:
+            m_task = np.diag(metrics_grid[2:-1, :-1])
+            m_last = metrics_grid[-1, :-1]
+        else:
+            metrics_avg = np.mean(metrics_grid, axis=1)
+            m_task = metrics_avg[2:-1]
+            m_last = metrics_avg[-1]
+    else:
+        m_task = metrics_grid[2:-1]
+        m_last = metrics_grid[-1]
+    return np.mean(m_last - m_task)
+
+
+def forgetting(metrics_grid):
+    if len(metrics_grid.shape) == 2:
+        if metrics_grid.shape[0] == metrics_grid.shape[1] + 2:
+            f_t = [
+                np.max(
+                    metrics_grid[2:t + 3, :(t + 1)] - metrics_grid[t + 3, :(t + 1)],
+                    axis=0
+                )
+                for t in range(len(metrics_grid) - 3)
+            ]
+            F_t = [np.mean(f_ti) for f_ti in f_t]
+        else:
+            metrics_vec = np.mean(metrics_grid, axis=1)
+            F_t = np.array([
+                np.max(metrics_vec[2:t + 3]) - metrics_vec[t + 3]
+                for t in range(len(metrics_grid) - 3)
+            ])
+    else:
+        F_t = np.array([
+            np.max(metrics_grid[2:t + 3]) - metrics_grid[t + 3]
+            for t in range(len(metrics_grid) - 3)
+        ])
+    return F_t
+
+
+def intransigence(metrics_grid):
+    if len(metrics_grid.shape) == 2:
+        if metrics_grid.shape[0] == metrics_grid.shape[1] + 2:
+            I_i = metrics_grid[0, :] - np.diag(metrics_grid[2:, :])
+        else:
+            I_i = metrics_grid[0, :] - np.max(metrics_grid[2:, :], axis=0)
+    else:
+        I_i = metrics_grid[0] - np.max(metrics_grid[2:])
+    return I_i
+
+
+def transfer(metrics_grid):
+    if len(metrics_grid.shape) == 2:
+        if metrics_grid.shape[0] == metrics_grid.shape[1] + 2:
+            tr = bwt(metrics_grid) + fwt(metrics_grid)
+        else:
+            metrics_vec = np.mean(metrics_grid, axis=1)
+            tr = np.mean([
+                metrics_vec[t] - metrics_vec[t-1]
+                for t in range(2, len(metrics_grid))
+            ])
+    else:
+        tr = np.mean([
+            metrics_grid[t] - metrics_grid[t-1]
+            for t in range(2, len(metrics_grid))
+        ])
+    return tr
+
+
+def learning(metrics_grid):
+    if len(metrics_grid.shape) == 2:
+        if metrics_grid.shape[0] == metrics_grid.shape[1] + 2:
+            tr = np.mean(np.diag(metrics_grid[2:, :]))
+        else:
+            tr = transfer(metrics_grid)
+    else:
+        tr = np.mean(metrics_grid)
+    return tr
