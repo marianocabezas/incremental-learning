@@ -12,7 +12,7 @@ from datasets import MultiDataset
 
 def update_y(y, mask):
     y = torch.cat(
-        [torch.where(mask == y_i)[0] for y_i in y]
+        [torch.where(mask.to(y.device) == y_i)[0] for y_i in y]
     ).to(y.device)
     return y
 
