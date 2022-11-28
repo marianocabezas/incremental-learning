@@ -106,6 +106,10 @@ class ConvNeXtTiny(BaseModel):
         data = self.cnext.features(data)
         return data.flatten(2).permute(0, 2, 1)
 
+    def features(self, data):
+        data = self.cnext.features(data)
+        return data.flatten(1)
+
     def forward(self, data):
         self.cnext.to(self.device)
         return self.cnext(data)
@@ -196,6 +200,22 @@ class ResNet18(BaseModel):
         data = self.resnet.layer3(data)
         data = self.resnet.layer4(data)
         return data.flatten(2).permute(0, 2, 1)
+
+    def features(self, data):
+        data = self.resnet.conv1(data)
+        data = self.resnet.bn1(data)
+        data = self.resnet.relu(data)
+        flat_1 = data.flatten(1)
+        data = self.resnet.maxpool(data)
+        data = self.resnet.layer1(data)
+        flat_2 = data.flatten(1)
+        data = self.resnet.layer2(data)
+        flat_3 = data.flatten(1)
+        data = self.resnet.layer3(data)
+        flat_4 = data.flatten(1)
+        data = self.resnet.layer4(data)
+        flat_5 = data.flatten(1)
+        return torch.cat([flat_1, flat_2, flat_3, flat_4, flat_5], dim=1)
 
 
 class ViT_B_16(BaseModel):

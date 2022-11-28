@@ -114,7 +114,8 @@ def train(
         if verbose > 1:
             print('Dataloader creation <with validation>')
         train_loader = DataLoader(
-            train_dataset, config['train_batch'], True, num_workers=8
+            train_dataset, config['train_batch'], True, num_workers=8,
+            drop_last=True
         )
 
         # Validation (training cases)
@@ -126,7 +127,8 @@ def train(
         if verbose > 1:
             print('Dataloader creation <val>')
         val_loader = DataLoader(
-            val_dataset, config['test_batch'], num_workers=8
+            val_dataset, config['test_batch'], num_workers=8,
+            drop_last=True
         )
 
         if verbose > 1:

@@ -59,6 +59,9 @@ class BaseModel(nn.Module):
     def tokenize(self, *inputs):
         return self(*inputs).flatten(2).permute(0, 2, 1)
 
+    def features(self, *inputs):
+        return self.tokenize(*inputs)
+
     def forward(self, *inputs):
         """
 
