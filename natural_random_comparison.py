@@ -187,13 +187,13 @@ def train(
                 )
             )
 
-        if task is None:
-            net.fit(train_loader, val_loader, epochs=epochs, patience=patience)
-        else:
+        try:
             net.fit(
                 train_loader, val_loader, task_mask=dmask,
                 epochs=epochs, patience=patience, task=task
             )
+        except TypeError:
+            net.fit(train_loader, val_loader, epochs=epochs, patience=patience)
         net.save_model(os.path.join(path, model_name))
 
 
@@ -473,12 +473,12 @@ def main(verbose=2):
             )
             net.load_model(starting_model)
             training_set = (
-                torch.cat([m for m, _, _ in training_tasks]),
+                np.array(range(n_classes)),
                 torch.cat([x for _, x, _ in training_tasks]),
                 torch.cat([y for _, _, y in training_tasks])
             )
             validation_set = (
-                torch.cat([m for m, _, _ in validation_tasks]),
+                np.array(range(n_classes)),
                 torch.cat([x for _, x, _ in validation_tasks]),
                 torch.cat([y for _, _, y in validation_tasks])
             )
