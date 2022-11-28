@@ -70,7 +70,7 @@ def split_dataset(dataset, tasks):
         tr_images[task_index].append(torch.from_numpy(x_numpy.flatten()))
         tr_labels[task_index].append(torch.tensor(y))
     task_split = [
-        (torch.tensor(k_i), torch.stack(im_i), torch.stack(lab_i))
+        (np.array(k_i), torch.stack(im_i), torch.stack(lab_i))
         for k_i, im_i, lab_i in zip(tasks, tr_images, tr_labels)
     ]
 
