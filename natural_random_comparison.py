@@ -189,7 +189,7 @@ def train(
 
         try:
             net.fit(
-                train_loader, val_loader, task_mask=dmask,
+                train_loader, val_loader, task_mask=dmask.to(net.device),
                 epochs=epochs, patience=patience, task=task
             )
         except TypeError:
