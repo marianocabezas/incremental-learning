@@ -45,9 +45,7 @@ def parse_inputs():
 def load_datasets(experiment_config):
     data_path = experiment_config['path']
     if os.path.exists(data_path):
-        print(data_path, 'is a path')
         d_tr, d_te = torch.load(data_path)
-        print(d_tr)
     else:
         data_packages = data_path.split('.')
         datasets = importlib.import_module('.'.join(data_packages[:-1]))
