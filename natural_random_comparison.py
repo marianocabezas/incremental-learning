@@ -425,7 +425,6 @@ def main(verbose=2):
             alltraining_tasks, testing_tasks, task_list = split_data(
                 d_tr, d_te, nc_per_task, randomise=randomise
             )
-            all_results[str(seed)][str(nc_per_task)]['tasks'] = task_list
             all_metas = {}
             starting_model = os.path.join(
                 model_path,
@@ -513,6 +512,8 @@ def main(verbose=2):
             )
 
             for model in config['metamodels']:
+                results_i = all_results[model[0]][str(seed)][str(nc_per_task)]
+                results_i['tasks'] = task_list
                 try:
                     meta_name, meta_class, memory_class, extra_params = model
                 except ValueError:
