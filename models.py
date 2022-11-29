@@ -74,6 +74,8 @@ class ConvNeXtTiny(BaseModel):
             },
         ]
 
+        self.update_logs()
+
         # <Optimizer setup>
         # We do this last step after all parameters are defined
         model_params = filter(lambda p: p.requires_grad, self.parameters())
@@ -152,6 +154,8 @@ class ResNet18(BaseModel):
                 'f': F.cross_entropy
             },
         ]
+
+        self.update_logs()
 
         # <Optimizer setup>
         # We do this last step after all parameters are defined
@@ -259,6 +263,8 @@ class ViT_B_16(BaseModel):
                 'f': F.cross_entropy
             },
         ]
+
+        self.update_logs()
 
         # <Optimizer setup>
         # We do this last step after all parameters are defined
@@ -384,6 +390,8 @@ class SimpleUNet(BaseModel):
             },
         ]
 
+        self.update_logs()
+
         # <Optimizer setup>
         # We do this last step after all parameters are defined
         model_params = filter(lambda p: p.requires_grad, self.parameters())
@@ -460,6 +468,8 @@ class XentrUNet(SimpleUNet):
                 'f': lambda p, t: tn_binary_loss(p, t)
             },
         ]
+
+        self.update_logs()
 
         # <Optimizer setup>
         # We do this last step after all parameters are defined
@@ -554,6 +564,8 @@ class SimpleResNet(BaseModel):
                 )
             },
         ]
+
+        self.update_logs()
 
         # <Optimizer setup>
         # We do this last step after all parameters are defined
@@ -686,6 +698,8 @@ class AttentionUNet(BaseModel):
             },
         ]
 
+        self.update_logs()
+
         # <Optimizer setup>
         # We do this last step after all parameters are defined
         model_params = filter(lambda p: p.requires_grad, self.parameters())
@@ -786,6 +800,8 @@ class DualHeadedUNet(BaseModel):
             },
         ]
 
+        self.update_logs()
+
         # <Optimizer setup>
         # We do this last step after all parameters are defined
         model_params = filter(lambda p: p.requires_grad, self.parameters())
@@ -872,6 +888,8 @@ class LongitudinalEncoder(BaseModel):
             },
         ]
         self.val_functions = self.train_functions
+
+        self.update_logs()
 
         # <Optimizer setup>
         # We do this last step after all parameters are defined
