@@ -47,9 +47,17 @@ class BaseModel(nn.Module):
         self.train_functions = [
             {'name': 'train', 'weight': 1, 'f': None},
         ]
+        self.train_log = {
+            f['name']: []
+            for f in self.train_functions
+        }
         self.val_functions = [
             {'name': 'val', 'weight': 1, 'f': None},
         ]
+        self.val_log = {
+            f['name']: []
+            for f in self.val_functions
+        }
         self.acc_functions = {}
         self.acc = None
 
@@ -127,6 +135,8 @@ class BaseModel(nn.Module):
                 ]
                 batch_loss = sum(batch_losses)
                 if self.training:
+                    for l_f, v in zip(self.train_functions, batch_losses):
+                        self.train_log[l_f['name']].append(v)
                     try:
                         batch_loss.backward()
                         self.prebatch_update(batch_i, len(data), x_cuda, y_cuda)
@@ -141,6 +151,8 @@ class BaseModel(nn.Module):
                     l_f['f'](pred_labels, y_cuda)
                     for l_f in self.val_functions
                 ]
+                for l_f, v in zip(self.val_functions, batch_losses):
+                    self.val_log[l_f['name']].append(v)
                 batch_loss = sum([
                     l_f['weight'] * l
                     for l_f, l in zip(self.val_functions, batch_losses)

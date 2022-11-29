@@ -209,6 +209,8 @@ class MetaModel(BaseModel):
             'grams': self.grams,
             'logits': self.logits,
             'state': self.state_dict(),
+            'train-log': self.train_log,
+            'val-log': self.val_log,
         }
         return net_state
 
@@ -230,6 +232,8 @@ class MetaModel(BaseModel):
             self.model.lr = self.lr
             self.reset_optimiser()
         self.task = net_state['task_incremental']
+        self.train_log = net_state['train-log']
+        self.val_log = net_state['val-log']
         self.load_state_dict(net_state['state'])
         return net_state
 
