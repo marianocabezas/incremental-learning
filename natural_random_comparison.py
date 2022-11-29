@@ -473,12 +473,12 @@ def main(verbose=2):
             )
             net.load_model(starting_model)
             training_set = (
-                np.array(range(n_classes)),
+                torch.from_numpy(np.array(range(n_classes))),
                 torch.cat([x for _, x, _ in training_tasks]),
                 torch.cat([y for _, _, y in training_tasks])
             )
             validation_set = (
-                np.array(range(n_classes)),
+                torch.from_numpy(np.array(range(n_classes))),
                 torch.cat([x for _, x, _ in validation_tasks]),
                 torch.cat([y for _, _, y in validation_tasks])
             )
