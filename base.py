@@ -60,9 +60,6 @@ class BaseModel(nn.Module):
             f['name']: []
             for f in self.train_functions
         }
-        self.val_functions = [
-            {'name': 'val', 'weight': 1, 'f': None},
-        ]
         self.val_log = {
             f['name']: []
             for f in self.val_functions
