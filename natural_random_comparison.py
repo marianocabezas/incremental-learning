@@ -416,7 +416,7 @@ def main(verbose=2):
             )
         )
 
-        for nc_per_task in class_list:
+        for k_i, nc_per_task in enumerate(class_list):
             n_tasks = n_classes // nc_per_task
             # Network init (random weights)
             np.random.seed(seed)
@@ -438,8 +438,9 @@ def main(verbose=2):
             if verbose > 0:
                 print(
                     '{:}Testing initial weights{:} - {:02d}/{:02d} '
-                    '({:} parameters)'.format(
+                    '[{:02d}/{:02d}] ({:} parameters)'.format(
                         c['clr'] + c['c'], c['nc'], test_n + 1,
+                        k_i, len(class_list),
                         len(config['seeds']), c['b'] + str(n_param) + c['nc']
                     )
                 )
@@ -576,6 +577,12 @@ def main(verbose=2):
                         training_tasks, validation_tasks, testing_tasks,
                         t_i, epochs, n_classes, results_i
                     )
+
+            for model in config['metamodels']:
+                meta_name = model[0]
+                results_i = all_results[meta_name][str(seed)][str(nc_per_task)]
+                results_i['train-log'] = all_metas[meta_name].train_log
+                results_i['val-log'] = all_metas[meta_name].val_log
 
     save_results(config, '{:}_results.json'.format(model_base), all_results)
 
