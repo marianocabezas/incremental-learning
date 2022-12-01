@@ -158,7 +158,7 @@ def test(config, net, testing, task, n_classes, n_tasks, verbose=0):
     datasets = importlib.import_module('datasets')
     dataset = getattr(datasets, config['validation'])(testing[0], testing[1])
     test_loader = DataLoader(
-        dataset, config['test_batch'], num_workers=32
+        dataset, config['test_batch'], num_workers=8
     )
     test_start = time.time()
     nc_x_t = n_classes // n_tasks
