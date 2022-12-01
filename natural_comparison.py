@@ -480,7 +480,6 @@ def main(verbose=2):
             all_metas[meta_name].to(torch.device('cpu'))
             torch.cuda.empty_cache()
             torch.cuda.ipc_collect()
-            print(all_metas[meta_name].val_log)
 
         for t_i, (training_set, validation_set) in enumerate(
                 zip(training_tasks, validation_tasks)
@@ -500,7 +499,6 @@ def main(verbose=2):
                         c['b'] + str(n_param) + c['nc']
                     )
                 )
-                print(all_metas[meta_name].val_log)
 
                 # We train the naive model on the current task
                 model_name = os.path.join(

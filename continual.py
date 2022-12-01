@@ -46,6 +46,8 @@ class MetaModel(BaseModel):
         self.train_functions = self.model.train_functions
         self.val_functions = self.model.val_functions
 
+        self.update_logs()
+
         self.optimizer_alg = self.model.optimizer_alg
 
     def _update_cum_grad(self, norm):
