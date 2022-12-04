@@ -301,8 +301,9 @@ def save_results(config, json_name, results):
                     results_tmp[meta_name][seed][name] = r_numpy.tolist()
                 elif isinstance(r_numpy, dict):
                     for loss, r_array in r_numpy.items():
-                        r = r_array.tolist()
-                        results_tmp[meta_name][seed][name][loss] = r
+                        if isinstance(r_array, np.ndarray):
+                            r = r_array.tolist()
+                            results_tmp[meta_name][seed][name][loss] = r
 
     with open(json_file, 'w') as testing_json:
         json.dump(results_tmp, testing_json)
