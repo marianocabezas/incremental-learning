@@ -304,6 +304,8 @@ class EWC(MetaModel):
         ]
         self.val_functions = self.model.val_functions
 
+        self.update_logs()
+
         # Gradient tensors
         self.ewc_parameters = {
             n: {
@@ -1038,6 +1040,8 @@ class iCARL(MetaModel):
             }
         ]
         self.val_functions = self.model.val_functions
+
+        self.update_logs()
 
         # Memory
         self.memx = None  # stores raw inputs, PxD
