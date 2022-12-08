@@ -589,6 +589,10 @@ def main(verbose=2):
                 results_i = all_results[meta_name][str(seed)][str(nc_per_task)]
                 results_i['train-log'] = all_metas[meta_name].train_log
                 results_i['val-log'] = all_metas[meta_name].val_log
+                print(
+                    all_metas[meta_name].train_log,
+                    all_metas[meta_name].val_log
+                )
 
     save_results(config, '{:}_results.json'.format(model_base), all_results)
 
