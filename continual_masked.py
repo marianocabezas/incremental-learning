@@ -360,7 +360,7 @@ class EWC(MetaModel):
             else:
                 losses = []
 
-        return sum(losses)
+        return torch.sum(losses)
 
     def fisher(self, dataloader):
         self.model.eval()
