@@ -140,9 +140,12 @@ class BaseModel(nn.Module):
                 batch_loss = sum(batch_losses)
                 if self.training:
                     for l_f, v in zip(self.train_functions, batch_losses):
-                        self.train_log[l_f['name']].append(
-                            v.detach().cpu().numpy().tolist()
-                        )
+                        if isinstance(v, torch.Tensor):
+                            self.train_log[l_f['name']].append(
+                                v.detach().cpu().numpy().tolist()
+                            )
+                        else:
+                            self.train_log[l_f['name']].append(v)
                     try:
                         batch_loss.backward()
                         self.prebatch_update(batch_i, len(data), x_cuda, y_cuda)
@@ -158,9 +161,12 @@ class BaseModel(nn.Module):
                     for l_f in self.val_functions
                 ]
                 for l_f, v in zip(self.val_functions, batch_losses):
-                    self.val_log[l_f['name']].append(
-                        v.detach().cpu().numpy().tolist()
-                    )
+                    if isinstance(v, torch.Tensor):
+                        self.val_log[l_f['name']].append(
+                            v.detach().cpu().numpy().tolist()
+                        )
+                    else:
+                        self.val_log[l_f['name']].append(v)
                 batch_loss = sum([
                     l_f['weight'] * l
                     for l_f, l in zip(self.val_functions, batch_losses)
