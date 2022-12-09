@@ -587,12 +587,16 @@ def main(verbose=2):
             for model in config['metamodels']:
                 meta_name = model[0]
                 results_i = all_results[meta_name][str(seed)][str(nc_per_task)]
-                results_i['train-log'] = all_metas[meta_name].train_log
-                results_i['val-log'] = all_metas[meta_name].val_log
-                print(
-                    all_metas[meta_name].train_log,
-                    all_metas[meta_name].val_log
-                )
+                train_log = all_metas[meta_name].train_log
+                val_log = all_metas[meta_name].val_log
+                if isinstance(train_log, torch.Tensor):
+                    results_i['train-log'] = train_log.numpy().tolist()
+                else:
+                    results_i['train-log'] = train_log
+                if isinstance(val_log, torch.Tensor):
+                    results_i['val-log'] = val_log.numpy().tolist()
+                else:
+                    results_i['val-log'] = val_log
 
     save_results(config, '{:}_results.json'.format(model_base), all_results)
 
