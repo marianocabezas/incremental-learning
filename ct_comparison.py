@@ -232,23 +232,24 @@ def test(config, net, testing, task, n_classes, verbose=0):
         )
         target = y.cpu().numpy()
 
-        for k in range(n_classes):
-            if target[k]:
-                # Positive class example
-                if prediction[k]:
-                    # TP
-                    matrix[k, 1, 1] += 1
+        for pred_sub, target_sub in zip(prediction, target):
+            for k in range(n_classes):
+                if target_sub[k]:
+                    # Positive class example
+                    if pred_sub[k]:
+                        # TP
+                        matrix[k, 1, 1] += 1
+                    else:
+                        # FN
+                        matrix[k, 1, 0] += 1
                 else:
-                    # FN
-                    matrix[k, 1, 0] += 1
-            else:
-                # Negative class example
-                if prediction[k]:
-                    # FP
-                    matrix[k, 0, 1] += 1
-                else:
-                    # TN
-                    matrix[k, 0, 0] += 1
+                    # Negative class example
+                    if pred_sub[k]:
+                        # FP
+                        matrix[k, 0, 1] += 1
+                    else:
+                        # TN
+                        matrix[k, 0, 0] += 1
     return matrix
 
 
