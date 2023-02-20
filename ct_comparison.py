@@ -471,12 +471,12 @@ def main(verbose=2):
             )
             net.load_model(starting_model)
             training_set = (
-                torch.cat([x for x, _ in training_tasks]),
-                torch.cat([y for _, y in training_tasks])
+                [study for x, _ in training_tasks for study in x],
+                [label for _, y in training_tasks for label in y]
             )
             validation_set = (
-                torch.cat([x for x, _ in validation_tasks]),
-                torch.cat([y for _, y in validation_tasks])
+                [study for x, _ in validation_tasks for study in x],
+                [label for _, y in validation_tasks for label in y]
             )
             model_name = os.path.join(
                 model_path,
