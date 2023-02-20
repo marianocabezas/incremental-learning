@@ -437,10 +437,10 @@ def main(verbose=2):
                 train_labels_xval.append(
                     lab_list[task_end:] + lab_list[task_ini:]
                 )
-                test_tasks_xval.extend(
+                test_tasks_xval.append(
                     t_list[task_ini:task_end]
                 )
-                test_labels_xval.extend(
+                test_labels_xval.append(
                     lab_list[task_ini:task_end]
                 )
 
