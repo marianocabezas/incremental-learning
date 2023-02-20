@@ -263,10 +263,18 @@ def update_results(
         config, net, mixed_testing, None, n_classes, verbose
     )
     try:
-        results[seed]['testing'][step, ...] += multitst_matrix
+        if fold is None:
+            for fold_i in range(len(results[seed]['testing'])):
+                results[seed]['testing'][fold_i][step, ...] += multitst_matrix
+        else:
+            results[seed]['testing'][fold][step, ...] += multitst_matrix
     except KeyError:
         for results_i in results.values():
-            results_i[seed]['testing'][fold][step, ...] += multitst_matrix
+            if fold is None:
+                for fold_i in range(len(results_i[seed]['testing'])):
+                    results_i[seed]['testing'][fold_i][step, ...] += multitst_matrix
+            else:
+                results_i[seed]['testing'][fold][step, ...] += multitst_matrix
 
     for t_i, (tr_i, val_i, tst_i) in enumerate(zip(training, validation, testing)):
         tr_matrix = test(
