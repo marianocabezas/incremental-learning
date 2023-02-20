@@ -624,7 +624,7 @@ class SimpleResNet(BaseModel):
 class CTResNet(BaseModel):
     def __init__(
         self,
-        conv_filters=None,
+        conv_filters=None, n_outputs=7,
         device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
         n_images=1,
         verbose=0,
@@ -655,7 +655,7 @@ class CTResNet(BaseModel):
             # nn.ReLU(),
             # norm_f(self.conv_filters[-1] // 4),
             # nn.Linear(self.conv_filters[-1] // 4, 1)
-            nn.Linear(self.conv_filters[-1] // 2, 1)
+            nn.Linear(self.conv_filters[-1] // 2, n_outputs)
         )
         self.classifier.to(device)
 
