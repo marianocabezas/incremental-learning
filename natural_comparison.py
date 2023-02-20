@@ -352,7 +352,7 @@ def main(verbose=2):
     # Main loop with all the seeds
     for test_n, seed in enumerate(seeds):
         print(
-            '{:}[{:}] {:}Starting cross-validation (model: {:}){:}'
+            '{:}[{:}] {:}Starting training (model: {:}){:}'
             ' (seed {:d}){:}'.format(
                 c['clr'] + c['c'], strftime("%H:%M:%S"), c['g'], model_base,
                 c['nc'] + c['y'], seed, c['nc']

@@ -621,6 +621,128 @@ class SimpleResNet(BaseModel):
         return embeddings.cpu().numpy()
 
 
+class CTResNet(BaseModel):
+    def __init__(
+        self,
+        conv_filters=None,
+        device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
+        n_images=1,
+        verbose=0,
+    ):
+        super().__init__()
+        self.init = True
+        # Init values
+        if conv_filters is None:
+            self.conv_filters = [32, 64, 128, 256, 512]
+        else:
+            self.conv_filters = conv_filters
+        self.epoch = 0
+        self.t_train = 0
+        self.t_val = 0
+        self.device = device
+
+        # <Parameter setup>
+        self.extractor = Autoencoder(
+            self.conv_filters, device, n_images, block=ResConv3dBlock,
+            norm=norm_f
+        )
+        self.extractor.to(device)
+        self.classifier = nn.Sequential(
+            nn.Linear(self.conv_filters[-1], self.conv_filters[-1] // 2),
+            nn.ReLU(),
+            norm_f(self.conv_filters[-1] // 2),
+            # nn.Linear(self.conv_filters[-1] // 2, self.conv_filters[-1] // 4),
+            # nn.ReLU(),
+            # norm_f(self.conv_filters[-1] // 4),
+            # nn.Linear(self.conv_filters[-1] // 4, 1)
+            nn.Linear(self.conv_filters[-1] // 2, 1)
+        )
+        self.classifier.to(device)
+
+        # <Loss function setup>
+        self.train_functions = [
+            {
+                'name': 'xentropy',
+                'weight': 1,
+                'f': lambda p, t: F.binary_cross_entropy_with_logits(
+                    p, t.type_as(p).to(p.device)
+                )
+            }
+        ]
+
+        self.val_functions = [
+            {
+                'name': 'xent',
+                'weight': 0,
+                'f': lambda p, t: F.binary_cross_entropy_with_logits(
+                    p, t.type_as(p).to(p.device)
+                )
+            },
+            {
+                'name': 'acc',
+                'weight': 0,
+                'f': lambda p, t: 1 - accuracy(
+                    (torch.sigmoid(p) > 0.5).type_as(p), t.type_as(p)
+                )
+            },
+        ]
+
+        self.update_logs()
+
+        # <Optimizer setup>
+        # We do this last step after all parameters are defined
+        model_params = filter(lambda p: p.requires_grad, self.parameters())
+        self.optimizer_alg = torch.optim.Adam(model_params, lr=1e-4)
+        if verbose > 1:
+            print(
+                'Network created on device {:} with training losses '
+                '[{:}] and validation losses [{:}]'.format(
+                    self.device,
+                    ', '.join([tf['name'] for tf in self.train_functions]),
+                    ', '.join([vf['name'] for vf in self.val_functions])
+                )
+            )
+
+    def reset_optimiser(self, model_params=None):
+        super().reset_optimiser(model_params)
+        if model_params is None:
+            model_params = filter(lambda p: p.requires_grad, self.parameters())
+        self.optimizer_alg = torch.optim.Adam(model_params, lr=1e-4)
+
+    def forward(self, data):
+        _, features = self.extractor.encode(data)
+        # final_features = torch.mean(features.flatten(2), dim=2)
+        final_features = torch.max(features.flatten(2), dim=2)[0]
+        return self.classifier(final_features)
+
+    def inference(self, data, nonbatched=False, task=None):
+        logits = super().inference(data, nonbatched=nonbatched, task=task)
+        return torch.sigmoid(logits)
+
+    def embeddings(self, data, nonbatched=False):
+        with torch.no_grad():
+            if isinstance(data, list) or isinstance(data, tuple):
+                x_cuda = tuple(
+                    torch.from_numpy(x_i).to(self.device)
+                    for x_i in data
+                )
+                if nonbatched:
+                    x_cuda = tuple(
+                        x_i.unsqueeze(0) for x_i in x_cuda
+                    )
+                _, features = self.extractor.encode(*x_cuda)
+            else:
+                x_cuda = torch.from_numpy(data).to(self.device)
+                if nonbatched:
+                    x_cuda = x_cuda.unsqueeze(0)
+                _, features = self.extractor.encode(x_cuda)
+            torch.cuda.empty_cache()
+
+        embeddings = torch.max(features.flatten(2), dim=2)[0]
+
+        return embeddings.cpu().numpy()
+
+
 class AttentionUNet(BaseModel):
     def __init__(
             self,

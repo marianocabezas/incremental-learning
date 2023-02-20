@@ -1,9 +1,10 @@
+import os
 import itertools
 from copy import deepcopy
 import numpy as np
-import torch
+import nibabel as nib
 from torch.utils.data.dataset import Dataset
-from utils import get_bb
+from utils import get_bb, find_file
 
 
 ''' Utility function for patch creation '''
@@ -508,3 +509,27 @@ class DiffusionDataset(Dataset):
 
     def __len__(self):
         return len(self.patch_slices)
+
+
+class CTDataset(Dataset):
+    """
+    Dataset that loads CT images given their encoded label vector.
+    """
+    def __init__(self, path, image_name, subjects, labels):
+        self.data = []
+        for sub in subjects:
+            sub_path = os.path.join(path, sub)
+            file_path = find_file(image_name, sub_path)
+            self.data.append(
+                np.expand_dims(nib.load(file_path).get_fdata(), axis=0)
+            )
+        self.labels = labels
+
+    def __getitem__(self, index):
+        x = self.data[index].astype(np.float32)
+        y = self.labels[index].astype(int)
+
+        return x, y
+
+    def __len__(self):
+        return len(self.data)

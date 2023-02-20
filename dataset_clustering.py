@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from time import strftime
 import datasets
 import models
-from main_comparison import get_images_class, get_images_seg
+from medical_comparison import get_images_class, get_images_seg
 from utils import find_file, get_mask, get_normalised_image
 from utils import color_codes, time_to_string
 
