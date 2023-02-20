@@ -137,6 +137,8 @@ def train(
     """
     # Init
     path = config['model_path']
+    d_path = config['path']
+    image_name = config['image']
 
     try:
         net.load_model(os.path.join(path, model_name))
@@ -154,7 +156,9 @@ def train(
         if verbose > 1:
             print('< Training dataset >')
         dtrain, ltrain = training
-        train_dataset = getattr(datasets, config['training'])(dtrain, ltrain)
+        train_dataset = getattr(datasets, config['training'])(
+            d_path, image_name, dtrain, ltrain
+        )
 
         if verbose > 1:
             print('Dataloader creation <with validation>')
@@ -167,7 +171,9 @@ def train(
         if verbose > 1:
             print('< Validation dataset >')
         dval, lval = validation
-        val_dataset = getattr(datasets, config['validation'])(dval, lval)
+        val_dataset = getattr(datasets, config['validation'])(
+            d_path, image_name, dval, lval
+        )
 
         if verbose > 1:
             print('Dataloader creation <val>')
@@ -196,12 +202,16 @@ def train(
 
 def test(config, net, testing, task, n_classes, n_tasks, verbose=0):
     # Init
+    d_path = config['path']
+    image_name = config['image']
     matrix = np.zeros((n_classes, n_classes))
     task_matrix = np.zeros((n_classes, n_classes))
     pred_task_matrix = np.zeros((n_classes, n_classes))
     scaled_matrix = np.zeros((n_classes, n_classes))
     datasets = importlib.import_module('datasets')
-    dataset = getattr(datasets, config['validation'])(testing[0], testing[1])
+    dataset = getattr(datasets, config['validation'])(
+        d_path, image_name, testing[0], testing[1]
+    )
     test_loader = DataLoader(
         dataset, config['test_batch'], num_workers=8
     )
