@@ -341,10 +341,6 @@ def main(verbose=2):
     epochs = config['epochs']
 
     try:
-        pretrained = config['pretrained']
-    except KeyError:
-        pretrained = False
-    try:
         memories = config['memories']
     except KeyError:
         memories = 1000
@@ -402,7 +398,7 @@ def main(verbose=2):
         # Network init (random weights)
         np.random.seed(seed)
         torch.manual_seed(seed)
-        net = network(n_outputs=n_classes, pretrained=pretrained)
+        net = network(n_outputs=n_classes)
         all_metas = {}
         starting_model = os.path.join(
             model_path,
@@ -471,7 +467,7 @@ def main(verbose=2):
             except KeyError:
                 lr = 1e-3
             net = network(
-                n_outputs=n_classes, lr=lr, pretrained=pretrained
+                n_outputs=n_classes, lr=lr
             )
             net.load_model(starting_model)
             training_set = (
@@ -539,7 +535,7 @@ def main(verbose=2):
 
                 all_metas[meta_name] = meta_model(
                     network(
-                        n_outputs=n_classes, lr=lr, pretrained=pretrained
+                        n_outputs=n_classes, lr=lr
                     ), False, memory_manager, n_classes, n_tasks, **extra_params
                 )
                 try:

@@ -624,10 +624,8 @@ class SimpleResNet(BaseModel):
 class CTResNet(BaseModel):
     def __init__(
         self,
-        conv_filters=None, n_outputs=7,
+        conv_filters=None, n_outputs=7, n_images=1, verbose=0, lr=1e-3,
         device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
-        n_images=1,
-        verbose=0,
     ):
         super().__init__()
         self.init = True
@@ -692,7 +690,7 @@ class CTResNet(BaseModel):
         # <Optimizer setup>
         # We do this last step after all parameters are defined
         model_params = filter(lambda p: p.requires_grad, self.parameters())
-        self.optimizer_alg = torch.optim.Adam(model_params, lr=1e-4)
+        self.optimizer_alg = torch.optim.Adam(model_params, lr=lr)
         if verbose > 1:
             print(
                 'Network created on device {:} with training losses '
