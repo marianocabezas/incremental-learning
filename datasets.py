@@ -540,9 +540,8 @@ class CTDataset(Dataset):
         self.labels = labels
 
     def __getitem__(self, index):
-        print(self.data, self.labels)
         x = self.data[index].astype(np.float32)
-        y = self.labels[index].astype(int)
+        y = np.array(self.labels[index], dtype=int)
 
         return x, y
 
