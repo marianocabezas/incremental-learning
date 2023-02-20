@@ -1,10 +1,11 @@
 import os
+import time
 import itertools
 from copy import deepcopy
 import numpy as np
 import nibabel as nib
 from torch.utils.data.dataset import Dataset
-from utils import get_bb, find_file
+from utils import get_bb, find_file, time_to_string
 
 
 ''' Utility function for patch creation '''
@@ -517,7 +518,20 @@ class CTDataset(Dataset):
     """
     def __init__(self, path, image_name, subjects, labels):
         self.data = []
-        for sub in subjects:
+        load_start = time.time()
+        for i, sub in enumerate(subjects):
+            loads = len(subjects) - i
+            load_elapsed = time.time() - load_start
+            load_eta = loads * load_elapsed / (i + 1)
+            print(
+                '\033[KLoading subject {:} ({:04d}/{:04d}) - '
+                '[{:05.2f}%] {:} ETA {:}'.format(
+                    sub, i + 1, len(subjects),
+                    100 * i / len(subjects),
+                    time_to_string(load_elapsed),
+                    time_to_string(load_eta),
+                ), end='\r'
+            )
             sub_path = os.path.join(path, sub)
             file_path = find_file(image_name, sub_path)
             self.data.append(
