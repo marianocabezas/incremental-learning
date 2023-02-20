@@ -714,8 +714,31 @@ class CTResNet(BaseModel):
         return self.classifier(final_features)
 
     def inference(self, data, nonbatched=False, task=None):
-        logits = super().inference(data, nonbatched=nonbatched, task=task)
-        return torch.sigmoid(logits)
+        with torch.no_grad():
+            if isinstance(data, list) or isinstance(data, tuple):
+                x_cuda = tuple(
+                    torch.from_numpy(x_i).to(self.device)
+                    for x_i in data
+                )
+                if nonbatched:
+                    x_cuda = tuple(
+                        x_i.unsqueeze(0) for x_i in x_cuda
+                    )
+
+                logits = self(*x_cuda)
+            else:
+                x_cuda = torch.from_numpy(data).to(self.device)
+                if nonbatched:
+                    x_cuda = x_cuda.unsqueeze(0)
+                logits = self(x_cuda)
+            torch.cuda.empty_cache()
+            output = torch.sigmoid(logits)
+
+            if len(output) > 1:
+                np_output = output.cpu().numpy()
+            else:
+                np_output = output[0, 0].cpu().numpy()
+        return np_output
 
     def embeddings(self, data, nonbatched=False):
         with torch.no_grad():
