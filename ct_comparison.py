@@ -478,6 +478,7 @@ def main(verbose=2):
                 [study for x, _ in validation_tasks for study in x],
                 [label for _, y in validation_tasks for label in y]
             )
+            print(training_set, validation_set)
             model_name = os.path.join(
                 model_path,
                 '{:}-bl.s{:05d}.f{:02d}.pt'.format(
