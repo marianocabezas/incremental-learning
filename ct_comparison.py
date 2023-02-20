@@ -200,14 +200,11 @@ def train(
         net.save_model(os.path.join(path, model_name))
 
 
-def test(config, net, testing, task, n_classes, n_tasks, verbose=0):
+def test(config, net, testing, task, n_classes, verbose=0):
     # Init
     d_path = config['path']
     image_name = config['image']
-    matrix = np.zeros((n_classes, n_classes))
-    task_matrix = np.zeros((n_classes, n_classes))
-    pred_task_matrix = np.zeros((n_classes, n_classes))
-    scaled_matrix = np.zeros((n_classes, n_classes))
+    matrix = np.zeros((n_classes, 2, 2))
     datasets = importlib.import_module('datasets')
     dataset = getattr(datasets, config['validation'])(
         d_path, image_name, testing[0], testing[1]
@@ -216,9 +213,6 @@ def test(config, net, testing, task, n_classes, n_tasks, verbose=0):
         dataset, config['test_batch'], num_workers=8
     )
     test_start = time.time()
-    nc_x_t = n_classes // n_tasks
-    offset1 = task * nc_x_t
-    offset2 = (task + 1) * nc_x_t
 
     for batch_i, (x, y) in enumerate(test_loader):
         tests = len(test_loader) - batch_i
@@ -232,64 +226,68 @@ def test(config, net, testing, task, n_classes, n_tasks, verbose=0):
                     time_to_string(test_eta),
                 ), end='\r'
             )
-        prediction, pred_task = net.inference(
+
+        prediction = net.inference(
             x.cpu().numpy(), nonbatched=False, task=task
         )
-        scaled_prediction = np.concatenate([
-            softmax(prediction[:, t_i * nc_x_t:(t_i + 1) * nc_x_t], axis=1)
-            for t_i in range(n_tasks)
-        ], axis=1)
-
-        predicted = np.argmax(prediction, axis=1)
-        task_predicted = np.argmax(
-            prediction[:, offset1:offset2], axis=1
-        ) + offset1
-        scaled_predicted = np.argmax(scaled_prediction, axis=1)
         target = y.cpu().numpy()
 
-        for t_i, p_i, tp_i, sp_i, tk_i in zip(
-                target, predicted, task_predicted, scaled_predicted, pred_task
-        ):
-            matrix[t_i, p_i] += 1
-            task_matrix[t_i, tp_i] += 1
-            scaled_matrix[t_i, sp_i] += 1
-            pred_task_matrix[task, tk_i] += 1
-
-    return matrix, task_matrix, scaled_matrix, pred_task_matrix
+        for k in range(n_classes):
+            if target[k]:
+                # Positive class example
+                if prediction[k]:
+                    # TP
+                    matrix[k, 1, 1] += 1
+                else:
+                    # FN
+                    matrix[k, 1, 0] += 1
+            else:
+                # Negative class example
+                if prediction[k]:
+                    # FP
+                    matrix[k, 0, 1] += 1
+                else:
+                    # TN
+                    matrix[k, 0, 0] += 1
+    return matrix
 
 
 def update_results(
-    config, net, seed, step, fold, training, validation, testing, testing_tasks,
+    config, net, seed, step, fold, training, validation, testing, mixed_testing,
     results, n_classes, verbose=0
 ):
     seed = str(seed)
-    n_tasks = len(testing)
     test_start = time.time()
-    for t_i, (tr_i, val_i, tst_i) in enumerate(zip(training, validation, testing_tasks)):
+
+    multitst_matrix = test(
+        config, net, mixed_testing, None, n_classes, verbose
+    )
+    try:
+        results[seed]['testing'][step, ...] += multitst_matrix
+    except KeyError:
+        for results_i in results.values():
+            results_i[seed]['testing'][fold][step, ...] += multitst_matrix
+
+    for t_i, (tr_i, val_i, tst_i) in enumerate(zip(training, validation, testing)):
         tr_matrix = test(
-            config, net, tr_i, t_i, n_classes, n_tasks, verbose
+            config, net, tr_i, t_i, n_classes, verbose
         )
         val_matrix = test(
-            config, net, val_i, t_i, n_classes, n_tasks, verbose
+            config, net, val_i, t_i, n_classes, verbose
         )
         tst_matrix = test(
-            config, net, tst_i, t_i, n_classes, n_tasks, verbose
-        )
-        multitst_matrix = test(
-            config, net, tst_i, t_i, n_classes, n_tasks, verbose
+            config, net, tst_i, t_i, n_classes, verbose
         )
 
         try:
             results[seed]['training'][step, ...] += tr_matrix
             results[seed]['validation'][step, ...] += val_matrix
             results[seed]['xval'][step, ...] += tst_matrix
-            results[seed]['testing'][step, ...] += multitst_matrix
         except KeyError:
             for results_i in results.values():
                 results_i[seed]['training'][step, ...] += tr_matrix
                 results_i[seed]['validation'][step, ...] += val_matrix
                 results_i[seed]['xval'][step, ...] += tst_matrix
-                results_i[seed]['testing'][fold][step, ...] += multitst_matrix
 
     test_elapsed = time.time() - test_start
     if verbose > 0:
