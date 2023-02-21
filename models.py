@@ -735,9 +735,10 @@ class CTResNet(BaseModel):
             output = torch.sigmoid(logits)
 
             if nonbatched:
-                np_output = output.cpu().numpy()
-            else:
                 np_output = output[0, 0].cpu().numpy()
+            else:
+                np_output = output.cpu().numpy()
+
         return np_output
 
     def embeddings(self, data, nonbatched=False):

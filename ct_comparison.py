@@ -232,7 +232,6 @@ def test(config, net, testing, task, n_classes, verbose=0):
         )
         target = y.cpu().numpy()
 
-        print(prediction, target)
         for pred_sub, target_sub in zip(prediction, target):
             for k in range(n_classes):
                 if target_sub[k]:
