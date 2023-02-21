@@ -228,7 +228,7 @@ def test(config, net, testing, task, n_classes, verbose=0):
             )
 
         prediction = net.inference(
-            x.cpu().numpy(), nonbatched=len(x) == 1, task=task
+            x.cpu().numpy(), nonbatched=False, task=task
         )
         target = y.cpu().numpy()
 

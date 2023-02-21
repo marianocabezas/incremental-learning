@@ -734,7 +734,7 @@ class CTResNet(BaseModel):
             torch.cuda.empty_cache()
             output = torch.sigmoid(logits)
 
-            if len(output) > 1:
+            if nonbatched:
                 np_output = output.cpu().numpy()
             else:
                 np_output = output[0, 0].cpu().numpy()
