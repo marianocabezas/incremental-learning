@@ -549,7 +549,7 @@ class CTDataset(Dataset):
         else:
             x = np.expand_dims(
                 nib.load(self.data[index]).get_fdata(), axis=0
-            )
+            ).astype(np.float32)
         y = np.array(self.labels[index], dtype=int)
 
         return x, y
