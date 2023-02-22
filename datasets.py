@@ -516,7 +516,7 @@ class CTDataset(Dataset):
     """
     Dataset that loads CT images given their encoded label vector.
     """
-    def __init__(self, path, image_name, subjects, labels, preload=True):
+    def __init__(self, path, image_name, subjects, labels, preload=False):
         self.data = []
         self.preload = preload
         load_start = time.time()

@@ -207,7 +207,7 @@ def test(config, net, testing, task, n_classes, verbose=0):
     matrix = np.zeros((n_classes, 2, 2))
     datasets = importlib.import_module('datasets')
     dataset = getattr(datasets, config['validation'])(
-        d_path, image_name, testing[0], testing[1], preload=False
+        d_path, image_name, testing[0], testing[1]
     )
     test_loader = DataLoader(
         dataset, config['test_batch'], num_workers=8
