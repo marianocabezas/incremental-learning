@@ -368,7 +368,6 @@ def main(verbose=2):
     train_tasks, train_labels = d_tr
     n_tasks = len(train_tasks)
     n_classes = len(classes)
-    nc_per_task = 2
 
     # We also need dictionaries for the training tasks, so we can track their
     # evolution. The main difference here, is that we need different
