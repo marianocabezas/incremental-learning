@@ -671,7 +671,7 @@ class CTResNet(BaseModel):
         self.val_functions = [
             {
                 'name': 'xent',
-                'weight': 0,
+                'weight': 1,
                 'f': lambda p, t: F.binary_cross_entropy_with_logits(
                     p, t.type_as(p).to(p.device)
                 )
