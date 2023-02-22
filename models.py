@@ -656,7 +656,6 @@ class CTResNet(BaseModel):
             nn.Linear(self.conv_filters[-1] // 2, n_outputs)
         )
         self.classifier.to(device)
-        print(n_outputs)
 
         # <Loss function setup>
         self.train_functions = [

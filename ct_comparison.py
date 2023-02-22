@@ -561,7 +561,7 @@ def main(verbose=2):
             ):
 
                 offset1 = 0
-                offset2 = t_i + 1
+                offset2 = n_classes
 
                 for meta_name, results_i in all_results.items():
                     print(
