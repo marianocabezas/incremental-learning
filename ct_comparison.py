@@ -231,7 +231,8 @@ def test(config, net, testing, task, n_classes, verbose=0):
             x.cpu().numpy(), nonbatched=False, task=task
         )
         target = y.cpu().numpy()
-        print(prediction.shape, target.shape)
+        if isinstance(prediction, tuple):
+            prediction = prediction[0]
         for pred_sub, target_sub in zip(prediction, target):
             for k in range(n_classes):
                 if target_sub[k]:
