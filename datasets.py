@@ -516,8 +516,9 @@ class CTDataset(Dataset):
     """
     Dataset that loads CT images given their encoded label vector.
     """
-    def __init__(self, path, image_name, subjects, labels):
+    def __init__(self, path, image_name, subjects, labels, preload=True):
         self.data = []
+        self.preload = preload
         load_start = time.time()
         for i, sub in enumerate(subjects):
             loads = len(subjects) - i
@@ -534,13 +535,21 @@ class CTDataset(Dataset):
             )
             sub_path = os.path.join(path, sub)
             file_path = find_file(image_name, sub_path)
-            self.data.append(
-                np.expand_dims(nib.load(file_path).get_fdata(), axis=0)
-            )
+            if self.preload:
+                self.data.append(
+                    np.expand_dims(nib.load(file_path).get_fdata(), axis=0)
+                )
+            else:
+                self.data.append(file_path)
         self.labels = labels
 
     def __getitem__(self, index):
-        x = self.data[index].astype(np.float32)
+        if self.preload:
+            x = self.data[index].astype(np.float32)
+        else:
+            x = np.expand_dims(
+                nib.load(self.data[index]).get_fdata(), axis=0
+            )
         y = np.array(self.labels[index], dtype=int)
 
         return x, y
