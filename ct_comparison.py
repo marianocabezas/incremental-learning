@@ -11,7 +11,7 @@ from torch.nn import ModuleList
 from torch.utils.data import DataLoader
 from time import strftime
 from copy import deepcopy
-from scipy.special import softmax
+from scipy.special import expit as sigmoid
 from utils import color_codes, time_to_string
 
 
@@ -232,7 +232,7 @@ def test(config, net, testing, task, n_classes, verbose=0):
         )
         target = y.cpu().numpy()
         if isinstance(prediction, tuple):
-            prediction = prediction[0]
+            prediction = sigmoid(prediction[0])
         for pred_sub, target_sub in zip(prediction, target):
             for k in range(n_classes):
                 if target_sub[k]:

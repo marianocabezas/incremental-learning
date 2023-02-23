@@ -417,10 +417,10 @@ class BaseModel(nn.Module):
                 output = self(x_cuda)
             torch.cuda.empty_cache()
 
-            if len(output) > 1:
-                np_output = output.cpu().numpy()
-            else:
+            if nonbatched:
                 np_output = output[0, 0].cpu().numpy()
+            else:
+                np_output = output.cpu().numpy()
         if temp_task is not None and hasattr(self, 'current_task'):
             self.current_task = temp_task
 
