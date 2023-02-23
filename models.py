@@ -705,7 +705,7 @@ class CTResNet(BaseModel):
         super().reset_optimiser(model_params)
         if model_params is None:
             model_params = filter(lambda p: p.requires_grad, self.parameters())
-        self.optimizer_alg = torch.optim.Adam(model_params, lr=1e-4)
+        self.optimizer_alg = torch.optim.SGD(model_params, lr=1e-4)
 
     def forward(self, data):
         _, features = self.extractor.encode(data)
