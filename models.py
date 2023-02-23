@@ -690,7 +690,7 @@ class CTResNet(BaseModel):
         # <Optimizer setup>
         # We do this last step after all parameters are defined
         model_params = filter(lambda p: p.requires_grad, self.parameters())
-        self.optimizer_alg = torch.optim.Adam(model_params, lr=lr)
+        self.optimizer_alg = torch.optim.SGD(model_params, lr=lr)
         if verbose > 1:
             print(
                 'Network created on device {:} with training losses '
