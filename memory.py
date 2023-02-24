@@ -48,6 +48,8 @@ class ClassificationMemoryManager(Dataset):
             self.task_labels[t] = new_labels
 
     def update_memory(self, x, y, t, *args, **kwargs):
+        if len(y.shape) == 2:
+            y = torch.argmax(y, -1)
         self._update_task_labels(y, t)
         updated = False
         for x_i, y_i in zip(x, y):
@@ -100,6 +102,8 @@ class GreedyManager(ClassificationMemoryManager):
         super().__init__(n_memories, n_classes, n_tasks)
 
     def update_memory(self, x, y, t, *args, **kwargs):
+        if len(y.shape) == 2:
+            y = torch.argmax(y, -1)
         self._update_task_labels(y, t)
         updated = False
         for x_i, y_i in zip(x, y):
@@ -129,6 +133,8 @@ class ClassRingBuffer(ClassificationMemoryManager):
         super().__init__(n_memories, n_classes, n_tasks)
 
     def update_memory(self, x, y, t, *args, **kwargs):
+        if len(y.shape) == 2:
+            y = torch.argmax(y, -1)
         self._update_task_labels(y, t)
         for x_i, y_i in zip(x, y):
             if len(self.data[t]) == self.memories_x_split:
@@ -144,6 +150,8 @@ class TaskRingBuffer(ClassificationMemoryManager):
         self.labels = [[] for _ in range(self.tasks)]
 
     def update_memory(self, x, y, t, *args, **kwargs):
+        if len(y.shape) == 2:
+            y = torch.argmax(y, -1)
         self._update_task_labels(y, t)
         for x_i, y_i in zip(x, y):
             if len(self.data[t]) == self.memories_x_split:
@@ -204,6 +212,8 @@ class MeanClassManager(ClassificationMemoryManager):
             exemplar_cost += self.logits[k][-1]
 
     def update_memory(self, x, y, t, model=None, *args, **kwargs):
+        if len(y.shape) == 2:
+            y = torch.argmax(y, -1)
         self._update_task_labels(y, t)
         # We get the labels from the new and old tasks
         new_labels = np.unique(y)
@@ -277,6 +287,8 @@ class GramClassManager(ClassificationMemoryManager):
         self.grams = [[] for _ in range(self.classes)]
 
     def update_memory(self, x, y, t, model=None, *args, **kwargs):
+        if len(y.shape) == 2:
+            y = torch.argmax(y, -1)
         self._update_task_labels(y, t)
         for x_i, y_i in zip(x, y):
             class_size = len(self.data[y_i])
@@ -309,6 +321,8 @@ class PrototypeClassManager(ClassificationMemoryManager):
         self.max_types = max(1, self.memories_x_split // self.classes)
 
     def update_memory(self, x, y, t, model=None, *args, **kwargs):
+        if len(y.shape) == 2:
+            y = torch.argmax(y, -1)
         self._update_task_labels(y, t)
         # We reset the grams and logits because the network might have been
         # updated.
@@ -404,6 +418,8 @@ class NewPrototypeClassManager(ClassificationMemoryManager):
         self.max_types = max(1, self.memories_x_split // self.classes)
 
     def update_memory(self, x, y, t, model=None, *args, **kwargs):
+        if len(y.shape) == 2:
+            y = torch.argmax(y, -1)
         self._update_task_labels(y, t)
         # We reset the grams and logits because the network might have been
         # updated.
