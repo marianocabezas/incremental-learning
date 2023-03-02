@@ -210,7 +210,8 @@ def test(config, net, testing, task, n_classes, verbose=0):
         d_path, image_name, testing[0], testing[1]
     )
     test_loader = DataLoader(
-        dataset, config['test_batch'], num_workers=8
+        dataset, config['test_batch'], num_workers=8,
+        drop_last=True
     )
     test_start = time.time()
 
