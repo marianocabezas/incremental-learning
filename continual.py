@@ -8,9 +8,10 @@ import quadprog
 from sklearn.decomposition import PCA
 from base import BaseModel, SelfAttentionBlock
 from datasets import MultiDataset
+from memory import MemoryContainer
 
 
-class MetaModel(BaseModel):
+class IncrementalModel(BaseModel):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
         n_classes=100, n_tasks=10, lr=None, task=True
@@ -259,7 +260,7 @@ class MetaModel(BaseModel):
         super().fit(train_loader, val_loader, epochs, patience, verbose)
 
 
-class MetaModelMemory(MetaModel):
+class IncrementalModelMemory(IncrementalModel):
     def __init__(
             self, basemodel, best=True, memory_manager=None,
             n_classes=100, n_tasks=10, lr=None, task=True
@@ -267,6 +268,22 @@ class MetaModelMemory(MetaModel):
         super().__init__(
             basemodel, best, memory_manager, n_classes, n_tasks, lr, task
         )
+
+    def prebatch_update(self, batch, batches, x, y):
+        self._update_cum_grad(batches)
+
+    def batch_update(self, batch, batches, x, y):
+        if self.task:
+            y = y + self.offset1
+        if self.memory_manager is not None:
+            training = self.model.training
+            self.model.eval()
+            with torch.no_grad():
+                self.memory_manager.update_memory(
+                    x.cpu(), y.cpu(), self.current_task, self.model
+                )
+            if training:
+                self.model.train()
 
     def mini_batch_loop(self, data, train=True):
         if self.memory_manager is not None and self.current_task > 0 and train:
@@ -282,7 +299,7 @@ class MetaModelMemory(MetaModel):
         return super().mini_batch_loop(data, train)
 
 
-class EWC(MetaModel):
+class EWC(IncrementalModel):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
         n_classes=100, n_tasks=10, lr=None, task=True,
@@ -468,7 +485,7 @@ class EWC(MetaModel):
                         loss_f['weight'] = self.ewc_weight
 
 
-class GEM(MetaModel):
+class GEM(IncrementalModel):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
         n_classes=100, n_tasks=10, lr=None, task=True,
@@ -973,7 +990,7 @@ class LoggingGEM(GEM):
         return net_state
 
 
-class Independent(MetaModel):
+class Independent(IncrementalModel):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
         n_classes=100, n_tasks=10, lr=None, task=True
@@ -1023,7 +1040,135 @@ class Independent(MetaModel):
             )
 
 
-class iCARL(MetaModel):
+class DER(IncrementalModelMemory):
+    def __init__(
+        self, basemodel, best=True, memory_manager=None,
+        n_classes=100, n_tasks=10, lr=None, task=True
+    ):
+        super().__init__(
+            basemodel, best, memory_manager, n_classes, n_tasks, lr, task
+        )
+        self.last_features = basemodel.last_features
+        self.model = nn.ModuleList([deepcopy(basemodel) for _ in range(n_tasks)])
+        self.fc = nn.Linear(
+            self.last_features * n_tasks, self.n_classes
+        )
+        self.task_fc = None
+        self.train_functions = self.train_functions = [
+            {
+                'name': 'xentropy',
+                'weight': 1,
+                'f': lambda p, t: F.cross_entropy(p[0], t)
+            },
+            {
+                'name': 'auxiliary',
+                'weight': 1,
+                'f': self.auxiliary_loss
+            },
+
+        ]
+        self.val_functions = self.model.val_functions
+
+        if self.lr is not None:
+            for model in self.model:
+                model.lr = self.lr
+                model.reset_optimiser()
+        self.first = True
+        self.device = basemodel.device
+
+    def auxiliary_loss(self, prediction, target):
+        target = torch.clamp(
+            target - self.offset1, 0, self.offset2 - self.offset1
+        ) + 1
+
+        return F.cross_entropy(prediction[1], target)
+
+    def forward(self, *inputs):
+        feature_list = [
+            self.model[i].prelogits(*inputs)
+            for i in range(self.current_task + 1)
+        ]
+        features = torch.cat(feature_list, dim=-1)
+        weight = self.fc.weight[:self.offset2, :features.shape[-1]]
+        if self.fc.bias is not None:
+            bias = self.fc.bias[:self.offset2]
+        else:
+            bias = None
+        if self.task_fc is not None:
+            prediction = (
+                F.linear(features, weight, bias),
+                self.task_fc(feature_list[-1])
+            )
+
+        else:
+            prediction = F.linear(features, weight, bias)
+        return prediction
+
+    def reset_optimiser(self, model_params=None):
+        pass
+
+    def _update_cum_grad(self, norm):
+        pass
+
+    def fit(
+            self,
+            train_loader,
+            val_loader,
+            epochs=50,
+            patience=5,
+            task=None,
+            offset1=None,
+            offset2=None,
+            verbose=True
+    ):
+        # 1) Representation learning stage
+        if task is None:
+            self.optimizer_alg = self.model[self.current_task + 1].optimizer_alg
+            self.current_task += 1
+        else:
+            self.optimizer_alg = self.model[task].optimizer_alg
+            self.current_task = task
+        if offset2 is not None and offset1 is not None:
+            n_classes = offset2 - offset1 + 1
+        else:
+            n_classes = self.n_classes
+        self.task_fc = nn.Linear(
+            self.last_features * (self.current_task + 1), n_classes
+        )
+        super().fit(
+            train_loader, val_loader, epochs, patience, task, offset1, offset2,
+            verbose
+        )
+        if (self.current_task + 1) < len(self.model):
+            self.model[self.current_task + 1].load_state_dict(
+                self.model[self.current_task].state_dict()
+            )
+        for param in self.model[self.current_task].parameters():
+            param.requires_grad = False
+        self.task_fc = None
+
+        # 2) Classifier stage
+        if self.memory_manager is not None:
+            if self.offset1 is not None:
+                self.offset1 = 0
+            memory_sets = list(self.memory_manager.get_tasks())
+            new_dataset = MultiDataset(memory_sets)
+            mem_loader = DataLoader(
+                new_dataset, train_loader.batch_size, True,
+                num_workers=train_loader.num_workers, drop_last=True
+            )
+            self.fc = nn.Linear(
+                self.last_features * self.n_tasks, self.n_classes
+            )
+            super().fit(
+                mem_loader, val_loader, epochs, patience, task, offset1, offset2,
+                verbose
+            )
+        self.offset1 = None
+        self.offset2 = None
+
+
+class iCARL(IncrementalModel):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
         n_classes=100, n_tasks=10, lr=None, task=True,
@@ -1119,7 +1264,203 @@ class iCARL(MetaModel):
         return net_state
 
 
-class GDumb(MetaModel):
+class GSS(IncrementalModel):
+    def __init__(
+        self, basemodel, best=True, memory_manager=None,
+        n_classes=100, n_tasks=10, lr=None, task=True, n_recent=None
+    ):
+        super().__init__(
+            basemodel, best, memory_manager, n_classes, n_tasks, lr, False
+        )
+
+        # Memory
+        self.n_recent = n_recent
+        self.recent_x = []
+        self.recent_y = []
+
+    def mini_batch_loop(
+            self, data, train=True
+    ):
+        """
+            This is the main loop. It's "generic" enough to account for multiple
+            types of data (target and input) and it differentiates between
+            training and testing. While inherently all networks have a training
+            state to check, here the difference is applied to the kind of data
+            being used (is it the validation data or the training data?). Why am
+            I doing this? Because there might be different metrics for each type
+            of data. There is also the fact that for training, I really don't care
+            about the values of the losses, since I only want to see how the global
+            value updates, while I want both (the losses and the global one) for
+            validation.
+            :param data: Dataloader for the network.
+            :param train: Whether to use the training dataloader or the validation
+             one.
+            :return:
+        """
+        losses = list()
+        mid_losses = list()
+        accs = list()
+        n_batches = len(data)
+        for batch_i, (x, y) in enumerate(data):
+            if not self.training:
+                # First, we do a forward pass through the network.
+                pred_labels, x_cuda, y_cuda = self.observe(x, y)
+
+                # After that, we can compute the relevant losses.
+                if train:
+                    # Training losses (applied to the training data)
+                    batch_losses = [
+                        l_f['weight'] * l_f['f'](pred_labels, y_cuda)
+                        for l_f in self.train_functions
+                    ]
+                    batch_loss = sum(batch_losses)
+                else:
+                    # Validation losses (applied to the validation data)
+                    batch_losses = [
+                        l_f['f'](pred_labels, y_cuda)
+                        for l_f in self.val_functions
+                    ]
+                    batch_loss = sum([
+                        l_f['weight'] * l
+                        for l_f, l in zip(self.val_functions, batch_losses)
+                    ])
+                    mid_losses.append([l.tolist() for l in batch_losses])
+                    batch_accs = [
+                        l_f['f'](pred_labels, y_cuda)
+                        for l_f in self.acc_functions
+                    ]
+                    accs.append([a.tolist() for a in batch_accs])
+
+                # It's important to compute the global loss in both cases.
+                loss_value = batch_loss.tolist()
+                losses.append(loss_value)
+
+                self.print_progress(
+                    batch_i, n_batches, loss_value, np.mean(losses)
+                )
+                torch.cuda.empty_cache()
+                torch.cuda.ipc_collect()
+            else:
+                training = self.model.training
+                losses.append(self.model_update(
+                    x, y, batch_i, n_batches, data.batch_size
+                ))
+                self.print_progress(
+                    batch_i, n_batches, losses[-1], np.mean(losses)
+                )
+                self.model.eval()
+                with torch.no_grad():
+                    if self.n_recent is not None:
+                        self.recent_x.append(x)
+                        self.recent_y.append(y)
+                        len_recent = sum([len(ri) for ri in self.recent_x])
+                        if len_recent > self.n_recent:
+                            self.memory_manager.update_memory(
+                                torch.cat(self.recent_x, dim=0),
+                                torch.cat(self.recent_y, dim=0),
+                                self.current_task, self.model
+                            )
+                            self.recent_x = []
+                            self.recent_y = []
+                    else:
+                        self.memory_manager.update_memory(
+                            x, y, self.current_task, self.model
+                        )
+                if training:
+                    self.model.train()
+
+        # Mean loss of the global loss (we don't need the loss for each batch).
+        if len(losses) > 0:
+            mean_loss = np.mean(losses)
+        else:
+            mean_loss = np.inf
+
+        if train:
+            return mean_loss
+        else:
+            # If using the validation data, we actually need to compute the
+            # mean of each different loss.
+            mean_losses = np.mean(list(zip(*mid_losses)), axis=1)
+            np_accs = np.array(list(zip(*accs)))
+            mean_accs = np.mean(np_accs, axis=1) if np_accs.size > 0 else []
+        return mean_loss, mean_losses, mean_accs
+
+    def update(self, x, y):
+        pred_y = self.model(x.to(self.device))
+        y_cuda = y.to(self.device)
+        batch_losses = [
+            l_f['weight'] * l_f['f'](pred_y, y_cuda)
+            for l_f in self.train_functions
+        ]
+        batch_loss = sum(batch_losses)
+        loss_value = batch_loss.tolist()
+        try:
+            batch_loss.backward()
+            self.optimizer_alg.step()
+            torch.cuda.empty_cache()
+            torch.cuda.ipc_collect()
+        except RuntimeError:
+            pass
+
+        return loss_value
+
+    def model_update(self, x, y, batch_i, n_batches, batch_size):
+        if self.memory_manager is not None:
+            losses = []
+            memory_set = MultiDataset(
+                [MemoryContainer(x, y)] + list(self.memory_manager.get_tasks())
+            )
+            memory_loader = DataLoader(
+                memory_set, batch_size=batch_size, shuffle=True,
+                drop_last=True
+            )
+            for x, y in memory_loader:
+                self.model.optimizer_alg.zero_grad()
+                loss_value = self.update(x, y)
+                losses.append(loss_value)
+                self.print_progress(
+                    batch_i, n_batches, loss_value, np.mean(losses)
+                )
+            final_loss = np.mean(losses)
+        else:
+            final_loss = self.update(x, y)
+
+        return final_loss
+
+    def fit(
+        self,
+        train_loader,
+        val_loader,
+        epochs=50,
+        patience=5,
+        task=None,
+        offset1=None,
+        offset2=None,
+        verbose=True
+    ):
+        if offset1 is None:
+            offset1 = 0
+        if offset2 is None:
+            offset2 = self.n_classes
+        self.offsets.append((offset1, offset2))
+        super().fit(
+            train_loader, val_loader, epochs, patience, task, offset1, offset2,
+            verbose
+        )
+
+    def load_model(self, net_name):
+        net_state = super().load_model(net_name)
+        self.offsets = net_state['offsets']
+
+        return net_state
+
+    def get_state(self):
+        net_state = super().get_state()
+        net_state['offsets'] = self.offsets
+        return net_state
+
+
+class GDumb(IncrementalModel):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
         n_classes=100, n_tasks=10, lr=None, task=True
@@ -1135,21 +1476,21 @@ class GDumb(MetaModel):
             self, data, train=True
     ):
         """
-                This is the main loop. It's "generic" enough to account for multiple
-                types of data (target and input) and it differentiates between
-                training and testing. While inherently all networks have a training
-                state to check, here the difference is applied to the kind of data
-                being used (is it the validation data or the training data?). Why am
-                I doing this? Because there might be different metrics for each type
-                of data. There is also the fact that for training, I really don't care
-                about the values of the losses, since I only want to see how the global
-                value updates, while I want both (the losses and the global one) for
-                validation.
-                :param data: Dataloader for the network.
-                :param train: Whether to use the training dataloader or the validation
-                 one.
-                :return:
-                """
+            This is the main loop. It's "generic" enough to account for multiple
+            types of data (target and input) and it differentiates between
+            training and testing. While inherently all networks have a training
+            state to check, here the difference is applied to the kind of data
+            being used (is it the validation data or the training data?). Why am
+            I doing this? Because there might be different metrics for each type
+            of data. There is also the fact that for training, I really don't care
+            about the values of the losses, since I only want to see how the global
+            value updates, while I want both (the losses and the global one) for
+            validation.
+            :param data: Dataloader for the network.
+            :param train: Whether to use the training dataloader or the validation
+             one.
+            :return:
+        """
         losses = list()
         mid_losses = list()
         accs = list()
@@ -1230,7 +1571,7 @@ class GDumb(MetaModel):
             mean_accs = np.mean(np_accs, axis=1) if np_accs.size > 0 else []
         return mean_loss, mean_losses, mean_accs
 
-    def model_update(self,  batch_i, n_batches, batch_size):
+    def model_update(self, batch_i, n_batches, batch_size):
         self.model.optimizer_alg.zero_grad()
         losses = list()
         if self.memory_manager is not None:
@@ -1300,7 +1641,7 @@ class GDumb(MetaModel):
         return net_state
 
 
-class DyTox(MetaModel):
+class DyTox(IncrementalModel):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
         n_classes=100, n_tasks=10, lr=None, task=False,

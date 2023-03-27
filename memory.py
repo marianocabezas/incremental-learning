@@ -1,5 +1,7 @@
 import numpy as np
 import torch
+import miosqp
+import scipy.sparse as spa
 from torch.utils.data.dataset import Dataset
 
 
@@ -140,6 +142,180 @@ class ClassRingBuffer(ClassificationMemoryManager):
             if len(self.data[t]) == self.memories_x_split:
                 self.data[t].pop(0)
             self.data[t].append(x_i)
+        return True
+
+
+class GSS_Greedy(ClassificationMemoryManager):
+    def __init__(self, n_memories, n_classes, n_tasks):
+        super().__init__(n_memories, n_classes, n_tasks)
+        self.data = []
+        self.labels = []
+        self.scores = []
+        self.grads = None
+        self.task_labels = [None]
+
+    def _get_grad_tensor(self, x, y, model):
+        grad_dims = []
+        for param in model.parameters():
+            grad_dims.append(param.data.numel())
+        grad_tensor = torch.Tensor(sum(grad_dims), len(x))
+        for i, (xi, yi) in enumerate(zip(x, y)):
+            model.zero_grad()
+            labels = torch.stack([yi, yi]).to(model.device)
+            output = model(torch.stack([xi, xi]).to(model.device))
+            batch_losses = [
+                l_f['weight'] * l_f['f'](output, labels)
+                for l_f in model.train_functions
+            ]
+            sum(batch_losses).backward()
+            cnt = 0
+            for param in model.parameters():
+                if param.grad is not None:
+                    beg = 0 if cnt == 0 else sum(grad_dims[:cnt])
+                    en = sum(grad_dims[:cnt + 1])
+                    grad_tensor[beg:en, i].copy_(
+                        param.grad.cpu().data.view(-1)
+                    )
+                cnt += 1
+
+        norm_grads = grad_tensor / torch.norm(grad_tensor, dim=0, keepdim=True)
+
+        return norm_grads
+
+    def update_memory(self, x, y, t, model=None, n_samples=10, *args, **kwargs):
+        len_buffer = len(self.data)
+        if len_buffer > 0:
+            # Random sampling from buffer
+            rand_indx = torch.randperm(len(self.data))[:n_samples]
+            rand_x = torch.stack(self.data)[rand_indx, ...]
+            rand_y = torch.stack(self.labels)[rand_indx, ...]
+
+        else:
+            # Random sampling from x
+            rand_indx = torch.randperm(len(x))[:n_samples]
+            rand_x = x[rand_indx, ...]
+            rand_y = y[rand_indx, ...]
+
+        rand_grads = self._get_grad_tensor(rand_x, rand_y, model)
+        grads = self._get_grad_tensor(x, y, model)
+
+        scores = torch.max(grads.t() @ rand_grads, dim=1)[0]
+
+        for xi, yi, c in zip(x, y, scores):
+            if len_buffer >= self.n_memories:
+                scores = torch.stack(self.scores)
+                norm_scores = scores / torch.sum(scores)
+                cum_scores = torch.cumsum(norm_scores, 0)
+                # Bernoulli sampling
+                # i ~ P(i) = Ci / sum(Cj)
+                i = torch.where(cum_scores < torch.rand(1))[0].max()
+                # r ~ uniform(0, 1)
+                r = torch.rand(1)
+                # if r < Ci / (Ci + c) then
+                #     Mi <- (x, y); Ci <- c
+                if r < scores[i] / (scores[i] + c):
+                    self.data[i] = xi
+                    self.labels[i] = yi
+                    self.scores[i] = c
+            else:
+                self.data.append(xi)
+                self.labels.append(yi)
+                self.scores.append(c)
+        return True
+
+    def get_class(self, k):
+        data = []
+        labels = []
+        for x_i, y_i in zip(self.data, self.labels):
+            if y_i == k:
+                data.append(x_i)
+                labels.append(y_i)
+        return data, labels
+
+    def get_task(self, task):
+        return self.data, self.labels
+
+    def get_split(self, split):
+        return self.data, self.labels
+
+
+class GSS_IQP(GSS_Greedy):
+    def __init__(self, n_memories, n_classes, n_tasks):
+        super().__init__(n_memories, n_classes, n_tasks)
+        self.data = []
+        self.labels = []
+        self.solver = miosqp.MIOSQP()
+        self.miosqp_settings = {
+            # integer feasibility tolerance
+            'eps_int_feas': 1e-03,
+            # maximum number of iterations
+            'max_iter_bb': 1000,
+            # tree exploration rule
+            #   [0] depth first
+            #   [1] two-phase: depth first until first incumbent and then
+            #   best bound
+            'tree_explor_rule': 1,
+            # branching rule
+            #   [0] max fractional part
+            'branching_rule': 0,
+            'verbose': False,
+            'print_interval': 1
+        }
+
+        self.osqp_settings = {
+            'eps_abs': 1e-03,
+            'eps_rel': 1e-03,
+            'eps_prim_inf': 1e-04,
+            'verbose': False
+        }
+
+    def update_memory(self, x, y, t, model=None, *args, **kwargs):
+        self.data.append(x)
+        self.labels.append(y)
+        len_buffer = sum([len(di) for di in self.data])
+        if len_buffer > self.n_memories:
+            grads = self._get_grad_tensor(
+                torch.cat(self.data), torch.cat(self.labels), model
+            )
+            inds = grads.shape[-1]
+
+            G = grads.t() @ grads
+            t = G.size(0)
+            G = G.double().numpy()
+            a = np.zeros(t)
+
+            C = np.ones((t, 1))
+            h = np.zeros(1) + self.n_memories
+            C2 = np.eye(t)
+
+            hlower = np.zeros(t)
+            hupper = np.ones(t)
+            idx = np.arange(t)
+
+            #################
+            C = np.concatenate((C2, C), axis=1)
+            C = np.transpose(C)
+            h_final_lower = np.concatenate((hlower, h), axis=0)
+            h_final_upper = np.concatenate((hupper, h), axis=0)
+            #################
+            G = spa.csc_matrix(G)
+
+            C = spa.csc_matrix(C)
+            self.solver.setup(
+                G, a, C, h_final_lower, h_final_upper, idx, hlower, hupper,
+                self.miosqp_settings, self.osqp_settings
+            )
+            results = self.solver.solve()
+            coeffiecents_np = results.x
+            coeffiecents = torch.nonzero(torch.Tensor(coeffiecents_np))
+            keep = inds[coeffiecents.squeeze()]
+            self.data = [
+                x for xi, x in enumerate(self.data) if xi not in keep
+            ]
+            self.labels = [
+                y for yi, y in enumerate(self.labels) if yi not in keep
+            ]
+
         return True
 
 

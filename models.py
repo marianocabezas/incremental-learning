@@ -54,8 +54,10 @@ class ConvNeXtTiny(BaseModel):
                 self.cnext = models.convnext_tiny(pretrained)
         else:
             self.cnext = models.convnext_tiny()
-        last_features = self.cnext.classifier[-1].in_features
-        self.cnext.classifier[-1] = nn.Linear(last_features, self.n_classes)
+        self.last_features = self.cnext.classifier[-1].in_features
+        self.cnext.classifier[-1] = nn.Linear(
+            self.last_features, self.n_classes
+        )
 
         # <Loss function setup>
         self.train_functions = [
@@ -108,6 +110,9 @@ class ConvNeXtTiny(BaseModel):
         data = self.cnext.features(data)
         return data.flatten(2).permute(0, 2, 1)
 
+    def prelogits(self, data):
+        return self.cnext.features(data).flatten(1)
+
     def features(self, data):
         data = self.cnext.features(data)
         return data.flatten(1)
@@ -135,8 +140,8 @@ class ResNet18(BaseModel):
                 self.resnet = models.resnet18(pretrained)
         else:
             self.resnet = models.resnet18()
-        last_features = self.resnet.fc.in_features
-        self.resnet.fc = nn.Linear(last_features, self.n_classes)
+        self.last_features = self.resnet.fc.in_features
+        self.resnet.fc = nn.Linear(self.last_features, self.n_classes)
 
         # <Loss function setup>
         self.train_functions = [
@@ -194,7 +199,7 @@ class ResNet18(BaseModel):
         self.resnet.to(self.device)
         return self.resnet(data)
 
-    def tokenize(self, data):
+    def _feature_seq(self, data):
         data = self.resnet.conv1(data)
         data = self.resnet.bn1(data)
         data = self.resnet.relu(data)
@@ -202,8 +207,15 @@ class ResNet18(BaseModel):
         data = self.resnet.layer1(data)
         data = self.resnet.layer2(data)
         data = self.resnet.layer3(data)
-        data = self.resnet.layer4(data)
+        return self.resnet.layer4(data)
+
+    def tokenize(self, data):
+        data = self._feature_seq(data)
         return data.flatten(2).permute(0, 2, 1)
+
+    def prelogits(self, data):
+        data = self._feature_seq(data)
+        return self.resnet.avgpool(data)
 
     def features(self, data):
         data = self.resnet.conv1(data)
@@ -244,8 +256,8 @@ class ViT_B_16(BaseModel):
                 image_size=image_size, patch_size=patch_size,
                 weights=None
             )
-        last_features = self.vit.heads[0].in_features
-        self.vit.heads[0] = nn.Linear(last_features, self.n_classes)
+        self.last_features = self.vit.heads[0].in_features
+        self.vit.heads[0] = nn.Linear(self.last_features, self.n_classes)
 
         # <Loss function setup>
         self.train_functions = [

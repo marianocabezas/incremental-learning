@@ -345,7 +345,7 @@ def main(verbose=2):
         for seed in seeds
     }
 
-    for model in config['metamodels']:
+    for model in config['incremental']:
         meta_name = model[0]
         all_results[meta_name] = deepcopy(base_results)
 
@@ -449,7 +449,7 @@ def main(verbose=2):
             all_results, n_classes, 2
         )
 
-        for model in config['metamodels']:
+        for model in config['incremental']:
             try:
                 meta_name, meta_class, memory_class, extra_params = model
             except ValueError:
