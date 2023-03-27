@@ -1348,26 +1348,22 @@ class GSS(IncrementalModel):
                 self.print_progress(
                     batch_i, n_batches, losses[-1], np.mean(losses)
                 )
-                self.model.eval()
-                with torch.no_grad():
-                    if self.n_recent is not None:
-                        self.recent_x.append(x)
-                        self.recent_y.append(y)
-                        len_recent = sum([len(ri) for ri in self.recent_x])
-                        if len_recent > self.n_recent:
-                            self.memory_manager.update_memory(
-                                torch.cat(self.recent_x, dim=0),
-                                torch.cat(self.recent_y, dim=0),
-                                self.current_task, self.model
-                            )
-                            self.recent_x = []
-                            self.recent_y = []
-                    else:
+                if self.n_recent is not None:
+                    self.recent_x.append(x)
+                    self.recent_y.append(y)
+                    len_recent = sum([len(ri) for ri in self.recent_x])
+                    if len_recent > self.n_recent:
                         self.memory_manager.update_memory(
-                            x, y, self.current_task, self.model
+                            torch.cat(self.recent_x, dim=0),
+                            torch.cat(self.recent_y, dim=0),
+                            self.current_task, self.model
                         )
-                if training:
-                    self.model.train()
+                        self.recent_x = []
+                        self.recent_y = []
+                else:
+                    self.memory_manager.update_memory(
+                        x, y, self.current_task, self.model
+                    )
 
         # Mean loss of the global loss (we don't need the loss for each batch).
         if len(losses) > 0:
