@@ -1123,8 +1123,8 @@ class DER(IncrementalModelMemory):
     ):
         # 1) Representation learning stage
         if task is None:
-            self.optimizer_alg = self.model[self.current_task + 1].optimizer_alg
             self.current_task += 1
+            self.optimizer_alg = self.model[self.current_task].optimizer_alg
         else:
             self.optimizer_alg = self.model[task].optimizer_alg
             self.current_task = task
@@ -1148,7 +1148,7 @@ class DER(IncrementalModelMemory):
         self.task_fc = None
 
         # 2) Classifier stage
-        if self.memory_manager is not None:
+        if self.memory_manager is not None and self.current_task > 1:
             if self.offset1 is not None:
                 self.offset1 = 0
             memory_sets = list(self.memory_manager.get_tasks())
@@ -1161,8 +1161,8 @@ class DER(IncrementalModelMemory):
                 self.last_features * self.n_tasks, self.n_classes
             )
             super().fit(
-                mem_loader, val_loader, epochs, patience, task, offset1, offset2,
-                verbose
+                mem_loader, val_loader, epochs, patience, task,
+                offset1, offset2, verbose
             )
         self.offset1 = None
         self.offset2 = None
