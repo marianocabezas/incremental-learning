@@ -1067,7 +1067,7 @@ class DER(IncrementalModelMemory):
             },
 
         ]
-        self.val_functions = self.model.val_functions
+        self.val_functions = self.train_functions
 
         if self.lr is not None:
             for model in self.model:
