@@ -1442,7 +1442,6 @@ class GSS(IncrementalModel):
             offset1 = 0
         if offset2 is None:
             offset2 = self.n_classes
-        self.offsets.append((offset1, offset2))
         super().fit(
             train_loader, val_loader, epochs, patience, task, offset1, offset2,
             verbose
@@ -1450,13 +1449,11 @@ class GSS(IncrementalModel):
 
     def load_model(self, net_name):
         net_state = super().load_model(net_name)
-        self.offsets = net_state['offsets']
 
         return net_state
 
     def get_state(self):
         net_state = super().get_state()
-        net_state['offsets'] = self.offsets
         return net_state
 
 

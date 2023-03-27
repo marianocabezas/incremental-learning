@@ -319,6 +319,42 @@ class GSS_IQP(GSS_Greedy):
         return True
 
 
+class GSS_Graph(GSS_Greedy):
+    def __init__(self, n_memories, n_classes, n_tasks):
+        super().__init__(n_memories, n_classes, n_tasks)
+        self.data = []
+        self.labels = []
+
+    def update_memory(self, x, y, t, model=None, *args, **kwargs):
+        self.data.append(x)
+        self.labels.append(y)
+        len_buffer = sum([len(di) for di in self.data])
+        if len_buffer > self.n_memories:
+            grads = self._get_grad_tensor(
+                torch.cat(self.data), torch.cat(self.labels), model
+            )
+            # Graph pruning (we want the minimum strength graph of n_memories
+            # nodes).
+            adj = grads.t() @ grads
+            adj.fill_diagonal_(0)
+            grad_cost = torch.sum(adj, dim=0, keepdim=True)
+            discard = []
+            for _ in range(len_buffer - self.n_memories):
+                idx = torch.argmax(grad_cost)
+                discard.append(idx)
+                grad_cost[:, idx] = 0
+                grad_cost -= adj[idx, :]
+                adj[idx, :] = 0
+                adj[:, idx] = 0
+            self.data = [
+                x for xi, x in enumerate(self.data) if xi not in discard
+            ]
+            self.labels = [
+                y for yi, y in enumerate(self.labels) if yi not in discard
+            ]
+        return True
+
+
 class TaskRingBuffer(ClassificationMemoryManager):
     def __init__(self, n_memories, n_classes, n_tasks):
         super().__init__(n_memories, n_classes, n_tasks)
