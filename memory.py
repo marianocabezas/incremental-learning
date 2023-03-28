@@ -272,7 +272,7 @@ class GSS_IQP(GSS_Greedy):
     def update_memory(self, x, y, t, model=None, *args, **kwargs):
         self.data.extend([xi for xi in x])
         self.labels.extend([yi for yi in y])
-        len_buffer = sum([len(di) for di in self.data])
+        len_buffer = len(self.data)
         if len_buffer > self.n_memories:
             grads = self._get_grad_tensor(
                 torch.cat(self.data), torch.cat(self.labels), model
