@@ -518,6 +518,7 @@ def main(verbose=2):
 
 
 if __name__ == '__main__':
+    torch.multiprocessing.set_sharing_strategy('file_system')
     torch.backends.cudnn.enabled = False
     torch.autograd.set_detect_anomaly(True)
     main()
