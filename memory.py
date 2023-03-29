@@ -274,6 +274,7 @@ class GSS_IQP(GSS_Greedy):
         self.labels.extend([yi for yi in y])
         len_buffer = len(self.data)
         if len_buffer > self.n_memories:
+            print(len_buffer, self.n_memories)
             grads = self._get_grad_tensor(
                 torch.stack(self.data), torch.stack(self.labels), model
             )
