@@ -277,7 +277,7 @@ class GSS_IQP(GSS_Greedy):
             grads = self._get_grad_tensor(
                 torch.stack(self.data), torch.stack(self.labels), model
             )
-            inds = grads.shape[-1]
+            inds = np.arange(0, grads.shape[-1])
 
             G = grads.t() @ grads
             t = G.size(0)
@@ -326,12 +326,12 @@ class GSS_Graph(GSS_Greedy):
         self.labels = []
 
     def update_memory(self, x, y, t, model=None, *args, **kwargs):
-        self.data.append(x)
-        self.labels.append(y)
-        len_buffer = sum([len(di) for di in self.data])
+        self.data.extend([xi for xi in x])
+        self.labels.extend([yi for yi in y])
+        len_buffer = len(self.data)
         if len_buffer > self.n_memories:
             grads = self._get_grad_tensor(
-                torch.cat(self.data), torch.cat(self.labels), model
+                torch.stack(self.data), torch.stack(self.labels), model
             )
             # Graph pruning (we want the minimum strength graph of n_memories
             # nodes).
