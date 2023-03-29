@@ -308,6 +308,7 @@ class GSS_IQP(GSS_Greedy):
             results = self.solver.solve()
             coeffiecents_np = results.x
             coeffiecents = torch.nonzero(torch.Tensor(coeffiecents_np))
+            print(len(coeffiecents.squeeze()))
             keep = inds[coeffiecents.squeeze()]
             self.data = [
                 x for xi, x in enumerate(self.data) if xi not in keep
