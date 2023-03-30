@@ -204,6 +204,7 @@ class GSS_Greedy(ClassificationMemoryManager):
 
         print(rand_y, y)
         print(rand_grads[:, :10], grads[:, :10])
+        print(grads.t() @ rand_grads)
 
         scores = torch.max(grads.t() @ rand_grads, dim=1)[0]
         print(scores, self.scores)
