@@ -200,6 +200,7 @@ class GSS_Greedy(ClassificationMemoryManager):
         grads = self._get_grad_tensor(x, y, model)
 
         scores = torch.max(grads.t() @ rand_grads, dim=1)[0]
+        print(scores, self.scores)
 
         for xi, yi, c in zip(x, y, scores):
             if len_buffer >= self.n_memories:
@@ -209,16 +210,18 @@ class GSS_Greedy(ClassificationMemoryManager):
                 # Bernoulli sampling
                 # i ~ P(i) = Ci / sum(Cj)
                 ri = torch.rand(1)
-                print(cum_scores, ri)
-                i = torch.where(cum_scores > ri)[0].min()
-                # r ~ uniform(0, 1)
-                r = torch.rand(1)
-                # if r < Ci / (Ci + c) then
-                #     Mi <- (x, y); Ci <- c
-                if r < scores[i] / (scores[i] + c):
-                    self.data[i] = xi
-                    self.labels[i] = yi
-                    self.scores[i] = c
+                if torch.any(torch.isnan(norm_scores)):
+                    i = torch.randint(0, len(cum_scores))
+                else:
+                    i = torch.where(cum_scores > ri)[0].min()
+                    # r ~ uniform(0, 1)
+                    r = torch.rand(1)
+                    # if r < Ci / (Ci + c) then
+                    #     Mi <- (x, y); Ci <- c
+                    if r < scores[i] / (scores[i] + c):
+                        self.data[i] = xi
+                        self.labels[i] = yi
+                        self.scores[i] = c
             else:
                 self.data.append(xi)
                 self.labels.append(yi)
@@ -246,7 +249,6 @@ class GSS_IQP(GSS_Greedy):
         super().__init__(n_memories, n_classes, n_tasks)
         self.data = []
         self.labels = []
-        self.solver = miosqp.MIOSQP()
         self.miosqp_settings = {
             # integer feasibility tolerance
             'eps_int_feas': 1e-03,
@@ -276,6 +278,7 @@ class GSS_IQP(GSS_Greedy):
         self.labels.extend([yi for yi in y])
         len_buffer = len(self.data)
         if len_buffer > self.n_memories:
+            solver = miosqp.MIOSQP()
             grads = self._get_grad_tensor(
                 torch.stack(self.data), torch.stack(self.labels), model
             )
@@ -303,11 +306,11 @@ class GSS_IQP(GSS_Greedy):
             G = spa.csc_matrix(G)
 
             C = spa.csc_matrix(C)
-            self.solver.setup(
+            solver.setup(
                 G, a, C, h_final_lower, h_final_upper, idx, hlower, hupper,
                 self.miosqp_settings, self.osqp_settings
             )
-            results = self.solver.solve()
+            results = solver.solve()
             coeffiecents_np = results.x
             coeffiecents = torch.nonzero(torch.Tensor(coeffiecents_np))
             keep = inds[coeffiecents.squeeze()]
