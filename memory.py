@@ -189,7 +189,6 @@ class GSS_Greedy(ClassificationMemoryManager):
             rand_indx = torch.randperm(len(self.data))[:n_samples]
             rand_x = torch.stack(self.data)[rand_indx, ...]
             rand_y = torch.stack(self.labels)[rand_indx, ...]
-
         else:
             # Random sampling from x
             rand_indx = torch.randperm(len(x))[:n_samples]
@@ -198,6 +197,9 @@ class GSS_Greedy(ClassificationMemoryManager):
 
         rand_grads = self._get_grad_tensor(rand_x, rand_y, model)
         grads = self._get_grad_tensor(x, y, model)
+
+        print(rand_y, y, rand_x[:, 0, :10, :10], x[:, 0, :10, :10])
+        print(rand_grads[:, :10], grads[:, :10])
 
         scores = torch.max(grads.t() @ rand_grads, dim=1)[0]
         print(scores, self.scores)
