@@ -183,30 +183,34 @@ class GSS_Greedy(ClassificationMemoryManager):
         return norm_grads
 
     def update_memory(self, x, y, t, model=None, n_samples=10, *args, **kwargs):
+        grads = self._get_grad_tensor(
+            x, y, model
+        ).to(torch.float64)
+
         len_buffer = len(self.data)
         if len_buffer > 0:
             # Random sampling from buffer
-            rand_indx = torch.randperm(len(self.data))[:n_samples]
-            rand_x = torch.stack(self.data)[rand_indx, ...]
-            rand_y = torch.stack(self.labels)[rand_indx, ...]
+            scores = torch.max(
+                torch.abs(
+                    (grads.t() @ grads) * (1 - torch.eye(len(x)))
+                ), dim=1
+            )[0]
+
         else:
             # Random sampling from x
             rand_indx = torch.randperm(len(x))[:n_samples]
             rand_x = x[rand_indx, ...]
             rand_y = y[rand_indx, ...]
 
-        rand_grads = self._get_grad_tensor(
-            rand_x, rand_y, model
-        ).to(torch.float64)
-        grads = self._get_grad_tensor(
-            x, y, model
-        ).to(torch.float64)
+            rand_grads = self._get_grad_tensor(
+                rand_x, rand_y, model
+            ).to(torch.float64)
 
-        print(rand_y, y)
-        print(rand_grads[5:, :5], grads[5:, :5])
-        print(grads.t() @ rand_grads)
+            scores = torch.max(torch.abs(grads.t() @ rand_grads), dim=1)[0]
 
-        scores = torch.max(grads.t() @ rand_grads, dim=1)[0]
+            print(rand_y, y)
+            print(rand_grads[5:, :5], grads[5:, :5])
+
         print(scores, self.scores)
 
         for xi, yi, c in zip(x, y, scores):
