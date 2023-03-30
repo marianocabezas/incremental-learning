@@ -208,7 +208,9 @@ class GSS_Greedy(ClassificationMemoryManager):
                 cum_scores = torch.cumsum(norm_scores, 0)
                 # Bernoulli sampling
                 # i ~ P(i) = Ci / sum(Cj)
-                i = torch.where(cum_scores > torch.rand(1))[0].min()
+                ri = torch.rand(1)
+                print(cum_scores, ri)
+                i = torch.where(cum_scores > ri)[0].min()
                 # r ~ uniform(0, 1)
                 r = torch.rand(1)
                 # if r < Ci / (Ci + c) then
