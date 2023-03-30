@@ -195,10 +195,14 @@ class GSS_Greedy(ClassificationMemoryManager):
             rand_x = x[rand_indx, ...]
             rand_y = y[rand_indx, ...]
 
-        rand_grads = self._get_grad_tensor(rand_x, rand_y, model)
-        grads = self._get_grad_tensor(x, y, model)
+        rand_grads = self._get_grad_tensor(
+            rand_x, rand_y, model
+        ).to(torch.float64)
+        grads = self._get_grad_tensor(
+            x, y, model
+        ).to(torch.float64)
 
-        print(rand_y, y, rand_x[:, 0, :10, :10], x[:, 0, :10, :10])
+        print(rand_y, y)
         print(rand_grads[:, :10], grads[:, :10])
 
         scores = torch.max(grads.t() @ rand_grads, dim=1)[0]
