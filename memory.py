@@ -183,6 +183,7 @@ class GSS_Greedy(ClassificationMemoryManager):
         return norm_grads
 
     def update_memory(self, x, y, t, model=None, n_samples=10, *args, **kwargs):
+        updated = False
         grads = self._get_grad_tensor(
             x, y, model
         ).to(torch.float64)
@@ -224,14 +225,16 @@ class GSS_Greedy(ClassificationMemoryManager):
                 # if r < Ci / (Ci + c) then
                 #     Mi <- (x, y); Ci <- c
                 if r < scores[i] / (scores[i] + c):
+                    updated = True
                     self.data[i] = xi
                     self.labels[i] = yi
                     self.scores[i] = c
             else:
+                updated = True
                 self.data.append(xi)
                 self.labels.append(yi)
                 self.scores.append(c)
-        return True
+        return updated
 
     def get_class(self, k):
         data = []
