@@ -206,7 +206,7 @@ class GSS_Greedy(ClassificationMemoryManager):
                 rand_x, rand_y, model
             ).to(torch.float64)
 
-            scores = torch.max(torch.abs(grads.t() @ rand_grads), dim=1)[0]
+            scores = torch.max(grads.t() @ rand_grads + 1, dim=1)[0]
 
         for xi, yi, c in zip(x, y, scores):
             if len_buffer >= self.n_memories:
