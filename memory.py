@@ -209,6 +209,8 @@ class GSS_Greedy(ClassificationMemoryManager):
             scores = torch.max(grads.t() @ rand_grads + 1, dim=1)[0]
 
         for xi, yi, c in zip(x, y, scores):
+            if torch.isnan(c):
+                c = 1
             if len_buffer >= self.n_memories:
                 scores = torch.stack(self.scores)
                 norm_scores = scores / torch.sum(scores)
@@ -216,19 +218,15 @@ class GSS_Greedy(ClassificationMemoryManager):
                 # Bernoulli sampling
                 # i ~ P(i) = Ci / sum(Cj)
                 ri = torch.rand(1)
-                if torch.any(torch.isnan(norm_scores)) or torch.any(torch.isnan(scores)):
-                    print(scores, norm_scores)
-                    i = torch.randint(0, len(cum_scores))
-                else:
-                    i = torch.where(cum_scores > ri)[0].min()
-                    # r ~ uniform(0, 1)
-                    r = torch.rand(1)
-                    # if r < Ci / (Ci + c) then
-                    #     Mi <- (x, y); Ci <- c
-                    if r < scores[i] / (scores[i] + c):
-                        self.data[i] = xi
-                        self.labels[i] = yi
-                        self.scores[i] = c
+                i = torch.where(cum_scores > ri)[0].min()
+                # r ~ uniform(0, 1)
+                r = torch.rand(1)
+                # if r < Ci / (Ci + c) then
+                #     Mi <- (x, y); Ci <- c
+                if r < scores[i] / (scores[i] + c):
+                    self.data[i] = xi
+                    self.labels[i] = yi
+                    self.scores[i] = c
             else:
                 self.data.append(xi)
                 self.labels.append(yi)
