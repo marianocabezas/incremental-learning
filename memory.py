@@ -196,7 +196,6 @@ class GSS_Greedy(ClassificationMemoryManager):
                     (grads.t() @ grads) * (1 - torch.eye(len(x)))
                 ), dim=1
             )[0]
-
         else:
             # Random sampling from x
             rand_indx = torch.randperm(len(x))[:n_samples]
@@ -210,8 +209,9 @@ class GSS_Greedy(ClassificationMemoryManager):
             scores = torch.max(grads.t() @ rand_grads + 1, dim=1)[0]
 
         for xi, yi, c in zip(x, y, scores):
-            if torch.isnan(c):
+            if torch.isnan(c) or torch.isinf(c):
                 c = 1
+                print(c, scores, self.scores)
             if len_buffer >= self.n_memories:
                 scores = torch.stack(self.scores)
                 norm_scores = scores / torch.sum(scores)
