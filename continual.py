@@ -1085,7 +1085,7 @@ class DER(IncrementalModelMemory):
 
     def forward(self, *inputs):
         feature_list = [
-            self.model[i].prelogits(*inputs)
+            self.model[i].prelogits(*inputs).to(self.device)
             for i in range(self.current_task + 1)
         ]
         features = torch.cat(feature_list, dim=-1).to(self.device)
