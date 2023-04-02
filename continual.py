@@ -1088,10 +1088,11 @@ class DER(IncrementalModelMemory):
             self.model[i].prelogits(*inputs)
             for i in range(self.current_task + 1)
         ]
-        features = torch.cat(feature_list, dim=-1)
-        weight = self.fc.weight[:self.offset2, :features.shape[-1]]
+        features = torch.cat(feature_list, dim=-1).to(self.device)
+        n_features = features.shape[-1]
+        weight = self.fc.weight[:self.offset2, :n_features].to(self.device)
         if self.fc.bias is not None:
-            bias = self.fc.bias[:self.offset2]
+            bias = self.fc.bias[:self.offset2].to(self.device)
         else:
             bias = None
         if self.task_fc is not None:
