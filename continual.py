@@ -1097,6 +1097,7 @@ class DER(IncrementalModelMemory):
             bias = None
         if self.task_fc is not None:
             self.task_fc.to(self.device)
+            print(features.shape, weight.shape, bias.shape)
             prediction = (
                 F.linear(features, weight, bias),
                 self.task_fc(feature_list[-1])
