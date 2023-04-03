@@ -1043,10 +1043,10 @@ class Independent(IncrementalModel):
 class DER(IncrementalModelMemory):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
-        n_classes=100, n_tasks=10, lr=None, task=True
+        n_classes=100, n_tasks=10, lr=None
     ):
         super().__init__(
-            basemodel, best, memory_manager, n_classes, n_tasks, lr, task
+            basemodel, best, memory_manager, n_classes, n_tasks, lr, False
         )
         self.last_features = basemodel.last_features
         self.model = nn.ModuleList([deepcopy(basemodel) for _ in range(n_tasks)])
@@ -1097,7 +1097,6 @@ class DER(IncrementalModelMemory):
             bias = None
         if self.task_fc is not None:
             self.task_fc.to(self.device)
-            print(features.shape, weight.shape, bias.shape if bias is not None else '-')
             prediction = (
                 F.linear(features, weight, bias),
                 self.task_fc(feature_list[-1])
