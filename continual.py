@@ -1101,7 +1101,6 @@ class DER(IncrementalModelMemory):
                 F.linear(features, weight, bias),
                 self.task_fc(feature_list[-1])
             )
-
         else:
             prediction = F.linear(features, weight, bias)
         return prediction
