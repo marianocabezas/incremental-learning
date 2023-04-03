@@ -210,8 +210,7 @@ class GSS_Greedy(ClassificationMemoryManager):
 
         for xi, yi, c in zip(x, y, scores):
             if torch.isnan(c) or torch.isinf(c):
-                c = 1
-                print(c, scores, self.scores)
+                c = torch.tensor(1)
             if len_buffer >= self.n_memories:
                 scores = torch.stack(self.scores)
                 norm_scores = scores / torch.sum(scores)
