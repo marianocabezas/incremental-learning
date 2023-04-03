@@ -1056,12 +1056,12 @@ class DER(IncrementalModelMemory):
         self.task_fc = None
         self.train_functions = self.train_functions = [
             {
-                'name': 'xentropy',
+                'name': 'xentr',
                 'weight': 1,
                 'f': lambda p, t: F.cross_entropy(p[0], t)
             },
             {
-                'name': 'auxiliary',
+                'name': 'aux',
                 'weight': 1,
                 'f': self.auxiliary_loss
             },
