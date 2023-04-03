@@ -1134,7 +1134,7 @@ class DER(IncrementalModelMemory):
         else:
             n_classes = self.n_classes
         self.task_fc = nn.Linear(
-            self.last_features * (self.current_task + 1), n_classes
+            self.last_features, n_classes
         )
         super().fit(
             train_loader, val_loader, epochs, patience, task, offset1, offset2,
