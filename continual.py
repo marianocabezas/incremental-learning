@@ -1344,7 +1344,6 @@ class GSS(IncrementalModel):
                 torch.cuda.empty_cache()
                 torch.cuda.ipc_collect()
             else:
-                training = self.model.training
                 losses.append(self.model_update(
                     x, y, batch_i, n_batches, data.batch_size
                 ))
