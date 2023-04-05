@@ -256,10 +256,10 @@ def update_results(
 ):
     def _update_results(results_dict):
         print(nc_per_task, k)
-        results_dict[seed][k]['training'][step, ...] += tr_matrix
-        results_dict[seed][k]['testing'][step, ...] += tst_matrix
-        results_dict[seed][k]['task_training'][step, ...] += ttr_matrix
-        results_dict[seed][k]['task_testing'][step, ...] += ttst_matrix
+        results_dict[seed][k]['training'][step, epoch, ...] += tr_matrix
+        results_dict[seed][k]['testing'][step, epoch, ...] += tst_matrix
+        results_dict[seed][k]['task_training'][step, epoch, ...] += ttr_matrix
+        results_dict[seed][k]['task_testing'][step, epoch, ...] += ttst_matrix
         if step == 0:
             n_steps = len(results_dict[seed][k]['accuracy_training'])
             for tr_k in np.unique(tr_classes):
@@ -327,8 +327,8 @@ def update_results(
         print('\033[KTesting finished {:}'.format(time_to_string(test_elapsed)))
 
 
-def empty_confusion_matrix(n_tasks, n_classes):
-    return np.zeros((n_tasks + 2, n_classes, n_classes))
+def empty_confusion_matrix(n_tasks, n_classes, n_epochs, ):
+    return np.zeros((n_tasks + 2, n_epochs, n_classes, n_classes))
 
 
 def empty_model_accuracies(n_tasks, n_epochs, n_classes, n_samples):
@@ -420,16 +420,16 @@ def main(verbose=2):
         str(seed): {
             str(nc_per_task): {
                     'training': empty_confusion_matrix(
-                        n_classes // nc_per_task, n_classes
+                        n_classes // nc_per_task, n_classes, epochs
                     ),
                     'testing': empty_confusion_matrix(
-                        n_classes // nc_per_task, n_classes
+                        n_classes // nc_per_task, n_classes, epochs
                     ),
                     'task_training': empty_confusion_matrix(
-                        n_classes // nc_per_task, n_classes
+                        n_classes // nc_per_task, n_classes, epochs
                     ),
                     'task_testing': empty_confusion_matrix(
-                        n_classes // nc_per_task, n_classes
+                        n_classes // nc_per_task, n_classes, epochs
                     ),
                     'accuracy_training': empty_model_accuracies(
                         n_classes // nc_per_task, epochs, n_classes, s_tr
@@ -540,7 +540,7 @@ def main(verbose=2):
             for epoch in range(epochs):
                 train(
                     config, seed, net, training_set,
-                    model_name, epochs * n_tasks, n_tasks, 2
+                    model_name, n_tasks, n_tasks, 2
                 )
                 update_results(
                     config, net, seed, epoch + 1,  nc_per_task, 0, training_tasks, testing_tasks,
