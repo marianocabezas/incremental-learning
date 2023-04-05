@@ -101,6 +101,8 @@ def split_data(d_tr, d_te, classes, randomise=True):
             for i in range(n_tasks)
         ]
 
+        print(tasks)
+
         tasks_tr = split_dataset(d_tr, tasks)
         tasks_te = split_dataset(d_te, tasks)
 
@@ -244,11 +246,8 @@ def test(config, net, testing, task, n_classes, verbose=0):
             matrix[t_i, p_i] += 1
             task_matrix[t_i, tp_i] += 1
 
-    print([a.shape for a in accuracy_list])
     accuracy = np.concatenate(accuracy_list)
-    print([a.shape for a in task_accuracy_list])
     task_accuracy = np.concatenate(task_accuracy_list)
-    print([a.shape for a in class_list])
     classes = np.concatenate(class_list)
 
     return matrix, task_matrix, accuracy, task_accuracy, classes
