@@ -17,7 +17,7 @@ def update_y(y, mask):
     return y
 
 
-class MetaModel(BaseModel):
+class IncrementalModel(BaseModel):
     def __init__(
         self, basemodel, best=True, memory_manager=None,
         n_classes=100, n_tasks=10, lr=None, task=True
@@ -266,3 +266,42 @@ class MetaModel(BaseModel):
         if self.current_task not in self.observed_tasks:
             self.observed_tasks.append(self.current_task)
         super().fit(train_loader, val_loader, epochs, patience, verbose)
+
+
+class IncrementalModelMemory(IncrementalModel):
+    def __init__(
+            self, basemodel, best=True, memory_manager=None,
+            n_classes=100, n_tasks=10, lr=None, task=True
+    ):
+        super().__init__(
+            basemodel, best, memory_manager, n_classes, n_tasks, lr, task
+        )
+
+    def prebatch_update(self, batch, batches, x, y):
+        self._update_cum_grad(batches)
+
+    def batch_update(self, batch, batches, x, y):
+        if self.task:
+            y = y + self.offset1
+        if self.memory_manager is not None:
+            training = self.model.training
+            self.model.eval()
+            with torch.no_grad():
+                self.memory_manager.update_memory(
+                    x.cpu(), y.cpu(), self.current_task, self.model
+                )
+            if training:
+                self.model.train()
+
+    def mini_batch_loop(self, data, train=True):
+        if self.memory_manager is not None and self.current_task > 0 and train:
+            if self.offset1 is not None:
+                self.offset1 = 0
+            max_task = self.current_task - 1
+            memory_sets = list(self.memory_manager.get_tasks(max_task))
+            new_dataset = MultiDataset([data.dataset] + memory_sets)
+            data = DataLoader(
+                new_dataset, data.batch_size, True,
+                num_workers=data.num_workers, drop_last=True
+            )
+        return super().mini_batch_loop(data, train)
