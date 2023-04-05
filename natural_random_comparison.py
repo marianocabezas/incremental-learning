@@ -68,6 +68,8 @@ def count_samples(dataset):
     for x, y in dataset:
         samples[y] += 1
 
+    print(samples)
+
     return np.max(samples)
 
 
