@@ -494,8 +494,8 @@ def main(verbose=2):
                 print(
                     '{:}Testing initial weights{:} - {:02d}/{:02d} '
                     '[{:02d}/{:02d}] ({:} parameters)'.format(
-                        c['clr'] + c['c'], c['nc'], test_n + 1,
-                        k_i, len(class_list),
+                        c['clr'] + c['c'], c['nc'],
+                        k_i + 1, len(class_list), test_n + 1,
                         len(config['seeds']), c['b'] + str(n_param) + c['nc']
                     )
                 )
