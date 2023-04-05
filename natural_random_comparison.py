@@ -449,7 +449,12 @@ def main(verbose=2):
         for seed in seeds
     }
 
-    print(base_results)
+    print(','.join([
+        '{:}: ({:})'.format(
+            k_seed, ','.join(list(k_data.keys()))
+        )
+        for k_seed, k_data in base_results.items()
+    ]))
 
     for model in config['incremental']:
         incr_name = model[0]
