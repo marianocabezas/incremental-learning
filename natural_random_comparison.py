@@ -449,13 +449,6 @@ def main(verbose=2):
         for seed in seeds
     }
 
-    print(','.join([
-        '{:}: ({:})'.format(
-            k_seed, ','.join(list(k_data.keys()))
-        )
-        for k_seed, k_data in base_results.items()
-    ]))
-
     for model in config['incremental']:
         incr_name = model[0]
         all_results[incr_name] = deepcopy(base_results)
