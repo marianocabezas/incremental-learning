@@ -338,16 +338,16 @@ def save_results(config, json_name, results):
     path = config['json_path']
     json_file = os.path.join(path, json_name)
     results_tmp = deepcopy(results)
-    for meta_name, r_meta in results.items():
-        for seed, r_seed in r_meta.items():
+    for incr_name, r_incr in results.items():
+        for seed, r_seed in r_incr.items():
             for name, r_numpy in r_seed.items():
                 if isinstance(r_numpy, np.ndarray):
-                    results_tmp[meta_name][seed][name] = r_numpy.tolist()
+                    results_tmp[incr_name][seed][name] = r_numpy.tolist()
                 elif isinstance(r_numpy, dict):
                     for loss, r_array in r_numpy.items():
                         if isinstance(r_array, np.ndarray):
                             r = r_array.tolist()
-                            results_tmp[meta_name][seed][name][loss] = r
+                            results_tmp[incr_name][seed][name][loss] = r
 
     with open(json_file, 'w') as testing_json:
         json.dump(results_tmp, testing_json)
@@ -395,7 +395,7 @@ def main(verbose=2):
 
     models = importlib.import_module('models')
     network = getattr(models, config['network'])
-    meta = importlib.import_module('continual_masked')
+    incr = importlib.import_module('continual_masked')
     memory = importlib.import_module('memory')
 
     # We want a common starting point
@@ -448,9 +448,9 @@ def main(verbose=2):
         for seed in seeds
     }
 
-    for model in config['metamodels']:
-        meta_name = model[0]
-        all_results[meta_name] = deepcopy(base_results)
+    for model in config['incremental']:
+        incr_name = model[0]
+        all_results[incr_name] = deepcopy(base_results)
 
     # Main loop with all the seeds
     for test_n, seed in enumerate(seeds):
@@ -471,7 +471,7 @@ def main(verbose=2):
             alltraining_tasks, testing_tasks, task_list = split_data(
                 d_tr, d_te, nc_per_task, randomise=randomise
             )
-            all_metas = {}
+            all_incr = {}
             starting_model = os.path.join(
                 model_path,
                 '{:}-start.s{:05d}.pt'.format(model_base, seed)
@@ -546,16 +546,16 @@ def main(verbose=2):
                     all_results, n_classes, 2
                 )
 
-            for model in config['metamodels']:
+            for model in config['incremental']:
                 results_i = all_results[model[0]][str(seed)][str(nc_per_task)]
                 results_i['tasks'] = task_list
                 try:
-                    meta_name, meta_class, memory_class, extra_params = model
+                    incr_name, incr_class, memory_class, extra_params = model
                 except ValueError:
-                    meta_name, meta_class, memory_class = model
+                    incr_name, incr_class, memory_class = model
                     extra_params = {}
 
-                meta_model = getattr(meta, meta_class)
+                incr_model = getattr(incr, incr_class)
 
                 try:
                     manager = getattr(memory, memory_class)
@@ -563,31 +563,31 @@ def main(verbose=2):
                 except TypeError:
                     memory_manager = None
 
-                all_metas[meta_name] = meta_model(
+                all_incr[incr_name] = incr_model(
                     network(
                         n_outputs=n_classes, lr=lr, pretrained=pretrained
                     ), False, memory_manager, n_classes, n_tasks, **extra_params
                 )
                 try:
-                    if isinstance(all_metas[meta_name].model, ModuleList):
-                        for model_i in all_metas[meta_name].model:
+                    if isinstance(all_incr[incr_name].model, ModuleList):
+                        for model_i in all_incr[incr_name].model:
                             model_i.load_model(starting_model)
                     else:
-                        all_metas[meta_name].model.load_model(starting_model)
+                        all_incr[incr_name].model.load_model(starting_model)
                 except AttributeError:
                     pass
-                all_metas[meta_name].to(torch.device('cpu'))
+                all_incr[incr_name].to(torch.device('cpu'))
                 torch.cuda.empty_cache()
                 torch.cuda.ipc_collect()
 
             for t_i, training_set in enumerate(training_tasks):
 
-                for meta_name, results_i in all_results.items():
+                for incr_name, results_i in all_results.items():
                     print(
                         '{:}Starting task - {:} {:02d}/{:02d}{:} - {:02d}/{:02d} '
                         '({:} parameters)'.format(
                             c['clr'] + c['c'],
-                            c['nc'] + c['y'] + meta_name + c['nc'] + c['c'],
+                            c['nc'] + c['y'] + incr_name + c['nc'] + c['c'],
                             t_i + 1, n_tasks, c['nc'],
                             test_n + 1, len(config['seeds']),
                             c['b'] + str(n_param) + c['nc']
@@ -598,20 +598,20 @@ def main(verbose=2):
                     model_name = os.path.join(
                         model_path,
                         '{:}-{:}-t{:02d}.s{:05d}.pt'.format(
-                            model_base, meta_name, t_i, seed
+                            model_base, incr_name, t_i, seed
                         )
                     )
                     process_net(
-                        config, all_metas[meta_name], model_name, seed,
+                        config, all_incr[incr_name], model_name, seed,
                         nc_per_task, training_set, training_tasks, testing_tasks,
                         t_i, epochs, n_classes, results_i
                     )
 
-            for model in config['metamodels']:
-                meta_name = model[0]
-                results_i = all_results[meta_name][str(seed)][str(nc_per_task)]
-                train_log = all_metas[meta_name].train_log
-                val_log = all_metas[meta_name].val_log
+            for model in config['incremental']:
+                incr_name = model[0]
+                results_i = all_results[incr_name][str(seed)][str(nc_per_task)]
+                train_log = all_incr[incr_name].train_log
+                val_log = all_incr[incr_name].val_log
                 if isinstance(train_log, torch.Tensor):
                     results_i['train-log'] = train_log.numpy().tolist()
                 else:
