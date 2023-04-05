@@ -100,7 +100,7 @@ class BaseModel(nn.Module):
         return pred_labels, x_cuda, y_cuda
 
     def mini_batch_loop(
-            self, data, train=True
+        self, data, train=True
     ):
         """
         This is the main loop. It's "generic" enough to account for multiple

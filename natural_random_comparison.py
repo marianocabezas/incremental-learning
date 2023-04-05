@@ -55,7 +55,20 @@ def load_datasets(experiment_config):
         d_te = getattr(datasets, data_packages[-1])(
             '/tmp', train=False, download=True
         )
-    return d_tr, d_te
+
+    s_tr = count_samples(d_tr)
+    s_te = count_samples(d_te)
+
+    return d_tr, d_te, s_tr, s_te
+
+
+def count_samples(dataset):
+    all_classes = np.unique([y for _, y in dataset]).tolist()
+    samples = np.zeros(len(all_classes))
+    for x, y in dataset:
+        samples[y] += 1
+
+    return np.max(samples)
 
 
 def split_dataset(dataset, tasks):
@@ -104,25 +117,27 @@ def split_data(d_tr, d_te, classes, randomise=True):
 
 
 def process_net(
-    config, net, model_name, seed, nc_per_task, training_set, validation_set,
-    training_tasks, validation_tasks, testing_tasks,
+    config, net, model_name, seed, nc_per_task, training_set,
+    training_tasks, testing_tasks,
     task, epochs, n_classes, results
 ):
     net.to(net.device)
-    train(
-        config, seed, net, training_set, validation_set,
-        model_name, epochs, epochs, task, 2
-    )
+    for epoch in range(epochs):
+        train(
+            config, seed, net, training_set,
+            model_name, 1, 1, task, 2
+        )
+        update_results(
+            config, net, seed, epoch + 1, nc_per_task, task + 2, training_tasks,
+            testing_tasks, results, n_classes, 2
+        )
+
     net.reset_optimiser()
-    update_results(
-        config, net, seed, nc_per_task, task + 2, training_tasks, validation_tasks,
-        testing_tasks, results, n_classes, 2
-    )
     net.to(torch.device('cpu'))
 
 
 def train(
-    config, seed, net, training, validation, model_name, epochs, patience, task,
+    config, seed, net, training, model_name, epochs, patience, task,
     verbose=0
 ):
     """
@@ -131,7 +146,6 @@ def train(
     :param seed:
     :param net:
     :param training:
-    :param validation:
     :param model_name:
     :param epochs:
     :param patience:
@@ -160,32 +174,18 @@ def train(
         train_dataset = getattr(datasets, config['training'])(dtrain, ltrain)
 
         if verbose > 1:
-            print('Dataloader creation <with validation>')
+            print('Dataloader creation')
         train_loader = DataLoader(
             train_dataset, config['train_batch'], True, num_workers=8,
             drop_last=True
         )
-
-        # Validation (training cases)
-        if verbose > 1:
-            print('< Validation dataset >')
-        _, dval, lval = validation
-        val_dataset = getattr(datasets, config['validation'])(dval, lval)
-
-        if verbose > 1:
-            print('Dataloader creation <val>')
         val_loader = DataLoader(
-            val_dataset, config['test_batch'], num_workers=8,
+            train_dataset, config['train_batch'], num_workers=8,
             drop_last=True
         )
 
         if verbose > 1:
-            print(
-                'Training / validation samples = '
-                '{:02d} / {:02d}'.format(
-                    len(train_dataset), len(val_dataset)
-                )
-            )
+            print('Training samples = {:02d}'.format(len(train_dataset)))
 
         try:
             net.fit(
@@ -201,7 +201,6 @@ def test(config, net, testing, task, n_classes, verbose=0):
     # Init
     matrix = np.zeros((n_classes, n_classes))
     task_matrix = np.zeros((n_classes, n_classes))
-    pred_task_matrix = np.zeros((n_classes, n_classes))
     datasets = importlib.import_module('datasets')
     task_mask = testing[0]
     dataset = getattr(datasets, config['validation'])(testing[1], testing[2])
@@ -209,7 +208,9 @@ def test(config, net, testing, task, n_classes, verbose=0):
         dataset, config['test_batch'], num_workers=32
     )
     test_start = time.time()
-
+    accuracy_list = []
+    task_accuracy_list = []
+    class_list = []
     for batch_i, (x, y) in enumerate(test_loader):
         tests = len(test_loader) - batch_i
         test_elapsed = time.time() - test_start
@@ -232,54 +233,93 @@ def test(config, net, testing, task, n_classes, verbose=0):
         )]
         target = y.cpu().numpy()
 
-        for t_i, p_i, tp_i, tk_i in zip(
-            target, predicted, task_predicted, pred_task
+        accuracy_list.append(target == predicted)
+        task_accuracy_list.append(target == task_predicted)
+        class_list.append(target)
+
+        for t_i, p_i, tp_i in zip(
+            target, predicted, task_predicted
         ):
             matrix[t_i, p_i] += 1
             task_matrix[t_i, tp_i] += 1
-            pred_task_matrix[task, tk_i] += 1
 
-    return matrix, task_matrix, pred_task_matrix
+    accuracy = np.concatenate(accuracy_list)
+    task_accuracy = np.concatenate(task_accuracy_list)
+    classes = np.concatenate(class_list)
+
+    return matrix, task_matrix, accuracy, task_accuracy, classes
 
 
 def update_results(
-    config, net, seed, nc_per_task, step, training, validation, testing,
+    config, net, seed, epoch, nc_per_task, step, training, testing,
     results, n_classes, verbose=0
 ):
+    def _update_results(results_dict):
+        results_dict[seed][k]['training'][step, ...] += tr_matrix
+        results_dict[seed][k]['testing'][step, ...] += tst_matrix
+        results_dict[seed][k]['task_training'][step, ...] += ttr_matrix
+        results_dict[seed][k]['task_testing'][step, ...] += ttst_matrix
+        if step == 0:
+            n_steps = len(results_dict[seed][k]['accuracy_training'])
+            for tr_k in np.unique(tr_classes):
+                results_dict[seed][k]['accuracy_training'][
+                    :, epoch, tr_k, :
+                ] = np.repeat(
+                    np.expand_dims(tr_acc[tr_classes == tr_k], axis=0),
+                    n_steps, axis=0
+                )
+                results_dict[seed][k]['task_accuracy_training'][
+                    :, epoch, tr_k, :
+                ] = np.repeat(
+                    np.expand_dims(ttr_acc[tr_classes == tr_k], axis=0),
+                    n_steps, axis=0
+                )
+            for tst_k in np.unique(tr_classes):
+                results_dict[seed][k]['accuracy_testing'][
+                    :, epoch, tst_k, :
+                ] = np.repeat(
+                    np.expand_dims(tst_acc[tst_classes == tst_k], axis=0),
+                    n_steps, axis=0
+                )
+                results_dict[seed][k]['task_accuracy_testing'][
+                    :, epoch, tst_k, :
+                ] = np.repeat(
+                    np.expand_dims(ttst_acc[tst_classes == tst_k], axis=0),
+                    n_steps, axis=0
+                )
+        elif step > 1:
+            for tr_k in np.unique(tr_classes):
+                results_dict[seed][k]['accuracy_training'][
+                    step, epoch, tr_k, :
+                ] = tr_acc[tr_classes == tr_k]
+                results_dict[seed][k]['task_accuracy_training'][
+                    step, epoch, tr_k, :
+                ] = ttr_acc[tr_classes == tr_k]
+            for tst_k in np.unique(tr_classes):
+                results_dict[seed][k]['accuracy_testing'][
+                    step, epoch, tst_k, :
+                ] = tst_acc[tst_classes == tst_k]
+                results_dict[seed][k]['task_accuracy_testing'][
+                    step, epoch, tst_k, :
+                ] = ttst_acc[tst_classes == tst_k]
     seed = str(seed)
     k = str(nc_per_task)
     test_start = time.time()
-    for t_i, (tr_i, val_i, tst_i) in enumerate(zip(training, validation, testing)):
-        tr_matrix, ttr_matrix, tktr_matrix = test(
+    for t_i, (tr_i, tst_i) in enumerate(
+            zip(training, testing)
+    ):
+        tr_matrix, ttr_matrix, tr_acc, ttr_acc, tr_classes = test(
             config, net, tr_i, t_i, n_classes, verbose
         )
-        val_matrix, tval_matrix, tkval_matrix = test(
-            config, net, val_i, t_i, n_classes, verbose
-        )
-        tst_matrix, ttst_matrix, tktst_matrix = test(
+        tst_matrix, ttst_matrix, tst_acc, ttst_acc, tst_classes = test(
             config, net, tst_i, t_i, n_classes, verbose
         )
         try:
-            results[seed][k]['training'][step, ...] += tr_matrix
-            results[seed][k]['validation'][step, ...] += val_matrix
-            results[seed][k]['testing'][step, ...] += tst_matrix
-            results[seed][k]['task_training'][step, ...] += ttr_matrix
-            results[seed][k]['task_validation'][step, ...] += tval_matrix
-            results[seed][k]['task_testing'][step, ...] += ttst_matrix
-            results[seed][k]['predtask_training'][step, ...] += tktr_matrix
-            results[seed][k]['predtask_validation'][step, ...] += tkval_matrix
-            results[seed][k]['predtask_testing'][step, ...] += tktst_matrix
+            _update_results(results)
+
         except KeyError:
             for results_i in results.values():
-                results_i[seed][k]['training'][step, ...] += tr_matrix
-                results_i[seed][k]['validation'][step, ...] += val_matrix
-                results_i[seed][k]['testing'][step, ...] += tst_matrix
-                results_i[seed][k]['task_training'][step, ...] += ttr_matrix
-                results_i[seed][k]['task_validation'][step, ...] += tval_matrix
-                results_i[seed][k]['task_testing'][step, ...] += ttst_matrix
-                results_i[seed][k]['predtask_training'][step, ...] += tktr_matrix
-                results_i[seed][k]['predtask_validation'][step, ...] += tkval_matrix
-                results_i[seed][k]['predtask_testing'][step, ...] += tktst_matrix
+                _update_results(results_i)
 
     test_elapsed = time.time() - test_start
     if verbose > 0:
@@ -288,6 +328,10 @@ def update_results(
 
 def empty_confusion_matrix(n_tasks, n_classes):
     return np.zeros((n_tasks + 2, n_classes, n_classes))
+
+
+def empty_model_accuracies(n_tasks, n_epochs, n_classes, n_samples):
+    return np.zeros((n_tasks, n_epochs, n_classes, n_samples))
 
 
 def save_results(config, json_name, results):
@@ -323,7 +367,6 @@ def main(verbose=2):
             config = yaml.load(stream, Loader=yaml.FullLoader)
         except yaml.YAMLError as exc:
             print(exc)
-    val_split = config['val_split']
     model_path = config['model_path']
     if not os.path.isdir(model_path):
         os.mkdir(model_path)
@@ -356,7 +399,7 @@ def main(verbose=2):
     memory = importlib.import_module('memory')
 
     # We want a common starting point
-    d_tr, d_te = load_datasets(config)
+    d_tr, d_te, s_tr, s_te = load_datasets(config)
     try:
         class_list = config['classes_task']
     except KeyError:
@@ -378,30 +421,27 @@ def main(verbose=2):
                     'training': empty_confusion_matrix(
                         n_classes // nc_per_task, n_classes
                     ),
-                    'validation': empty_confusion_matrix(
-                        n_classes // nc_per_task, n_classes
-                    ),
                     'testing': empty_confusion_matrix(
                         n_classes // nc_per_task, n_classes
                     ),
                     'task_training': empty_confusion_matrix(
                         n_classes // nc_per_task, n_classes
                     ),
-                    'task_validation': empty_confusion_matrix(
-                        n_classes // nc_per_task, n_classes
-                    ),
                     'task_testing': empty_confusion_matrix(
                         n_classes // nc_per_task, n_classes
                     ),
-                    'predtask_training': empty_confusion_matrix(
-                        n_classes // nc_per_task, n_classes
+                    'accuracy_training': empty_model_accuracies(
+                        n_classes // nc_per_task, epochs, n_classes, s_tr
                     ),
-                    'predtask_validation': empty_confusion_matrix(
-                        n_classes // nc_per_task, n_classes
+                    'accuracy_testing': empty_model_accuracies(
+                        n_classes // nc_per_task, epochs, n_classes, s_te
                     ),
-                    'predtask_testing': empty_confusion_matrix(
-                        n_classes // nc_per_task, n_classes
+                    'task_accuracy_training': empty_model_accuracies(
+                        n_classes // nc_per_task, epochs, n_classes, s_tr
                     ),
+                    'task_accuracy_testing': empty_model_accuracies(
+                        n_classes // nc_per_task, epochs, n_classes, s_te
+                    )
                 }
             for nc_per_task in class_list
         }
@@ -458,17 +498,7 @@ def main(verbose=2):
             # this is that we want to measure forgetting and that is easier to
             # measure if we only focus on the training set and leave the testing
             # set as an independent generalisation test.
-            if val_split > 0:
-                training_tasks = [
-                    (mask, x[int(len(x) * val_split):], y[int(len(x) * val_split):])
-                    for mask, x, y in alltraining_tasks
-                ]
-                validation_tasks = [
-                    (mask, x[:int(len(x) * val_split)], y[:int(len(x) * val_split)])
-                    for mask, x, y in alltraining_tasks
-                ]
-            else:
-                validation_tasks = training_tasks = alltraining_tasks
+            training_tasks = alltraining_tasks
 
             # Baseline model (full continuum access)
             try:
@@ -484,11 +514,6 @@ def main(verbose=2):
                 torch.cat([x for _, x, _ in training_tasks]),
                 torch.cat([y for _, _, y in training_tasks])
             )
-            validation_set = (
-                torch.from_numpy(np.array(range(n_classes))),
-                torch.cat([x for _, x, _ in validation_tasks]),
-                torch.cat([y for _, _, y in validation_tasks])
-            )
             model_name = os.path.join(
                 model_path,
                 '{:}-bl.s{:05d}.pt'.format(
@@ -498,7 +523,7 @@ def main(verbose=2):
 
             # Init results
             update_results(
-                config, net, seed, nc_per_task, 1, training_tasks, validation_tasks, testing_tasks,
+                config, net, seed, 0, nc_per_task, 1, training_tasks, testing_tasks,
                 all_results, n_classes, 2
             )
             print(
@@ -511,14 +536,15 @@ def main(verbose=2):
             )
             # Baseline (all data) training and results
             verbose = 0
-            train(
-                config, seed, net, training_set, validation_set,
-                model_name, epochs * n_tasks, n_tasks, 2
-            )
-            update_results(
-                config, net, seed,  nc_per_task, 0, training_tasks, validation_tasks, testing_tasks,
-                all_results, n_classes, 2
-            )
+            for epoch in range(epochs):
+                train(
+                    config, seed, net, training_set,
+                    model_name, epochs * n_tasks, n_tasks, 2
+                )
+                update_results(
+                    config, net, seed, epoch + 1,  nc_per_task, 0, training_tasks, testing_tasks,
+                    all_results, n_classes, 2
+                )
 
             for model in config['metamodels']:
                 results_i = all_results[model[0]][str(seed)][str(nc_per_task)]
@@ -554,9 +580,7 @@ def main(verbose=2):
                 torch.cuda.empty_cache()
                 torch.cuda.ipc_collect()
 
-            for t_i, (training_set, validation_set) in enumerate(
-                    zip(training_tasks, validation_tasks)
-            ):
+            for t_i, training_set in enumerate(training_tasks):
 
                 for meta_name, results_i in all_results.items():
                     print(
@@ -579,8 +603,7 @@ def main(verbose=2):
                     )
                     process_net(
                         config, all_metas[meta_name], model_name, seed,
-                        nc_per_task, training_set, validation_set,
-                        training_tasks, validation_tasks, testing_tasks,
+                        nc_per_task, training_set, training_tasks, testing_tasks,
                         t_i, epochs, n_classes, results_i
                     )
 
