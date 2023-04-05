@@ -232,13 +232,7 @@ def test(config, net, testing, task, n_classes, verbose=0):
             prediction[:, task_mask], axis=1
         )]
         print(
-            task_mask, task_predicted,
-            np.argmax(
-                prediction[:, task_mask], axis=1
-            ),
-            np.argmax(
-                prediction, axis=1
-            )
+            task_mask, task_predicted
         )
         target = y.cpu().numpy()
 
@@ -253,6 +247,7 @@ def test(config, net, testing, task, n_classes, verbose=0):
             task_matrix[t_i, tp_i] += 1
 
     accuracy = np.concatenate(accuracy_list)
+    print([a.shape for a in task_accuracy_list])
     task_accuracy = np.concatenate(task_accuracy_list)
     classes = np.concatenate(class_list)
 
