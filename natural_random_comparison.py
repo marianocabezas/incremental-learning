@@ -593,6 +593,8 @@ def main(verbose=2):
                             config, net, seed, epoch + 1, nc_per_task, t_i + 2, training_tasks,
                             testing_tasks, results_i, n_classes, 2
                         )
+                    net.reset_optimiser()
+                    net.to(torch.device('cpu'))
 
             for model in config['incremental']:
                 incr_name = model[0]
