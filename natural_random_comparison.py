@@ -255,7 +255,7 @@ def update_results(
     results, n_classes, verbose=0
 ):
     def _update_results(results_dict):
-        print(k)
+        print(nc_per_task, k)
         results_dict[seed][k]['training'][step, ...] += tr_matrix
         results_dict[seed][k]['testing'][step, ...] += tst_matrix
         results_dict[seed][k]['task_training'][step, ...] += ttr_matrix
