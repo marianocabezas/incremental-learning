@@ -230,10 +230,7 @@ def test(config, net, testing, task, n_classes, verbose=0):
         predicted = np.argmax(prediction, axis=1)
         task_predicted = task_mask[np.argmax(
             prediction[:, task_mask], axis=1
-        )]
-        print(
-            task_mask, task_predicted
-        )
+        )].cpu().numpy()
         target = y.cpu().numpy()
 
         accuracy_list.append(target == predicted)
