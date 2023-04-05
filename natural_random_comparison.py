@@ -228,6 +228,7 @@ def test(config, net, testing, task, n_classes, verbose=0):
         )
 
         predicted = np.argmax(prediction, axis=1)
+        print(task_mask)
         task_predicted = task_mask[np.argmax(
             prediction[:, task_mask], axis=1
         )]
@@ -245,7 +246,9 @@ def test(config, net, testing, task, n_classes, verbose=0):
 
     print([a.shape for a in accuracy_list])
     accuracy = np.concatenate(accuracy_list)
+    print([a.shape for a in task_accuracy_list])
     task_accuracy = np.concatenate(task_accuracy_list)
+    print([a.shape for a in class_list])
     classes = np.concatenate(class_list)
 
     return matrix, task_matrix, accuracy, task_accuracy, classes
