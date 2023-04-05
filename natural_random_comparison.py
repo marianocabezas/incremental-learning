@@ -116,26 +116,6 @@ def split_data(d_tr, d_te, classes, randomise=True):
 """
 
 
-def process_net(
-    config, net, model_name, seed, nc_per_task, training_set,
-    training_tasks, testing_tasks,
-    task, epochs, n_classes, results
-):
-    net.to(net.device)
-    for epoch in range(epochs):
-        train(
-            config, seed, net, training_set,
-            model_name, 1, 1, task, 2
-        )
-        update_results(
-            config, net, seed, epoch + 1, nc_per_task, task + 2, training_tasks,
-            testing_tasks, results, n_classes, 2
-        )
-
-    net.reset_optimiser()
-    net.to(torch.device('cpu'))
-
-
 def train(
     config, seed, net, training, model_name, epochs, patience, task,
     verbose=0
@@ -515,12 +495,6 @@ def main(verbose=2):
                 torch.cat([x for _, x, _ in training_tasks]),
                 torch.cat([y for _, _, y in training_tasks])
             )
-            model_name = os.path.join(
-                model_path,
-                '{:}-bl.s{:05d}.pt'.format(
-                    model_base, seed
-                )
-            )
 
             # Init results
             update_results(
@@ -538,6 +512,12 @@ def main(verbose=2):
             # Baseline (all data) training and results
             verbose = 0
             for epoch in range(epochs):
+                model_name = os.path.join(
+                    model_path,
+                    '{:}-bl.s{:05d}.e{:02d}.pt'.format(
+                        model_base, seed, epoch
+                    )
+                )
                 train(
                     config, seed, net, training_set,
                     model_name, n_tasks, n_tasks, 2
@@ -596,17 +576,23 @@ def main(verbose=2):
                     )
 
                     # We train the naive model on the current task
-                    model_name = os.path.join(
-                        model_path,
-                        '{:}-{:}-t{:02d}.s{:05d}.pt'.format(
-                            model_base, incr_name, t_i, seed
+                    net = all_incr[incr_name]
+                    net.to(net.device)
+                    for epoch in range(epochs):
+                        model_name = os.path.join(
+                            model_path,
+                            '{:}-{:}-t{:02d}.s{:05d}.e{:02d}.pt'.format(
+                                model_base, incr_name, t_i, seed, epoch
+                            )
                         )
-                    )
-                    process_net(
-                        config, all_incr[incr_name], model_name, seed,
-                        nc_per_task, training_set, training_tasks, testing_tasks,
-                        t_i, epochs, n_classes, results_i
-                    )
+                        train(
+                            config, seed, net, training_set,
+                            model_name, 1, 1, t_i, 2
+                        )
+                        update_results(
+                            config, net, seed, epoch + 1, nc_per_task, t_i + 2, training_tasks,
+                            testing_tasks, results_i, n_classes, 2
+                        )
 
             for model in config['incremental']:
                 incr_name = model[0]
