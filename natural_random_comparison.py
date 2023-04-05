@@ -235,7 +235,6 @@ def update_results(
     results, n_classes, verbose=0
 ):
     def _update_results(results_dict):
-        print(nc_per_task, k)
         results_dict[seed][k]['training'][step, epoch, ...] += tr_matrix
         results_dict[seed][k]['testing'][step, epoch, ...] += tst_matrix
         results_dict[seed][k]['task_training'][step, epoch, ...] += ttr_matrix
@@ -307,7 +306,7 @@ def update_results(
         print('\033[KTesting finished {:}'.format(time_to_string(test_elapsed)))
 
 
-def empty_confusion_matrix(n_tasks, n_classes, n_epochs, ):
+def empty_confusion_matrix(n_tasks, n_classes, n_epochs):
     return np.zeros((n_tasks + 2, n_epochs, n_classes, n_classes))
 
 
@@ -562,7 +561,6 @@ def main(verbose=2):
                 torch.cuda.ipc_collect()
 
             for t_i, training_set in enumerate(training_tasks):
-
                 for incr_name, results_i in all_results.items():
                     print(
                         '{:}Starting task - {:} {:02d}/{:02d}{:} - {:02d}/{:02d} '
@@ -574,7 +572,6 @@ def main(verbose=2):
                             c['b'] + str(n_param) + c['nc']
                         )
                     )
-
                     # We train the naive model on the current task
                     net = all_incr[incr_name]
                     net.to(net.device)
