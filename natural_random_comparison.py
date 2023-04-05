@@ -101,8 +101,6 @@ def split_data(d_tr, d_te, classes, randomise=True):
             for i in range(n_tasks)
         ]
 
-        print(tasks)
-
         tasks_tr = split_dataset(d_tr, tasks)
         tasks_te = split_dataset(d_te, tasks)
 
@@ -230,10 +228,18 @@ def test(config, net, testing, task, n_classes, verbose=0):
         )
 
         predicted = np.argmax(prediction, axis=1)
-        print(task_mask)
         task_predicted = task_mask[np.argmax(
             prediction[:, task_mask], axis=1
         )]
+        print(
+            task_mask, task_predicted,
+            np.argmax(
+                prediction[:, task_mask], axis=1
+            ),
+            np.argmax(
+                prediction, axis=1
+            )
+        )
         target = y.cpu().numpy()
 
         accuracy_list.append(target == predicted)
