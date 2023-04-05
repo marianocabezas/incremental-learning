@@ -243,6 +243,7 @@ def test(config, net, testing, task, n_classes, verbose=0):
             matrix[t_i, p_i] += 1
             task_matrix[t_i, tp_i] += 1
 
+    print([a.shape for a in accuracy_list])
     accuracy = np.concatenate(accuracy_list)
     task_accuracy = np.concatenate(task_accuracy_list)
     classes = np.concatenate(class_list)
