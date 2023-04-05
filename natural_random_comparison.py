@@ -239,35 +239,7 @@ def update_results(
         results_dict[seed][k]['testing'][step, epoch, ...] += tst_matrix
         results_dict[seed][k]['task_training'][step, epoch, ...] += ttr_matrix
         results_dict[seed][k]['task_testing'][step, epoch, ...] += ttst_matrix
-        if step == 0:
-            n_steps = len(results_dict[seed][k]['accuracy_training'])
-            for tr_k in np.unique(tr_classes):
-                results_dict[seed][k]['accuracy_training'][
-                    :, epoch, tr_k, :
-                ] = np.repeat(
-                    np.expand_dims(tr_acc[tr_classes == tr_k], axis=0),
-                    n_steps, axis=0
-                )
-                results_dict[seed][k]['task_accuracy_training'][
-                    :, epoch, tr_k, :
-                ] = np.repeat(
-                    np.expand_dims(ttr_acc[tr_classes == tr_k], axis=0),
-                    n_steps, axis=0
-                )
-            for tst_k in np.unique(tr_classes):
-                results_dict[seed][k]['accuracy_testing'][
-                    :, epoch, tst_k, :
-                ] = np.repeat(
-                    np.expand_dims(tst_acc[tst_classes == tst_k], axis=0),
-                    n_steps, axis=0
-                )
-                results_dict[seed][k]['task_accuracy_testing'][
-                    :, epoch, tst_k, :
-                ] = np.repeat(
-                    np.expand_dims(ttst_acc[tst_classes == tst_k], axis=0),
-                    n_steps, axis=0
-                )
-        elif step > 1:
+        if step > 1:
             for tr_k in np.unique(tr_classes):
                 results_dict[seed][k]['accuracy_training'][
                     step, epoch, tr_k, :
