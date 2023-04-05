@@ -68,9 +68,7 @@ def count_samples(dataset):
     for x, y in dataset:
         samples[y] += 1
 
-    print(samples)
-
-    return np.max(samples)
+    return int(np.max(samples))
 
 
 def split_dataset(dataset, tasks):
