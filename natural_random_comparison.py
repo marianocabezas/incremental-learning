@@ -306,7 +306,7 @@ def update_results(
         print('\033[KTesting finished {:}'.format(time_to_string(test_elapsed)))
 
 
-def empty_confusion_matrix(n_tasks, n_classes, n_epochs):
+def empty_confusion_matrix(n_tasks, n_epochs, n_classes):
     return np.zeros((n_tasks + 2, n_epochs, n_classes, n_classes))
 
 
@@ -399,16 +399,16 @@ def main(verbose=2):
         str(seed): {
             str(nc_per_task): {
                     'training': empty_confusion_matrix(
-                        n_classes // nc_per_task, n_classes, epochs
+                        n_classes // nc_per_task, epochs, n_classes
                     ),
                     'testing': empty_confusion_matrix(
-                        n_classes // nc_per_task, n_classes, epochs
+                        n_classes // nc_per_task, epochs, n_classes
                     ),
                     'task_training': empty_confusion_matrix(
-                        n_classes // nc_per_task, n_classes, epochs
+                        n_classes // nc_per_task, epochs, n_classes
                     ),
                     'task_testing': empty_confusion_matrix(
-                        n_classes // nc_per_task, n_classes, epochs
+                        n_classes // nc_per_task, epochs, n_classes
                     ),
                     'accuracy_training': empty_model_accuracies(
                         n_classes // nc_per_task, epochs, n_classes, s_tr
@@ -522,7 +522,7 @@ def main(verbose=2):
                     model_name, n_tasks, n_tasks, 2
                 )
                 update_results(
-                    config, net, seed, epoch + 1,  nc_per_task, 0, training_tasks, testing_tasks,
+                    config, net, seed, epoch,  nc_per_task, 0, training_tasks, testing_tasks,
                     all_results, n_classes, 2
                 )
 
@@ -587,7 +587,7 @@ def main(verbose=2):
                             model_name, 1, 1, t_i, 2
                         )
                         update_results(
-                            config, net, seed, epoch + 1, nc_per_task, t_i + 2, training_tasks,
+                            config, net, seed, epoch, nc_per_task, t_i + 2, training_tasks,
                             testing_tasks, results_i, n_classes, 2
                         )
                     net.reset_optimiser()
