@@ -94,6 +94,7 @@ def split_data(d_tr, d_te, classes, randomise=True):
     all_classes = np.unique([y for _, y in d_tr]).tolist()
     if randomise:
         all_classes = np.random.permutation(all_classes).tolist()
+        print(all_classes)
     n_tasks = len(all_classes) // classes
     if len(all_classes) % classes == 0:
         tasks = [
