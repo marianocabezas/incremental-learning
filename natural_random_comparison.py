@@ -231,29 +231,38 @@ def test(config, net, testing, task, n_classes, verbose=0):
 
 
 def update_results(
-    config, net, seed, epoch, nc_per_task, step, training, testing,
-    results, n_classes, verbose=0
+    config, net, seed, epoch, total_epochs, nc_per_task, step,
+    training, testing, results, n_classes, verbose=0
 ):
-    def _update_results(results_dict):
-        results_dict[seed][k]['training'][step, epoch, ...] += tr_matrix
-        results_dict[seed][k]['testing'][step, epoch, ...] += tst_matrix
-        results_dict[seed][k]['task_training'][step, epoch, ...] += ttr_matrix
-        results_dict[seed][k]['task_testing'][step, epoch, ...] += ttst_matrix
+    def _update_results(results_dict, e_indx):
+        results_dict[seed][k]['training'][e_indx][
+            step, epoch, ...
+        ] += tr_matrix
+        results_dict[seed][k]['testing'][e_indx][
+            step, epoch, ...
+        ] += tst_matrix
+        results_dict[seed][k]['task_training'][e_indx][
+            step, epoch, ...
+        ] += ttr_matrix
+        results_dict[seed][k]['task_testing'][e_indx][
+            step, epoch, ...
+        ] += ttst_matrix
         if step > 1:
             for tr_k in np.unique(tr_classes):
-                results_dict[seed][k]['accuracy_training'][
+                results_dict[seed][k]['accuracy_training'][e_indx][
                     step, epoch, tr_k, :
                 ] = tr_acc[tr_classes == tr_k]
-                results_dict[seed][k]['task_accuracy_training'][
+                results_dict[seed][k]['task_accuracy_training'][e_indx][
                     step, epoch, tr_k, :
                 ] = ttr_acc[tr_classes == tr_k]
             for tst_k in np.unique(tr_classes):
-                results_dict[seed][k]['accuracy_testing'][
+                results_dict[seed][k]['accuracy_testing'][e_indx][
                     step, epoch, tst_k, :
                 ] = tst_acc[tst_classes == tst_k]
-                results_dict[seed][k]['task_accuracy_testing'][
+                results_dict[seed][k]['task_accuracy_testing'][e_indx][
                     step, epoch, tst_k, :
                 ] = ttst_acc[tst_classes == tst_k]
+
     seed = str(seed)
     k = str(nc_per_task)
     test_start = time.time()
@@ -266,12 +275,21 @@ def update_results(
         tst_matrix, ttst_matrix, tst_acc, ttst_acc, tst_classes = test(
             config, net, tst_i, t_i, n_classes, verbose
         )
-        try:
-            _update_results(results)
+        if step > 1:
+            try:
+                _update_results(results, total_epochs)
 
-        except KeyError:
-            for results_i in results.values():
-                _update_results(results_i)
+            except KeyError:
+                for results_i in results.values():
+                    _update_results(results_i, total_epochs)
+        else:
+            for n_e in range(total_epochs):
+                try:
+                    _update_results(results, n_e)
+
+                except KeyError:
+                    for results_i in results.values():
+                        _update_results(results_i, n_e)
 
     test_elapsed = time.time() - test_start
     if verbose > 0:
@@ -370,30 +388,55 @@ def main(verbose=2):
     base_results = {
         str(seed): {
             str(nc_per_task): {
-                    'training': empty_confusion_matrix(
-                        n_classes // nc_per_task, epochs, n_classes
-                    ),
-                    'testing': empty_confusion_matrix(
-                        n_classes // nc_per_task, epochs, n_classes
-                    ),
-                    'task_training': empty_confusion_matrix(
-                        n_classes // nc_per_task, epochs, n_classes
-                    ),
-                    'task_testing': empty_confusion_matrix(
-                        n_classes // nc_per_task, epochs, n_classes
-                    ),
-                    'accuracy_training': empty_model_accuracies(
-                        n_classes // nc_per_task, epochs, n_classes, s_tr
-                    ),
-                    'accuracy_testing': empty_model_accuracies(
-                        n_classes // nc_per_task, epochs, n_classes, s_te
-                    ),
-                    'task_accuracy_training': empty_model_accuracies(
-                        n_classes // nc_per_task, epochs, n_classes, s_tr
-                    ),
-                    'task_accuracy_testing': empty_model_accuracies(
-                        n_classes // nc_per_task, epochs, n_classes, s_te
-                    )
+                    'tasks': None,
+                    'training': [
+                        empty_confusion_matrix(
+                            n_classes // nc_per_task, n_e + 1, n_classes
+                        )
+                        for n_e in range(epochs)
+                    ],
+                    'testing': [
+                        empty_confusion_matrix(
+                            n_classes // nc_per_task, n_e + 1, n_classes
+                        )
+                        for n_e in range(epochs)
+                    ],
+                    'task_training': [
+                        empty_confusion_matrix(
+                            n_classes // nc_per_task, n_e + 1, n_classes
+                        )
+                        for n_e in range(epochs)
+                    ],
+                    'task_testing': [
+                        empty_confusion_matrix(
+                            n_classes // nc_per_task, n_e + 1, n_classes
+                        )
+                        for n_e in range(epochs)
+                    ],
+                    'accuracy_training': [
+                        empty_model_accuracies(
+                            n_classes // nc_per_task, n_e, n_classes, s_tr
+                        )
+                        for n_e in range(epochs)
+                    ],
+                    'accuracy_testing': [
+                        empty_model_accuracies(
+                            n_classes // nc_per_task, n_e, n_classes, s_tr
+                        )
+                        for n_e in range(epochs)
+                    ],
+                    'task_accuracy_training': [
+                        empty_model_accuracies(
+                            n_classes // nc_per_task, n_e, n_classes, s_tr
+                        )
+                        for n_e in range(epochs)
+                    ],
+                    'task_accuracy_testing': [
+                        empty_model_accuracies(
+                            n_classes // nc_per_task, n_e, n_classes, s_tr
+                        )
+                        for n_e in range(epochs)
+                    ],
                 }
             for nc_per_task in class_list
         }
@@ -423,7 +466,7 @@ def main(verbose=2):
             alltraining_tasks, testing_tasks, task_list = split_data(
                 d_tr, d_te, nc_per_task, randomise=randomise
             )
-            all_incr = {}
+            all_incr = [{} for _ in range(epochs)]
             starting_model = os.path.join(
                 model_path,
                 '{:}-start.s{:05d}.pt'.format(model_base, seed)
@@ -469,7 +512,8 @@ def main(verbose=2):
 
             # Init results
             update_results(
-                config, net, seed, 0, nc_per_task, 1, training_tasks, testing_tasks,
+                config, net, seed, 0, epochs, nc_per_task, 1,
+                training_tasks, testing_tasks,
                 all_results, n_classes, 2
             )
             print(
@@ -494,7 +538,8 @@ def main(verbose=2):
                     model_name, n_tasks, n_tasks, 2
                 )
                 update_results(
-                    config, net, seed, epoch,  nc_per_task, 0, training_tasks, testing_tasks,
+                    config, net, seed, epoch, epochs,  nc_per_task, 0,
+                    training_tasks, testing_tasks,
                     all_results, n_classes, 2
                 )
 
@@ -515,22 +560,23 @@ def main(verbose=2):
                 except TypeError:
                     memory_manager = None
 
-                all_incr[incr_name] = incr_model(
-                    network(
-                        n_outputs=n_classes, lr=lr, pretrained=pretrained
-                    ), False, memory_manager, n_classes, n_tasks, **extra_params
-                )
-                try:
-                    if isinstance(all_incr[incr_name].model, ModuleList):
-                        for model_i in all_incr[incr_name].model:
-                            model_i.load_model(starting_model)
-                    else:
-                        all_incr[incr_name].model.load_model(starting_model)
-                except AttributeError:
-                    pass
-                all_incr[incr_name].to(torch.device('cpu'))
-                torch.cuda.empty_cache()
-                torch.cuda.ipc_collect()
+                for n_e in range(epochs):
+                    all_incr[n_e][incr_name] = incr_model(
+                        network(
+                            n_outputs=n_classes, lr=lr, pretrained=pretrained
+                        ), False, memory_manager, n_classes, n_tasks, **extra_params
+                    )
+                    try:
+                        if isinstance(all_incr[n_e][incr_name].model, ModuleList):
+                            for model_i in all_incr[n_e][incr_name].model:
+                                model_i.load_model(starting_model)
+                        else:
+                            all_incr[n_e][incr_name].model.load_model(starting_model)
+                    except AttributeError:
+                        pass
+                    all_incr[n_e][incr_name].to(torch.device('cpu'))
+                    torch.cuda.empty_cache()
+                    torch.cuda.ipc_collect()
 
             for t_i, training_set in enumerate(training_tasks):
                 for incr_name, results_i in all_results.items():
@@ -544,24 +590,27 @@ def main(verbose=2):
                             c['b'] + str(n_param) + c['nc']
                         )
                     )
-                    # We train the naive model on the current task
-                    net = all_incr[incr_name]
-                    net.to(net.device)
-                    for epoch in range(epochs):
-                        model_name = os.path.join(
-                            model_path,
-                            '{:}-{:}-t{:02d}.s{:05d}.e{:02d}.pt'.format(
-                                model_base, incr_name, t_i, seed, epoch
+                    # We train the incremental model on the current task
+                    for n_e in range(epochs):
+                        net = all_incr[n_e][incr_name]
+                        net.to(net.device)
+                        for epoch in range(n_e):
+                            model_name = os.path.join(
+                                model_path,
+                                '{:}-{:}-t{:02d}.s{:05d}'
+                                '.e{:02d}.te{:02d}.pt'.format(
+                                    model_base, incr_name, t_i, seed, epoch, n_e
+                                )
                             )
-                        )
-                        train(
-                            config, seed, net, training_set,
-                            model_name, 1, 1, t_i, 2
-                        )
-                        update_results(
-                            config, net, seed, epoch, nc_per_task, t_i + 2, training_tasks,
-                            testing_tasks, results_i, n_classes, 2
-                        )
+                            train(
+                                config, seed, net, training_set,
+                                model_name, 1, 1, t_i, 2
+                            )
+                            update_results(
+                                config, net, seed, epoch, n_e, nc_per_task,
+                                t_i + 2, training_tasks, testing_tasks,
+                                results_i, n_classes, 2
+                            )
                     net.reset_optimiser()
                     net.to(torch.device('cpu'))
 
