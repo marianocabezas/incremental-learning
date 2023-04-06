@@ -589,7 +589,7 @@ def main(verbose=2):
                             c['clr'] + c['c'],
                             c['nc'] + c['y'] + incr_name + c['nc'] + c['c'],
                             t_i + 1, n_tasks, c['nc'],
-                            test_n + 1, len(config['seeds']),
+                            test_n + 1, len(seeds),
                             c['b'] + str(n_param) + c['nc']
                         )
                     )
