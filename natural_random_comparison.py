@@ -523,7 +523,7 @@ def main(verbose=2):
                 '{:}Starting baseline{:} - {:02d}/{:02d} '
                 '({:} parameters)'.format(
                     c['clr'] + c['c'], c['nc'],
-                    test_n + 1, len(config['seeds']),
+                    test_n + 1, len(seeds),
                     c['b'] + str(n_param) + c['nc']
                 )
             )
