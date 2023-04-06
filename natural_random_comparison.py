@@ -431,7 +431,7 @@ def main(verbose=2):
                     ],
                     'task_accuracy_training': [
                         empty_model_accuracies(
-                            n_classes // nc_per_task, n_e + 1, n_classes, s_te
+                            n_classes // nc_per_task, n_e + 1, n_classes, s_tr
                         )
                         for n_e in range(epochs)
                     ],
