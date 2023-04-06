@@ -235,6 +235,12 @@ def update_results(
     training, testing, results, n_classes, verbose=0
 ):
     def _update_results(results_dict, e_indx):
+        print(
+            seed, k, e_indx, step, epoch,
+            len(results_dict[seed][k]['training']),
+            [e.shape for e in results_dict[seed][k]['training']]
+        )
+
         results_dict[seed][k]['training'][e_indx][
             step, epoch, ...
         ] += tr_matrix
