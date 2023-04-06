@@ -249,6 +249,9 @@ def update_results(
                 step, epoch, ...
             ] += ttst_matrix
             if step > 1:
+                print(
+                    results_dict[seed][k]['accuracy_training'][e_indx].shape
+                )
                 for tr_k in np.unique(tr_classes):
                     results_dict[seed][k]['accuracy_training'][e_indx][
                         step, epoch, tr_k, :
@@ -256,7 +259,7 @@ def update_results(
                     results_dict[seed][k]['task_accuracy_training'][e_indx][
                         step, epoch, tr_k, :
                     ] = ttr_acc[tr_classes == tr_k]
-                for tst_k in np.unique(tr_classes):
+                for tst_k in np.unique(tst_classes):
                     results_dict[seed][k]['accuracy_testing'][e_indx][
                         step, epoch, tst_k, :
                     ] = tst_acc[tst_classes == tst_k]
