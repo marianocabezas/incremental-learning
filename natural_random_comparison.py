@@ -345,7 +345,10 @@ def main(verbose=2):
         os.mkdir(json_path)
     model_base = os.path.splitext(os.path.basename(options['config']))[0]
 
-    seeds = config['seeds']
+    master_seed = config['master_seed']
+    n_seeds = config['seeds']
+    np.random.seed(master_seed)
+    seeds = np.random.randint(0, 100000, n_seeds)
     epochs = config['epochs']
 
     try:
