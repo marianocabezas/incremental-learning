@@ -418,25 +418,25 @@ def main(verbose=2):
                     ],
                     'accuracy_training': [
                         empty_model_accuracies(
-                            n_classes // nc_per_task, n_e, n_classes, s_tr
+                            n_classes // nc_per_task, n_e + 1, n_classes, s_tr
                         )
                         for n_e in range(epochs)
                     ],
                     'accuracy_testing': [
                         empty_model_accuracies(
-                            n_classes // nc_per_task, n_e, n_classes, s_tr
+                            n_classes // nc_per_task, n_e + 1, n_classes, s_tr
                         )
                         for n_e in range(epochs)
                     ],
                     'task_accuracy_training': [
                         empty_model_accuracies(
-                            n_classes // nc_per_task, n_e, n_classes, s_tr
+                            n_classes // nc_per_task, n_e + 1, n_classes, s_tr
                         )
                         for n_e in range(epochs)
                     ],
                     'task_accuracy_testing': [
                         empty_model_accuracies(
-                            n_classes // nc_per_task, n_e, n_classes, s_tr
+                            n_classes // nc_per_task, n_e + 1, n_classes, s_tr
                         )
                         for n_e in range(epochs)
                     ],
