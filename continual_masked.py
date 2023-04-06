@@ -277,26 +277,10 @@ class IncrementalModelMemory(IncrementalModel):
             basemodel, best, memory_manager, n_classes, n_tasks, lr, task
         )
 
-    def prebatch_update(self, batch, batches, x, y):
-        self._update_cum_grad(batches)
-
-    def batch_update(self, batch, batches, x, y):
-        if self.task:
-            y = y + self.offset1
-        if self.memory_manager is not None:
-            training = self.model.training
-            self.model.eval()
-            with torch.no_grad():
-                self.memory_manager.update_memory(
-                    x.cpu(), y.cpu(), self.current_task, self.model
-                )
-            if training:
-                self.model.train()
-
     def mini_batch_loop(self, data, train=True):
         if self.memory_manager is not None and self.current_task > 0 and train:
-            if self.offset1 is not None:
-                self.offset1 = 0
+            if self.task_mask is not None:
+                self.task_mask = torch.cat(self.task_masks)
             max_task = self.current_task - 1
             memory_sets = list(self.memory_manager.get_tasks(max_task))
             new_dataset = MultiDataset([data.dataset] + memory_sets)
