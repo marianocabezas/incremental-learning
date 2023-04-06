@@ -235,7 +235,7 @@ def update_results(
     training, testing, results, n_classes, verbose=0
 ):
     def _update_results(results_dict, e_indx):
-        if epoch <= e_indx:
+        if epoch < e_indx:
             results_dict[seed][k]['training'][e_indx][
                 step, epoch, ...
             ] += tr_matrix
