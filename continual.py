@@ -1067,7 +1067,13 @@ class DER(IncrementalModelMemory):
             },
 
         ]
-        self.val_functions = self.train_functions
+        self.val_functions = [
+            {
+                'name': 'xentr',
+                'weight': 1,
+                'f': lambda p, t: F.cross_entropy(p[0], t)
+            }
+        ]
 
         self.update_logs()
 
@@ -1079,11 +1085,15 @@ class DER(IncrementalModelMemory):
         self.device = basemodel.device
 
     def auxiliary_loss(self, prediction, target):
-        target = torch.clamp(
-            target - self.offset1, 0, self.offset2 - self.offset1
-        ) + 1
+        if self.current_task > 0:
+            target = torch.clamp(
+                target - self.offset1, 0, self.offset2 - self.offset1
+            ) + 1
+            loss = F.cross_entropy(prediction[1], target)
+        else:
+            loss = torch.tensor(0., device=self.device)
 
-        return F.cross_entropy(prediction[1], target)
+        return loss
 
     def forward(self, *inputs):
         feature_list = [
@@ -1138,6 +1148,19 @@ class DER(IncrementalModelMemory):
         self.task_fc = nn.Linear(
             self.last_features, n_classes
         )
+        self.train_functions = self.train_functions = [
+            {
+                'name': 'xentr',
+                'weight': 1,
+                'f': lambda p, t: F.cross_entropy(p[0], t)
+            },
+            {
+                'name': 'aux',
+                'weight': 1,
+                'f': self.auxiliary_loss
+            },
+
+        ]
         super().fit(
             train_loader, val_loader, epochs, patience, task, offset1, offset2,
             verbose
@@ -1151,7 +1174,7 @@ class DER(IncrementalModelMemory):
         self.task_fc = None
 
         # 2) Classifier stage
-        if self.memory_manager is not None and self.current_task > 1:
+        if self.memory_manager is not None and self.current_task > 0:
             if self.offset1 is not None:
                 self.offset1 = 0
             memory_sets = list(self.memory_manager.get_tasks())
@@ -1163,6 +1186,13 @@ class DER(IncrementalModelMemory):
             self.fc = nn.Linear(
                 self.last_features * self.n_tasks, self.n_classes
             )
+            self.train_functions = self.train_functions = [
+                {
+                    'name': 'xentr',
+                    'weight': 1,
+                    'f': lambda p, t: F.cross_entropy(p, t)
+                }
+            ]
             super().fit(
                 mem_loader, val_loader, epochs, patience, task,
                 offset1, offset2, verbose
