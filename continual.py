@@ -1089,7 +1089,6 @@ class DER(IncrementalModelMemory):
             target = torch.clamp(
                 target - offset1, -1, offset2 - offset1
             ) + 1
-            print(prediction[1].shape, target)
             loss = F.cross_entropy(prediction[1], target)
         else:
             loss = torch.tensor(0., device=self.device)
