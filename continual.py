@@ -1148,7 +1148,7 @@ class DER(IncrementalModelMemory):
         self.task_fc = nn.Linear(
             self.last_features, n_classes
         )
-        self.train_functions = self.train_functions = [
+        self.train_functions = [
             {
                 'name': 'xentr',
                 'weight': 1,
@@ -1159,7 +1159,6 @@ class DER(IncrementalModelMemory):
                 'weight': 1,
                 'f': lambda p, t: self.auxiliary_loss(p, t, offset1, offset2)
             },
-
         ]
         super().fit(
             train_loader, val_loader, epochs, patience, task, offset1, offset2,
@@ -1186,7 +1185,7 @@ class DER(IncrementalModelMemory):
             self.fc = nn.Linear(
                 self.last_features * self.n_tasks, self.n_classes
             )
-            self.train_functions = self.train_functions = [
+            self.train_functions = [
                 {
                     'name': 'xentr',
                     'weight': 1,
@@ -1194,7 +1193,7 @@ class DER(IncrementalModelMemory):
                 }
             ]
             super().fit(
-                mem_loader, val_loader, epochs, patience, task,
+                mem_loader, mem_loader, epochs, patience, task,
                 offset1, offset2, verbose
             )
         self.offset1 = None
