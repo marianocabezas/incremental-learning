@@ -1087,8 +1087,9 @@ class DER(IncrementalModelMemory):
     def auxiliary_loss(self, prediction, target):
         if self.current_task > 0:
             target = torch.clamp(
-                target - self.offset1, 0, self.offset2 - self.offset1
+                target - self.offset1, -1, self.offset2 - self.offset1
             ) + 1
+            print(prediction.shape, target)
             loss = F.cross_entropy(prediction[1], target)
         else:
             loss = torch.tensor(0., device=self.device)
