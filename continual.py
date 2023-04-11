@@ -1160,6 +1160,13 @@ class DER(IncrementalModelMemory):
                 'f': lambda p, t: self.auxiliary_loss(p, t, offset1, offset2)
             },
         ]
+        self.val_functions = [
+            {
+                'name': 'xentr',
+                'weight': 1,
+                'f': lambda p, t: F.cross_entropy(p[0], t)
+            }
+        ]
         super().fit(
             train_loader, val_loader, epochs, patience, task, offset1, offset2,
             verbose
@@ -1185,7 +1192,7 @@ class DER(IncrementalModelMemory):
             self.fc = nn.Linear(
                 self.last_features * self.n_tasks, self.n_classes
             )
-            self.train_functions = [
+            self.train_functions = self.val_functions = [
                 {
                     'name': 'xentr',
                     'weight': 1,
