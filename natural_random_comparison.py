@@ -250,11 +250,6 @@ def update_results(
             ] += ttst_matrix
             if step > 1:
                 for tr_k in np.unique(tr_classes):
-                    print(
-                        step, epoch, tr_k, e_indx,
-                        len(results_dict[seed][k]['accuracy_training']),
-                        results_dict[seed][k]['accuracy_training'][e_indx].shape
-                    )
                     results_dict[seed][k]['accuracy_training'][e_indx][
                         step - 2, epoch, tr_k, :
                     ] = tr_acc[tr_classes == tr_k]
