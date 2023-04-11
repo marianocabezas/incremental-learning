@@ -248,20 +248,29 @@ def update_results(
             results_dict[seed][k]['task_testing'][e_indx][
                 step, epoch, ...
             ] += ttst_matrix
-            if step > 1:
+            if step == 0:
+                for tr_k in np.unique(tr_classes):
+                    results_dict[seed][k]['init_accuracy_training'][
+                        0, 0, tr_k, :
+                    ] = tr_acc[tr_classes == tr_k]
+                for tst_k in np.unique(tst_classes):
+                    results_dict[seed][k]['init_accuracy_testing'][
+                        0, 0, tst_k, :
+                    ] = tst_acc[tst_classes == tst_k]
+            elif step > 1:
                 for tr_k in np.unique(tr_classes):
                     results_dict[seed][k]['accuracy_training'][e_indx][
-                        step - 2, epoch, tr_k, :
+                        step - 1, epoch + 1, tr_k, :
                     ] = tr_acc[tr_classes == tr_k]
                     results_dict[seed][k]['task_accuracy_training'][e_indx][
-                        step - 2, epoch, tr_k, :
+                        step - 1, epoch + 1, tr_k, :
                     ] = ttr_acc[tr_classes == tr_k]
                 for tst_k in np.unique(tst_classes):
                     results_dict[seed][k]['accuracy_testing'][e_indx][
-                        step - 2, epoch, tst_k, :
+                        step - 1, epoch + 1, tst_k, :
                     ] = tst_acc[tst_classes == tst_k]
                     results_dict[seed][k]['task_accuracy_testing'][e_indx][
-                        step - 2, epoch, tst_k, :
+                        step - 1, epoch + 1, tst_k, :
                     ] = ttst_acc[tst_classes == tst_k]
 
     seed = str(seed)
@@ -417,12 +426,18 @@ def main(verbose=2):
                         )
                         for n_e in range(epochs)
                     ],
+                    'init_accuracy_training': empty_model_accuracies(
+                        1, 1, n_classes, s_tr
+                    ),
                     'accuracy_training': [
                         empty_model_accuracies(
                             n_classes // nc_per_task, n_e + 1, n_classes, s_tr
                         )
                         for n_e in range(epochs)
                     ],
+                    'init_accuracy_testing': empty_model_accuracies(
+                        1, 1, n_classes, s_te
+                    ),
                     'accuracy_testing': [
                         empty_model_accuracies(
                             n_classes // nc_per_task, n_e + 1, n_classes, s_te
