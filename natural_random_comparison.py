@@ -650,16 +650,17 @@ def main(verbose=2):
             for model in config['incremental']:
                 incr_name = model[0]
                 results_i = all_results[incr_name][str(seed)][str(nc_per_task)]
-                train_log = all_incr[incr_name].train_log
-                val_log = all_incr[incr_name].val_log
-                if isinstance(train_log, torch.Tensor):
-                    results_i['train-log'] = train_log.numpy().tolist()
-                else:
-                    results_i['train-log'] = train_log
-                if isinstance(val_log, torch.Tensor):
-                    results_i['val-log'] = val_log.numpy().tolist()
-                else:
-                    results_i['val-log'] = val_log
+                for incr in all_incr[incr_name]:
+                    train_log = incr.train_log
+                    val_log = incr.val_log
+                    if isinstance(train_log, torch.Tensor):
+                        results_i['train-log'] = train_log.numpy().tolist()
+                    else:
+                        results_i['train-log'] = train_log
+                    if isinstance(val_log, torch.Tensor):
+                        results_i['val-log'] = val_log.numpy().tolist()
+                    else:
+                        results_i['val-log'] = val_log
 
     save_results(config, '{:}_results.json'.format(model_base), all_results)
 
