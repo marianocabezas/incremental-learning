@@ -650,9 +650,9 @@ def main(verbose=2):
             for model in config['incremental']:
                 incr_name = model[0]
                 results_i = all_results[incr_name][str(seed)][str(nc_per_task)]
-                for incr in all_incr[incr_name]:
-                    train_log = incr.train_log
-                    val_log = incr.val_log
+                for incr in all_incr:
+                    train_log = incr[incr_name].train_log
+                    val_log = incr[incr_name].val_log
                     if isinstance(train_log, torch.Tensor):
                         results_i['train-log'] = train_log.numpy().tolist()
                     else:
