@@ -545,11 +545,11 @@ def main(verbose=2):
             )
 
             # Init results
-            # update_results(
-            #     config, net, seed, 0, epochs, nc_per_task, 1,
-            #     training_tasks, testing_tasks,
-            #     all_results, n_classes, 2
-            # )
+            update_results(
+                config, net, seed, 0, epochs, nc_per_task, 1,
+                training_tasks, testing_tasks,
+                all_results, n_classes, 2
+            )
             print(
                 '{:}Starting baseline{:} - {:02d}/{:02d} '
                 '({:} parameters)'.format(
@@ -571,10 +571,10 @@ def main(verbose=2):
                     config, seed, net, training_set,
                     model_name, 1, n_tasks, 2
                 )
-                # update_results(
-                #     config, net, seed, epoch, epochs, nc_per_task, 0,
-                #     training_tasks, testing_tasks, all_results, n_classes, 2
-                # )
+                update_results(
+                    config, net, seed, epoch, epochs, nc_per_task, 0,
+                    training_tasks, testing_tasks, all_results, n_classes, 2
+                )
 
             for model in config['incremental']:
                 results_i = all_results[model[0]][str(seed)][str(nc_per_task)]
@@ -639,11 +639,11 @@ def main(verbose=2):
                                 config, seed, net, training_set,
                                 model_name, 1, 1, t_i, 2
                             )
-                            # update_results(
-                            #     config, net, seed, epoch, n_e, nc_per_task,
-                            #     t_i + 2, training_tasks, testing_tasks,
-                            #     results_i, n_classes, 2
-                            # )
+                            update_results(
+                                config, net, seed, epoch, n_e, nc_per_task,
+                                t_i + 2, training_tasks, testing_tasks,
+                                results_i, n_classes, 2
+                            )
                     net.reset_optimiser()
                     net.to(torch.device('cpu'))
 
