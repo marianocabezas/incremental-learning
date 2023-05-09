@@ -269,17 +269,17 @@ def update_results(
             else:
                 for tr_k in np.unique(tr_classes):
                     results_dict[seed][k]['accuracy_training'][e_indx][
-                        step - 1, epoch + 1, tr_k, :
+                        step - 2, epoch + 1, tr_k, :
                     ] = tr_acc[tr_classes == tr_k]
                     results_dict[seed][k]['task_accuracy_training'][e_indx][
-                        step - 1, epoch + 1, tr_k, :
+                        step - 2, epoch + 1, tr_k, :
                     ] = ttr_acc[tr_classes == tr_k]
                 for tst_k in np.unique(tst_classes):
                     results_dict[seed][k]['accuracy_testing'][e_indx][
-                        step - 1, epoch + 1, tst_k, :
+                        step - 2, epoch + 1, tst_k, :
                     ] = tst_acc[tst_classes == tst_k]
                     results_dict[seed][k]['task_accuracy_testing'][e_indx][
-                        step - 1, epoch + 1, tst_k, :
+                        step - 2, epoch + 1, tst_k, :
                     ] = ttst_acc[tst_classes == tst_k]
 
     seed = str(seed)
