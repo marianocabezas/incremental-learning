@@ -32,6 +32,25 @@ def parse_inputs():
         dest='config', default='/data/IncrementalLearning/activity_dual.yml',
         help='Path to the file with the configuration for the experiment.'
     )
+    parser.add_argument(
+        '-s', '--seed-index',
+        dest='seed_idx', type=int,
+        help='Index of the random seed. By default, number of seeds are taken '
+             'from the config file and all are run. Setting a seed index '
+             'helps running parallel processes.'
+    )
+    parser.add_argument(
+        '-m', '--method-index',
+        dest='method_idx', type=int,
+        help='Index of the method to run in the config. By default all the '
+             'methods from the config file are run. Setting a method index '
+             'helps running parallel processes.'
+    )
+    parser.add_argument(
+        '-n', '--no-color',
+        dest='no_color', default=False, action='store_true',
+        help='Whether to print with colors (bad for log files).'
+    )
     options = vars(parser.parse_args())
 
     return options
@@ -44,16 +63,17 @@ def parse_inputs():
 
 def load_datasets(experiment_config):
     data_path = experiment_config['path']
+    tmp_path = experiment_config['tmp']
     if os.path.exists(data_path):
         d_tr, d_te = torch.load(data_path)
     else:
         data_packages = data_path.split('.')
         datasets = importlib.import_module('.'.join(data_packages[:-1]))
         d_tr = getattr(datasets, data_packages[-1])(
-            '/tmp', train=True, download=True
+            tmp_path, train=True, download=True
         )
         d_te = getattr(datasets, data_packages[-1])(
-            '/tmp', train=False, download=True
+            tmp_path, train=False, download=True
         )
 
     s_tr = count_samples(d_tr)
@@ -170,10 +190,14 @@ def train(
         try:
             net.fit(
                 train_loader, val_loader, task_mask=dmask.to(net.device),
-                epochs=epochs, patience=patience, task=task
+                epochs=epochs, patience=patience, task=task,
+                verbose=(not config['no_color'])
             )
         except TypeError:
-            net.fit(train_loader, val_loader, epochs=epochs, patience=patience)
+            net.fit(
+                train_loader, val_loader, epochs=epochs, patience=patience,
+                verbose=(not config['no_color'])
+            )
         net.save_model(os.path.join(path, model_name))
 
 
@@ -195,7 +219,7 @@ def test(config, net, testing, task, n_classes, verbose=0):
         tests = len(test_loader) - batch_i
         test_elapsed = time.time() - test_start
         test_eta = tests * test_elapsed / (batch_i + 1)
-        if verbose > 0:
+        if verbose > 0 and config['no_color']:
             print(
                 '\033[KTesting batch ({:d}/{:d}) {:} ETA {:}'.format(
                     batch_i + 1, len(test_loader),
@@ -312,7 +336,18 @@ def update_results(
 
     test_elapsed = time.time() - test_start
     if verbose > 0:
-        print('\033[KTesting finished {:}'.format(time_to_string(test_elapsed)))
+        if config['no_color']:
+            print(
+                'Testing finished {:}'.format(
+                    time_to_string(test_elapsed)
+                )
+            )
+        else:
+            print(
+                '\033[KTesting finished {:}'.format(
+                    time_to_string(test_elapsed)
+                )
+            )
 
 
 def empty_confusion_matrix(n_tasks, n_epochs, n_classes):
@@ -362,12 +397,21 @@ def main(verbose=2):
     json_path = config['json_path']
     if not os.path.isdir(json_path):
         os.mkdir(json_path)
-    model_base = os.path.splitext(os.path.basename(options['config']))[0]
 
     master_seed = config['master_seed']
-    n_seeds = config['seeds']
     np.random.seed(master_seed)
+
+    s_idx = options['seed_idx']
+    if s_idx is None:
+        n_seeds = config['seeds']
+        seed_suffix = ''
+    else:
+        n_seeds = options['seed_idx']
     seeds = np.random.randint(0, 100000, n_seeds)
+    if s_idx is not None:
+        seeds = seeds[-1:]
+        seed_suffix = '_s{:05d}'.format(seeds[0])
+
     epochs = config['epochs']
 
     try:
@@ -379,11 +423,18 @@ def main(verbose=2):
     except KeyError:
         memories = 1000
 
-    print(
-        '{:}[{:}] {:}<Incremental learning framework>{:}'.format(
-            c['c'], strftime("%H:%M:%S"), c['y'], c['nc']
+    if config['no_color']:
+        print(
+            '[{:}] <Incremental learning framework>'.format(
+                strftime("%H:%M:%S")
+            )
         )
-    )
+    else:
+        print(
+            '{:}[{:}] {:}<Incremental learning framework>{:}'.format(
+                c['c'], strftime("%H:%M:%S"), c['y'], c['nc']
+            )
+        )
 
     models = importlib.import_module('models')
     network = getattr(models, config['network'])
@@ -477,19 +528,38 @@ def main(verbose=2):
         for seed in seeds
     }
 
-    for model in config['incremental']:
+    incremental_list = config['incremental']
+    m_idx = options['method_idx']
+    if m_idx is None:
+        m_suffix = ''
+    else:
+        incremental_list = incremental_list[m_idx:m_idx + 1]
+        m_suffix = '_{:}'.format(incremental_list[0])
+
+    for model in incremental_list:
         incr_name = model[0]
         all_results[incr_name] = deepcopy(base_results)
 
+    config_base = os.path.splitext(os.path.basename(options['config']))[0]
+    model_base = config_base + m_suffix + seed_suffix
+
     # Main loop with all the seeds
     for test_n, seed in enumerate(seeds):
-        print(
-            '{:}[{:}] {:}Starting cross-validation (model: {:}){:}'
-            ' (seed {:d}){:}'.format(
-                c['clr'] + c['c'], strftime("%H:%M:%S"), c['g'], model_base,
-                c['nc'] + c['y'], seed, c['nc']
+        if config['no_color']:
+            print(
+                '[{:}] Starting cross-validation (model: {:})'
+                ' (seed {:d})'.format(
+                    strftime("%H:%M:%S"), model_base, seed
+                )
             )
-        )
+        else:
+            print(
+                '{:}[{:}] {:}Starting cross-validation (model: {:}){:}'
+                ' (seed {:d}){:}'.format(
+                    c['clr'] + c['c'], strftime("%H:%M:%S"), c['g'], model_base,
+                    c['nc'] + c['y'], seed, c['nc']
+                )
+            )
 
         for k_i, nc_per_task in enumerate(class_list):
             n_tasks = n_classes // nc_per_task
@@ -511,14 +581,23 @@ def main(verbose=2):
             )
 
             if verbose > 0:
-                print(
-                    '{:}Testing initial weights{:} - {:02d}/{:02d} '
-                    '[{:02d}/{:02d}] ({:} parameters)'.format(
-                        c['clr'] + c['c'], c['nc'],
-                        k_i + 1, len(class_list), test_n + 1,
-                        len(seeds), c['b'] + str(n_param) + c['nc']
+                if config['no_color']:
+                    print(
+                        'Testing initial weights - {:02d}/{:02d} '
+                        '[{:02d}/{:02d}] ({:} parameters)'.format(
+                            k_i + 1, len(class_list), test_n + 1,
+                            len(seeds), str(n_param)
+                        )
                     )
-                )
+                else:
+                    print(
+                        '{:}Testing initial weights{:} - {:02d}/{:02d} '
+                        '[{:02d}/{:02d}] ({:} parameters)'.format(
+                            c['clr'] + c['c'], c['nc'],
+                            k_i + 1, len(class_list), test_n + 1,
+                            len(seeds), c['b'] + str(n_param) + c['nc']
+                        )
+                    )
 
             # Training
             # Here we'll do the training / validation split...
@@ -550,14 +629,22 @@ def main(verbose=2):
                 training_tasks, testing_tasks,
                 all_results, n_classes, 2
             )
-            print(
-                '{:}Starting baseline{:} - {:02d}/{:02d} '
-                '({:} parameters)'.format(
-                    c['clr'] + c['c'], c['nc'],
-                    test_n + 1, len(seeds),
-                    c['b'] + str(n_param) + c['nc']
+            if config['no_color']:
+                print(
+                    'Starting baseline - {:02d}/{:02d} '
+                    '({:} parameters)'.format(
+                        test_n + 1, len(seeds), str(n_param)
+                    )
                 )
-            )
+            else:
+                print(
+                    '{:}Starting baseline{:} - {:02d}/{:02d} '
+                    '({:} parameters)'.format(
+                        c['clr'] + c['c'], c['nc'],
+                        test_n + 1, len(seeds),
+                        c['b'] + str(n_param) + c['nc']
+                    )
+                )
             # Baseline (all data) training and results
             verbose = 0
             for epoch in range(epochs):
@@ -576,7 +663,7 @@ def main(verbose=2):
                     training_tasks, testing_tasks, all_results, n_classes, 2
                 )
 
-            for model in config['incremental']:
+            for model in incremental_list:
                 results_i = all_results[model[0]][str(seed)][str(nc_per_task)]
                 results_i['tasks'] = task_list
                 try:
@@ -613,16 +700,26 @@ def main(verbose=2):
 
             for t_i, training_set in enumerate(training_tasks):
                 for incr_name, results_i in all_results.items():
-                    print(
-                        '{:}Starting task - {:} {:02d}/{:02d}{:} - {:02d}/{:02d} '
-                        '({:} parameters)'.format(
-                            c['clr'] + c['c'],
-                            c['nc'] + c['y'] + incr_name + c['nc'] + c['c'],
-                            t_i + 1, n_tasks, c['nc'],
-                            test_n + 1, len(seeds),
-                            c['b'] + str(n_param) + c['nc']
+                    if config['no_color']:
+                        print(
+                            'Starting task - {:} {:02d}/{:02d} - {:02d}/{:02d} '
+                            '({:} parameters)'.format(
+                                incr_name, t_i + 1, n_tasks,
+                                test_n + 1, len(seeds),
+                                str(n_param)
+                            )
                         )
-                    )
+                    else:
+                        print(
+                            '{:}Starting task - {:} {:02d}/{:02d}{:} -'
+                            ' {:02d}/{:02d} ({:} parameters)'.format(
+                                c['clr'] + c['c'],
+                                c['nc'] + c['y'] + incr_name + c['nc'] + c['c'],
+                                t_i + 1, n_tasks, c['nc'],
+                                test_n + 1, len(seeds),
+                                c['b'] + str(n_param) + c['nc']
+                            )
+                        )
                     # We train the incremental model on the current task
                     for n_e in range(epochs):
                         net = all_incr[n_e][incr_name]
@@ -647,7 +744,7 @@ def main(verbose=2):
                     net.reset_optimiser()
                     net.to(torch.device('cpu'))
 
-            for model in config['incremental']:
+            for model in incremental_list:
                 incr_name = model[0]
                 results_i = all_results[incr_name][str(seed)][str(nc_per_task)]
                 for incr_m in all_incr:
