@@ -1,12 +1,9 @@
-from copy import deepcopy
 import torch
 from torch import nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import numpy as np
-import quadprog
-from sklearn.decomposition import PCA
-from base import BaseModel, SelfAttentionBlock
+from base import BaseModel
 from datasets import MultiDataset
 
 
