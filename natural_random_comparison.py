@@ -63,7 +63,7 @@ def parse_inputs():
 
 def load_datasets(experiment_config):
     data_path = experiment_config['path']
-    tmp_path = experiment_config['tmp']
+    tmp_path = experiment_config['tmp_path']
     if os.path.exists(data_path):
         d_tr, d_te = torch.load(data_path)
     else:
