@@ -549,16 +549,16 @@ def main(verbose=2):
         if config['no_color']:
             print(
                 '[{:}] Starting cross-validation (model: {:})'
-                ' (seed {:d})'.format(
-                    strftime("%H:%M:%S"), model_base, seed
+                ' (seed {:d}) [{:d} classes per task]'.format(
+                    strftime("%H:%M:%S"), model_base, seed, nc_per_task
                 )
             )
         else:
             print(
                 '{:}[{:}] {:}Starting cross-validation (model: {:}){:}'
-                ' (seed {:d}){:}'.format(
+                ' (seed {:d}){:} [{:d} classes per task]'.format(
                     c['clr'] + c['c'], strftime("%H:%M:%S"), c['g'], model_base,
-                    c['nc'] + c['y'], seed, c['nc']
+                    c['nc'] + c['y'], seed, c['nc'], nc_per_task
                 )
             )
 
@@ -574,7 +574,9 @@ def main(verbose=2):
             all_incr = [{} for _ in range(epochs)]
             starting_model = os.path.join(
                 model_path,
-                '{:}-start.s{:05d}.pt'.format(model_base, seed)
+                '{:}-start.s{:05d}.c{:02d}.pt'.format(
+                    model_base, seed, nc_per_task
+                )
             )
             net.save_model(starting_model)
             n_param = sum(
@@ -651,8 +653,8 @@ def main(verbose=2):
             for epoch in range(epochs):
                 model_name = os.path.join(
                     model_path,
-                    '{:}-bl.s{:05d}.e{:02d}.pt'.format(
-                        model_base, seed, epoch
+                    '{:}-bl.s{:05d}.c{:02d}.e{:02d}.pt'.format(
+                        model_base, seed, nc_per_task, epoch
                     )
                 )
                 train(
@@ -728,9 +730,10 @@ def main(verbose=2):
                         for epoch in range(n_e):
                             model_name = os.path.join(
                                 model_path,
-                                '{:}-{:}-t{:02d}.s{:05d}'
+                                '{:}-{:}-t{:02d}.s{:05d}.c{:02d}'
                                 '.e{:02d}.te{:02d}.pt'.format(
-                                    model_base, incr_name, t_i, seed, epoch, n_e
+                                    model_base, incr_name, t_i, seed, nc_per_task,
+                                    epoch, n_e
                                 )
                             )
                             train(
