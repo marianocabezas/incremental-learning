@@ -406,7 +406,7 @@ def main(verbose=2):
         n_seeds = config['seeds']
         seed_suffix = ''
     else:
-        n_seeds = options['seed_idx']
+        n_seeds = options['seed_idx'] + 1
     seeds = np.random.randint(0, 100000, n_seeds)
     if s_idx is not None:
         seeds = seeds[-1:]
