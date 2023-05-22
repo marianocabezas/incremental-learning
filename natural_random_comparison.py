@@ -413,6 +413,7 @@ def main(verbose=2):
         seed_suffix = '_s{:05d}'.format(seeds[0])
 
     epochs = config['epochs']
+    config['no_color'] = options['no_color']
 
     try:
         pretrained = config['pretrained']
