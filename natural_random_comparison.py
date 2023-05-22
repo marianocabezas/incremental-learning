@@ -414,7 +414,6 @@ def main(verbose=2):
 
     epochs = config['epochs']
     config['no_color'] = options['no_color']
-    config['tmp'] = options['tmp']
 
     try:
         pretrained = config['pretrained']
