@@ -549,16 +549,16 @@ def main(verbose=2):
         if config['no_color']:
             print(
                 '[{:}] Starting cross-validation (model: {:})'
-                ' (seed {:d}) [{:d} classes per task]'.format(
-                    strftime("%H:%M:%S"), model_base, seed, nc_per_task
+                ' (seed {:d})'.format(
+                    strftime("%H:%M:%S"), model_base, seed
                 )
             )
         else:
             print(
                 '{:}[{:}] {:}Starting cross-validation (model: {:}){:}'
-                ' (seed {:d}){:} [{:d} classes per task]'.format(
+                ' (seed {:d}){:}'.format(
                     c['clr'] + c['c'], strftime("%H:%M:%S"), c['g'], model_base,
-                    c['nc'] + c['y'], seed, c['nc'], nc_per_task
+                    c['nc'] + c['y'], seed, c['nc']
                 )
             )
 
@@ -706,21 +706,23 @@ def main(verbose=2):
                     if config['no_color']:
                         print(
                             'Starting task - {:} {:02d}/{:02d} - {:02d}/{:02d} '
-                            '({:} parameters)'.format(
+                            '({:} parameters) [{:d} classes per task]'.format(
                                 incr_name, t_i + 1, n_tasks,
                                 test_n + 1, len(seeds),
-                                str(n_param)
+                                str(n_param), nc_per_task
                             )
                         )
                     else:
                         print(
                             '{:}Starting task - {:} {:02d}/{:02d}{:} -'
-                            ' {:02d}/{:02d} ({:} parameters)'.format(
+                            ' {:02d}/{:02d} ({:} parameters) '
+                            '[{:d} classes per task]'.format(
                                 c['clr'] + c['c'],
                                 c['nc'] + c['y'] + incr_name + c['nc'] + c['c'],
                                 t_i + 1, n_tasks, c['nc'],
                                 test_n + 1, len(seeds),
-                                c['b'] + str(n_param) + c['nc']
+                                c['b'] + str(n_param) + c['nc'],
+                                nc_per_task
                             )
                         )
                     # We train the incremental model on the current task
