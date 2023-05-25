@@ -535,7 +535,7 @@ def main(verbose=2):
         m_suffix = ''
     else:
         incremental_list = incremental_list[m_idx:m_idx + 1]
-        m_suffix = '_{:}'.format(incremental_list[0])
+        m_suffix = '_{:}'.format(incremental_list[0][0])
 
     for model in incremental_list:
         incr_name = model[0]
