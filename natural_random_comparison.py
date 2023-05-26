@@ -366,6 +366,7 @@ def save_results(config, json_name, results):
         for seed, r_seed in r_incr.items():
             for nc_x_task, r_nc in r_seed.items():
                 for name, r_numpy in r_nc.items():
+                    print(name, r_numpy)
                     if isinstance(r_numpy, np.ndarray):
                         results_tmp[incr_name][seed][name] = r_numpy.tolist()
                     elif isinstance(r_numpy, dict):
