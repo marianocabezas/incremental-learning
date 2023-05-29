@@ -368,39 +368,16 @@ def save_results(config, json_name, results):
                 for name, r_numpy in r_nc.items():
                     if isinstance(r_numpy, np.ndarray):
                         results_tmp[incr_name][seed][nc_x_task][name] = r_numpy.tolist()
-                        print(
-                            'ndarray', name, type(results_tmp[incr_name][seed][nc_x_task][name]),
-                            type(results_tmp[incr_name][seed][nc_x_task][name]),
-                            type(r_numpy),
-                        )
                     elif isinstance(r_numpy, dict):
                         for loss, r_array in r_numpy.items():
                             if isinstance(r_array, np.ndarray):
                                 r = r_array.tolist()
                                 results_tmp[incr_name][seed][nc_x_task][name][loss] = r
-                        print(
-                            'dict', name, type(results_tmp[incr_name][seed][nc_x_task][name]),
-                            [
-                                (loss, type(arr_i))
-                                for loss, arr_i in results_tmp[incr_name][seed][nc_x_task][name].items()
-                            ],
-                            [
-                                (loss, type(arr_i))
-                                for loss, arr_i in r_numpy.items()
-                            ],
-                        )
                     elif isinstance(r_numpy, list):
                         results_tmp[incr_name][seed][nc_x_task][name] = [
                             npy_i.tolist() if isinstance(npy_i, np.ndarray)
                             else npy_i for npy_i in r_numpy
                         ]
-                        print(
-                            'list', name, type(results_tmp[incr_name][seed][nc_x_task][name]),
-                            [type(arr_i) for arr_i in results_tmp[incr_name][seed][nc_x_task][name]],
-                            [type(arr_i) for arr_i in r_numpy],
-                        )
-                    else:
-                        print('unknown', name, type(r_numpy))
 
     with open(json_file, 'w') as testing_json:
         json.dump(results_tmp, testing_json)
