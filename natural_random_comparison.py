@@ -370,8 +370,8 @@ def save_results(config, json_name, results):
                         results_tmp[incr_name][seed][name] = r_numpy.tolist()
                         print(
                             'ndarray', name, type(results_tmp[incr_name][seed][name]),
-                            [type(arr_i) for arr_i in results_tmp[incr_name][seed][name]],
-                            [type(arr_i) for arr_i in r_numpy],
+                            type(results_tmp[incr_name][seed][name]),
+                            type(r_numpy),
                         )
                     elif isinstance(r_numpy, dict):
                         for loss, r_array in r_numpy.items():
@@ -380,8 +380,14 @@ def save_results(config, json_name, results):
                                 results_tmp[incr_name][seed][name][loss] = r
                         print(
                             'dict', name, type(results_tmp[incr_name][seed][name]),
-                            [type(arr_i) for arr_i in results_tmp[incr_name][seed][name]],
-                            [type(arr_i) for arr_i in r_numpy],
+                            [
+                                (loss, type(arr_i))
+                                for loss, arr_i in results_tmp[incr_name][seed][name].items()
+                            ],
+                            [
+                                (loss, type(arr_i))
+                                for loss, arr_i in r_numpy.items()
+                            ],
                         )
                     elif isinstance(r_numpy, list):
                         results_tmp[incr_name][seed][name] = [
