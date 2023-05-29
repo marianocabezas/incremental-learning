@@ -379,7 +379,11 @@ def save_results(config, json_name, results):
                             npy_i.tolist() if isinstance(npy_i, np.ndarray)
                             else npy_i for npy_i in r_numpy
                         ]
-                        print('list', name, results_tmp[incr_name][seed][name])
+                        print(
+                            'list', name, type(results_tmp[incr_name][seed][name]),
+                            [type(arr_i) for arr_i in results_tmp[incr_name][seed][name]],
+                            [type(arr_i) for arr_i in r_numpy],
+                        )
 
     with open(json_file, 'w') as testing_json:
         json.dump(results_tmp, testing_json)
