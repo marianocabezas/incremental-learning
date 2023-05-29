@@ -408,9 +408,9 @@ def main(verbose=2):
     np.random.seed(master_seed)
 
     s_idx = options['seed_idx']
+    seed_suffix = ''
     if s_idx is None:
         n_seeds = config['seeds']
-        seed_suffix = ''
     else:
         n_seeds = options['seed_idx'] + 1
     seeds = np.random.randint(0, 100000, n_seeds)
@@ -537,18 +537,14 @@ def main(verbose=2):
 
     incremental_list = config['incremental']
     m_idx = options['method_idx']
-    if m_idx is None:
-        m_suffix = ''
-    else:
+    if m_idx is not None:
         incremental_list = incremental_list[m_idx:m_idx + 1]
-        m_suffix = '_{:}'.format(incremental_list[0][0])
 
     for model in incremental_list:
         incr_name = model[0]
         all_results[incr_name] = deepcopy(base_results)
 
-    config_base = os.path.splitext(os.path.basename(options['config']))[0]
-    model_base = config_base + m_suffix + seed_suffix
+    model_base = os.path.splitext(os.path.basename(options['config']))[0]
 
     # Main loop with all the seeds
     for test_n, seed in enumerate(seeds):
@@ -771,7 +767,9 @@ def main(verbose=2):
                     else:
                         results_i['val-log'] = val_log
 
-    save_results(config, '{:}_results.json'.format(model_base), all_results)
+    save_results(
+        config, '{:}{:}_results.json'.format(model_base, seed_suffix), all_results
+    )
 
 
 if __name__ == '__main__':
