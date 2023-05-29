@@ -367,10 +367,8 @@ def save_results(config, json_name, results):
             for nc_x_task, r_nc in r_seed.items():
                 for name, r_numpy in r_nc.items():
                     if isinstance(r_numpy, np.ndarray):
-                        print('numpy', name)
                         results_tmp[incr_name][seed][name] = r_numpy.tolist()
                     elif isinstance(r_numpy, dict):
-                        print('dict', name)
                         for loss, r_array in r_numpy.items():
                             if isinstance(r_array, np.ndarray):
                                 r = r_array.tolist()
@@ -381,7 +379,7 @@ def save_results(config, json_name, results):
                             npy_i.tolist() if isinstance(npy_i, np.ndarray)
                             else npy_i for npy_i in r_numpy
                         ]
-                    print(type(r_numpy), name, r_numpy)
+                        print('list', name, results_tmp[incr_name][seed][name])
 
     with open(json_file, 'w') as testing_json:
         json.dump(results_tmp, testing_json)
