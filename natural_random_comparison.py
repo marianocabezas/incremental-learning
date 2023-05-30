@@ -361,7 +361,7 @@ def empty_model_accuracies(n_tasks, n_epochs, n_classes, n_samples):
 def save_results(config, file_name, results):
     json_name = file_name + '.json'
     pickle_name = file_name + '.pkl.gz'
-    path = config['json_path']
+    path = config['results_path']
     json_file = os.path.join(path, json_name)
     results_tmp = deepcopy(results)
     for incr_name, r_incr in results.items():
