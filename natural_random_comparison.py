@@ -1,7 +1,6 @@
 import argparse
 import os
 import time
-import json
 import random
 import numpy as np
 import importlib
@@ -12,6 +11,7 @@ from torch.utils.data import DataLoader
 from time import strftime
 from copy import deepcopy
 from utils import color_codes, time_to_string
+from utils import save_compressed_json, save_compressed_pickle
 
 
 """
@@ -358,7 +358,9 @@ def empty_model_accuracies(n_tasks, n_epochs, n_classes, n_samples):
     return np.zeros((n_tasks, n_epochs, n_classes, n_samples))
 
 
-def save_results(config, json_name, results):
+def save_results(config, file_name, results):
+    json_name = file_name + '.json'
+    pickle_name = file_name + '.pkl.gz'
     path = config['json_path']
     json_file = os.path.join(path, json_name)
     results_tmp = deepcopy(results)
@@ -379,8 +381,8 @@ def save_results(config, json_name, results):
                             else npy_i for npy_i in r_numpy
                         ]
 
-    with open(json_file, 'w') as testing_json:
-        json.dump(results_tmp, testing_json)
+    save_compressed_json(results_tmp, json_file)
+    save_compressed_pickle(results_tmp, pickle_name)
 
 
 """
@@ -768,7 +770,7 @@ def main(verbose=2):
                         results_i['val-log'] = val_log
 
     save_results(
-        config, '{:}{:}_results.json'.format(model_base, seed_suffix), all_results
+        config, '{:}{:}_results'.format(model_base, seed_suffix), all_results
     )
 
 

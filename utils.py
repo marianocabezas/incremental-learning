@@ -1,8 +1,11 @@
+import pickle
 import time
 import os
 import re
 import sys
 import traceback
+import json
+import gzip
 from functools import reduce
 from scipy import ndimage as nd
 import numpy as np
@@ -293,24 +296,29 @@ def remove_boundary_regions(img_vol, roi, thickness=1):
     return nu_mask
 
 
-def to_torch_var(
-        np_array,
-        device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
-        requires_grad=False,
-        dtype=torch.float32
-):
-    """
-    Function to convert a numpy array into a torch tensor for a given device
-    :param np_array: Original numpy array
-    :param device: Device where the tensor will be loaded
-    :param requires_grad: Whether it requires autograd or not
-    :param dtype: Datatype for the tensor
-    :return:
-    """
-    var = torch.tensor(
-        np_array,
-        requires_grad=requires_grad,
-        device=device,
-        dtype=dtype
-    )
-    return var
+def save_compressed_json(data, path):
+    json_str = json.dumps(data) + '\n'
+    json_bytes = json_str.encode('utf-8')
+
+    with gzip.open(path, 'wb') as f:
+        f.write(json_bytes)
+
+
+def load_compressed_json(path):
+    with gzip.open(path, 'rb') as f:
+        json_bytes = f.read()
+
+    json_str = json_bytes.decode('utf-8')
+
+    return json.loads(json_str)
+
+
+def save_compressed_pickle(data, path):
+    with gzip.open(path, 'wb') as f:
+        f.write(data)
+
+
+def load_compressed_pickle(path):
+    with gzip.open(path, 'rb') as f:
+        data = pickle.load(f)
+    return data
