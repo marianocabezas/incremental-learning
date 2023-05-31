@@ -539,8 +539,10 @@ def main(verbose=2):
 
     incremental_list = config['incremental']
     m_idx = options['method_idx']
+    model_suffix = ''
     if m_idx is not None:
         incremental_list = incremental_list[m_idx:m_idx + 1]
+        model_suffix = '_{:}'.format(incremental_list[m_idx])
 
     for model in incremental_list:
         incr_name = model[0]
@@ -770,7 +772,9 @@ def main(verbose=2):
                         results_i['val-log'] = val_log
 
     save_results(
-        config, '{:}{:}_results'.format(model_base, seed_suffix), all_results
+        config, '{:}{:}{:}_results'.format(
+            model_base, seed_suffix, model_suffix
+        ), all_results
     )
 
 
