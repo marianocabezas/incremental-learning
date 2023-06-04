@@ -359,11 +359,15 @@ def empty_model_accuracies(n_tasks, n_epochs, n_classes, n_samples):
 
 
 def save_results(config, file_name, results):
-    json_name = file_name + '.json'
+    json_name = file_name + '.json.gz'
     pickle_name = file_name + '.pkl.gz'
     path = config['results_path']
     json_file = os.path.join(path, json_name)
+    pickle_file = os.path.join(path, pickle_name)
     results_tmp = deepcopy(results)
+
+    save_compressed_pickle(results_tmp, pickle_file)
+
     for incr_name, r_incr in results.items():
         for seed, r_seed in r_incr.items():
             for nc_x_task, r_nc in r_seed.items():
@@ -382,7 +386,6 @@ def save_results(config, file_name, results):
                         ]
 
     save_compressed_json(results_tmp, json_file)
-    save_compressed_pickle(results_tmp, pickle_name)
 
 
 """
