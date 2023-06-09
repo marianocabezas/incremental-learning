@@ -315,7 +315,7 @@ def load_compressed_json(path):
 
 def save_compressed_pickle(data, path):
     with gzip.open(path, 'wb') as f:
-        f.write(data)
+        pickle.dump(data, f)
 
 
 def load_compressed_pickle(path):
