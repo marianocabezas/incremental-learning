@@ -626,7 +626,7 @@ def main(verbose=2):
             except KeyError:
                 lr = 1e-3
             net = network(
-                n_outputs=n_classes, lr=lr, pretrained=pretrained
+                n_outputs=n_classes, pretrained=pretrained, lr=lr
             )
             net.load_model(starting_model)
             training_set = (
@@ -695,7 +695,7 @@ def main(verbose=2):
                 for n_e in range(epochs):
                     all_incr[n_e][incr_name] = incr_model(
                         network(
-                            n_outputs=n_classes, lr=lr, pretrained=pretrained
+                            n_outputs=n_classes, pretrained=pretrained, lr=lr
                         ), False, memory_manager, n_classes, n_tasks, **extra_params
                     )
                     try:

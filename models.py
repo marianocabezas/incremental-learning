@@ -428,31 +428,31 @@ class ViT_B_16(BaseModel):
         return self.vit(data)
 
 
-def vitb_cifar(n_outputs, lr=1e-3, pretrained=False):
+def vitb_cifar(n_outputs, pretrained=False, lr=1e-3):
     return ViT_B_16(32, 2, n_outputs, pretrained, lr=lr)
 
 
-def vitb_imagenet(n_outputs, lr=1e-3, pretrained=False):
+def vitb_imagenet(n_outputs, pretrained=False, lr=1e-3):
     return ViT_B_16(64, 4, n_outputs, pretrained, lr=lr)
 
 
-def resnet18(n_outputs, lr=1e-3, pretrained=False):
+def resnet18(n_outputs, pretrained=False, lr=1e-3):
     return ResNet2D(n_outputs, pretrained, lr=lr, model=models.resnet18)
 
 
-def resnet34(n_outputs, lr=1e-3, pretrained=False):
+def resnet34(n_outputs, pretrained=False, lr=1e-3):
     return ResNet2D(n_outputs, pretrained, lr=lr, model=models.resnet34)
 
 
-def resnet50(n_outputs, lr=1e-3, pretrained=False):
+def resnet50(n_outputs, pretrained=False, lr=1e-3):
     return ResNet2D(n_outputs, pretrained, lr=lr, model=models.resnet50)
 
 
-def resnet101(n_outputs, lr=1e-3, pretrained=False):
+def resnet101(n_outputs, pretrained=False, lr=1e-3):
     return ResNet2D(n_outputs, pretrained, lr=lr, model=models.resnet101)
 
 
-def resnet152(n_outputs, lr=1e-3, pretrained=False):
+def resnet152(n_outputs, pretrained=False, lr=1e-3):
     return ResNet2D(n_outputs, pretrained, lr=lr, model=models.resnet152)
 
 
