@@ -545,7 +545,7 @@ def main(verbose=2):
     model_suffix = ''
     if m_idx is not None:
         incremental_list = incremental_list[m_idx:m_idx + 1]
-        model_suffix = '_{:}'.format(incremental_list[m_idx])
+        model_suffix = '_{:}'.format(incremental_list[0])
 
     for model in incremental_list:
         incr_name = model[0]
