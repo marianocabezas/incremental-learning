@@ -100,7 +100,7 @@ class BaseModel(nn.Module):
         return pred_labels, x_cuda, y_cuda
 
     def mini_batch_loop(
-        self, data, train=True
+        self, data, train=True, verbose=True
     ):
         """
         This is the main loop. It's "generic" enough to account for multiple
@@ -185,10 +185,10 @@ class BaseModel(nn.Module):
             # Curriculum dropout / Adaptive dropout
             # Here we could modify dropout to be updated for each batch.
             # (1 - rho) * exp(- gamma * t) + rho, gamma > 0
-
-            self.print_progress(
-                batch_i, n_batches, loss_value, np.mean(losses)
-            )
+            if verbose:
+                self.print_progress(
+                    batch_i, n_batches, loss_value, np.mean(losses)
+                )
             torch.cuda.empty_cache()
             torch.cuda.ipc_collect()
 
@@ -247,10 +247,10 @@ class BaseModel(nn.Module):
                 # We set the network to eval, for the same reason.
                 self.eval()
                 # Training losses.
-                self.best_loss_tr = self.mini_batch_loop(train_loader)
+                self.best_loss_tr = self.mini_batch_loop(train_loader, verbose=verbose)
                 # Validation losses.
                 self.best_loss_val, best_loss, best_acc = self.mini_batch_loop(
-                    val_loader, False
+                    val_loader, False, verbose=verbose
                 )
                 # Doing this also helps setting an initial best loss for all
                 # the necessary losses.
@@ -301,7 +301,7 @@ class BaseModel(nn.Module):
             self.t_train = time.time()
             self.train()
             # First we train and check if there has been an improvement.
-            loss_tr = self.mini_batch_loop(train_loader)
+            loss_tr = self.mini_batch_loop(train_loader, verbose=verbose)
             improvement_tr = self.best_loss_tr > loss_tr
             if improvement_tr:
                 self.best_loss_tr = loss_tr
@@ -314,7 +314,7 @@ class BaseModel(nn.Module):
                 self.t_val = time.time()
                 self.eval()
                 loss_val, mid_losses, acc = self.mini_batch_loop(
-                    val_loader, False
+                    val_loader, False, verbose=verbose
                 )
 
             # Mid losses check
