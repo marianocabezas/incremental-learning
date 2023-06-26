@@ -1,3 +1,7 @@
+import os
+import io
+import gzip
+import shutil
 import torch
 from torch import nn
 import torch.nn.functional as F
@@ -216,9 +220,23 @@ class IncrementalModel(BaseModel):
     def save_model(self, net_name):
         net_state = self.get_state()
         torch.save(net_state, net_name)
+        if net_name.endswith('.gz'):
+            zip_name = net_name
+        else:
+            zip_name = net_name + '.gz'
+        with open(net_name, 'rb') as f_in, gzip.open(zip_name, 'wb') as f_out:
+            shutil.copyfileobj(f_in, f_out)
+            os.remove(net_name)
 
     def load_model(self, net_name):
-        net_state = torch.load(net_name, map_location=torch.device('cpu'))
+        if net_name.endswith('.gz'):
+            zip_name = net_name
+        else:
+            zip_name = net_name + '.gz'
+        with gzip.open(zip_name, 'rb') as f:
+            # Use an intermediate buffer
+            x = io.BytesIO(f.read())
+            net_state = torch.load(x, map_location=torch.device('cpu'))
         self.first = net_state['first']
         self.n_classes = net_state['n_classes']
         self.current_task = net_state['task']
