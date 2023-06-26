@@ -292,7 +292,7 @@ class IncrementalModelMemory(IncrementalModel):
             basemodel, best, memory_manager, n_classes, n_tasks, lr, task
         )
 
-    def mini_batch_loop(self, data, train=True):
+    def mini_batch_loop(self, data, train=True, verbose=True):
         if self.memory_manager is not None and self.current_task > 0 and train:
             if self.task_mask is not None:
                 self.task_mask = torch.cat(self.task_masks)
@@ -303,4 +303,4 @@ class IncrementalModelMemory(IncrementalModel):
                 new_dataset, data.batch_size, True,
                 num_workers=data.num_workers, drop_last=True
             )
-        return super().mini_batch_loop(data, train)
+        return super().mini_batch_loop(data, train, verbose)
