@@ -234,6 +234,118 @@ class ResNet18(BaseModel):
         return torch.cat([flat_1, flat_2, flat_3, flat_4, flat_5], dim=1)
 
 
+class ResNet2D(BaseModel):
+    def __init__(
+        self, n_outputs, pretrained=False, lr=1e-3, model=models.resnet18,
+        device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
+        verbose=True
+    ):
+        super().__init__()
+        # Init
+        self.n_classes = n_outputs
+        self.lr = lr
+        self.device = device
+        if pretrained:
+            try:
+                self.resnet = model(weights='IMAGENET1K_V1')
+            except TypeError:
+                self.resnet = model(pretrained)
+        else:
+            self.resnet = model()
+        self.last_features = self.resnet.fc.in_features
+        self.resnet.fc = nn.Linear(self.last_features, self.n_classes)
+
+        # <Loss function setup>
+        self.train_functions = [
+            {
+                'name': 'xentropy',
+                'weight': 1,
+                'f': F.cross_entropy
+            }
+        ]
+
+        self.val_functions = [
+            {
+                'name': 'xent',
+                'weight': 1,
+                'f': F.cross_entropy
+            },
+        ]
+
+        self.update_logs()
+
+        # <Optimizer setup>
+        # We do this last step after all parameters are defined
+        model_params = filter(lambda p: p.requires_grad, self.parameters())
+        self.optimizer_alg = torch.optim.SGD(model_params, lr=self.lr)
+        if verbose > 1:
+            print(
+                'Network created on device {:} with training losses '
+                '[{:}] and validation losses [{:}]'.format(
+                    self.device,
+                    ', '.join([tf['name'] for tf in self.train_functions]),
+                    ', '.join([vf['name'] for vf in self.val_functions])
+                )
+            )
+
+    def reset_optimiser(self, model_params=None):
+        super().reset_optimiser(model_params)
+        if model_params is None:
+            model_params = filter(lambda p: p.requires_grad, self.parameters())
+        self.optimizer_alg = torch.optim.SGD(model_params, lr=self.lr)
+
+    def gram_matrix(self, data):
+        data = self.resnet.conv1(data)
+        data = self.resnet.bn1(data)
+        data = self.resnet.relu(data)
+        data = self.resnet.maxpool(data)
+        data = self.resnet.layer1(data)
+        data = self.resnet.layer2(data)
+        # data = self.resnet.layer3(data)
+        flat_data = torch.flatten(data, 2)
+        G = torch.bmm(flat_data, flat_data.transpose(1, 2))
+        norm = data.numel() / len(data)
+        return G / norm
+
+    def forward(self, data):
+        self.resnet.to(self.device)
+        return self.resnet(data)
+
+    def _feature_seq(self, data):
+        data = self.resnet.conv1(data)
+        data = self.resnet.bn1(data)
+        data = self.resnet.relu(data)
+        data = self.resnet.maxpool(data)
+        data = self.resnet.layer1(data)
+        data = self.resnet.layer2(data)
+        data = self.resnet.layer3(data)
+        return self.resnet.layer4(data)
+
+    def tokenize(self, data):
+        data = self._feature_seq(data)
+        return data.flatten(2).permute(0, 2, 1)
+
+    def prelogits(self, data):
+        data = self._feature_seq(data)
+        return self.resnet.avgpool(data)
+
+    def features(self, data):
+        data = self.resnet.conv1(data)
+        data = self.resnet.bn1(data)
+        data = self.resnet.relu(data)
+        flat_1 = data.flatten(1)
+        data = self.resnet.maxpool(data)
+        data = self.resnet.layer1(data)
+        flat_2 = data.flatten(1)
+        data = self.resnet.layer2(data)
+        flat_3 = data.flatten(1)
+        data = self.resnet.layer3(data)
+        flat_4 = data.flatten(1)
+        data = self.resnet.layer4(data)
+        flat_5 = data.flatten(1)
+        return torch.cat([flat_1, flat_2, flat_3, flat_4, flat_5], dim=1)
+
+
 class ViT_B_16(BaseModel):
     def __init__(
         self, image_size, patch_size,
@@ -322,6 +434,26 @@ def vitb_cifar(n_outputs, lr=1e-3, pretrained=False):
 
 def vitb_imagenet(n_outputs, lr=1e-3, pretrained=False):
     return ViT_B_16(64, 4, n_outputs, pretrained, lr=lr)
+
+
+def resnet18(n_outputs, lr=1e-3, pretrained=False):
+    return ResNet2D(n_outputs, pretrained, lr=lr, model=models.resnet18)
+
+
+def resnet34(n_outputs, lr=1e-3, pretrained=False):
+    return ResNet2D(n_outputs, pretrained, lr=lr, model=models.resnet34)
+
+
+def resnet50(n_outputs, lr=1e-3, pretrained=False):
+    return ResNet2D(n_outputs, pretrained, lr=lr, model=models.resnet50)
+
+
+def resnet101(n_outputs, lr=1e-3, pretrained=False):
+    return ResNet2D(n_outputs, pretrained, lr=lr, model=models.resnet101)
+
+
+def resnet152(n_outputs, lr=1e-3, pretrained=False):
+    return ResNet2D(n_outputs, pretrained, lr=lr, model=models.resnet152)
 
 
 class SimpleUNet(BaseModel):
