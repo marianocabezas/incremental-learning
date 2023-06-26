@@ -1,4 +1,8 @@
+import os
+import io
+import gzip
 import time
+import shutil
 import itertools
 from functools import partial
 from copy import deepcopy
@@ -655,11 +659,25 @@ class BaseModel(nn.Module):
 
     def save_model(self, net_name):
         torch.save(self.state_dict(), net_name)
+        if net_name.endswith('.gz'):
+            zip_name = net_name
+        else:
+            zip_name = net_name + '.gz'
+        with open(net_name, 'rb') as f_in, gzip.open(zip_name, 'wb') as f_out:
+            shutil.copyfileobj(f_in, f_out)
+            os.remove(net_name)
 
     def load_model(self, net_name):
-        self.load_state_dict(
-            torch.load(net_name, map_location=self.device)
-        )
+        if net_name.endswith('.gz'):
+            zip_name = net_name
+        else:
+            zip_name = net_name + '.gz'
+        with gzip.open(zip_name, 'rb') as f:
+            # Use an intermediate buffer
+            x = io.BytesIO(f.read())
+            self.load_state_dict(
+                torch.load(x, map_location=self.device)
+            )
 
 
 class DualAttentionAutoencoder(BaseModel):
