@@ -51,6 +51,11 @@ def parse_inputs():
         dest='no_color', default=False, action='store_true',
         help='Whether to print with colors (bad for log files).'
     )
+    parser.add_argument(
+        '-c', '--clean',
+        dest='clean', default=False, action='store_true',
+        help='Whether to remove all weight files.'
+    )
     options = vars(parser.parse_args())
 
     return options
@@ -138,7 +143,7 @@ def split_data(d_tr, d_te, classes, randomise=True):
 
 def train(
     config, seed, net, training, model_name, epochs, patience, task,
-    verbose=0
+    verbose=0, clean=False
 ):
     """
 
@@ -198,7 +203,8 @@ def train(
                 train_loader, val_loader, epochs=epochs, patience=patience,
                 verbose=(not config['no_color'])
             )
-        net.save_model(os.path.join(path, model_name))
+        if not clean:
+            net.save_model(os.path.join(path, model_name))
 
 
 def test(config, net, testing, task, n_classes, verbose=0):
@@ -672,7 +678,7 @@ def main(verbose=2):
                 )
                 train(
                     config, seed, net, training_set,
-                    model_name, 1, n_tasks, 2
+                    model_name, 1, n_tasks, 2, clean=options['clean']
                 )
                 update_results(
                     config, net, seed, epoch, epochs, nc_per_task, 0,
@@ -753,7 +759,7 @@ def main(verbose=2):
                             )
                             train(
                                 config, seed, net, training_set,
-                                model_name, 1, 1, t_i, 2
+                                model_name, 1, 1, t_i, 2, clean=options['clean']
                             )
                             update_results(
                                 config, net, seed, epoch, n_e, nc_per_task,
