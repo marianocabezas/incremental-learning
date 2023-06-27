@@ -678,7 +678,7 @@ def main(verbose=2):
                 )
                 train(
                     config, seed, net, training_set,
-                    model_name, 1, n_tasks, 2, clean=options['clean']
+                    model_name, 1, n_tasks, 2
                 )
                 update_results(
                     config, net, seed, epoch, epochs, nc_per_task, 0,
