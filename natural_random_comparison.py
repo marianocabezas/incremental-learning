@@ -176,11 +176,11 @@ def train(
         if verbose > 1:
             print('Dataloader creation')
         train_loader = DataLoader(
-            train_dataset, config['train_batch'], True, num_workers=8,
+            train_dataset, config['train_batch'], True, num_workers=config['workers'],
             drop_last=True
         )
         val_loader = DataLoader(
-            train_dataset, config['train_batch'], num_workers=8,
+            train_dataset, config['train_batch'], num_workers=config['workers'],
             drop_last=True
         )
 
@@ -209,7 +209,7 @@ def test(config, net, testing, task, n_classes, verbose=0):
     task_mask = testing[0]
     dataset = getattr(datasets, config['validation'])(testing[1], testing[2])
     test_loader = DataLoader(
-        dataset, config['test_batch'], num_workers=32
+        dataset, config['test_batch'], num_workers=config['workers']
     )
     test_start = time.time()
     accuracy_list = []
@@ -434,6 +434,10 @@ def main(verbose=2):
         memories = config['memories']
     except KeyError:
         memories = 1000
+    try:
+        workers = config['workers']
+    except KeyError:
+        config['workers'] = 8
 
     if config['no_color']:
         print(
