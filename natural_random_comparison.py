@@ -265,52 +265,51 @@ def update_results(
     training, testing, results, n_classes, verbose=0
 ):
     def _update_results(results_dict, e_indx):
-        if epoch < e_indx:
-            results_dict[seed][k]['training'][e_indx][
-                step, epoch, ...
-            ] += tr_matrix
-            results_dict[seed][k]['testing'][e_indx][
-                step, epoch, ...
-            ] += tst_matrix
-            results_dict[seed][k]['task_training'][e_indx][
-                step, epoch, ...
-            ] += ttr_matrix
-            results_dict[seed][k]['task_testing'][e_indx][
-                step, epoch, ...
-            ] += ttst_matrix
-            if step == 0:
-                for tr_k in np.unique(tr_classes):
-                    results_dict[seed][k]['init_accuracy_training'][
-                        0, 0, tr_k, :
-                    ] = tr_acc[tr_classes == tr_k]
-                for tst_k in np.unique(tst_classes):
-                    results_dict[seed][k]['init_accuracy_testing'][
-                        0, 0, tst_k, :
-                    ] = tst_acc[tst_classes == tst_k]
-            elif step == 1:
-                for tr_k in np.unique(tr_classes):
-                    results_dict[seed][k]['base_accuracy_training'][
-                        0, epoch, tr_k, :
-                    ] = tr_acc[tr_classes == tr_k]
-                for tst_k in np.unique(tst_classes):
-                    results_dict[seed][k]['base_accuracy_testing'][
-                        0, epoch, tst_k, :
-                    ] = tst_acc[tst_classes == tst_k]
-            else:
-                for tr_k in np.unique(tr_classes):
-                    results_dict[seed][k]['accuracy_training'][e_indx][
-                        step - 2, epoch + 1, tr_k, :
-                    ] = tr_acc[tr_classes == tr_k]
-                    results_dict[seed][k]['task_accuracy_training'][e_indx][
-                        step - 2, epoch + 1, tr_k, :
-                    ] = ttr_acc[tr_classes == tr_k]
-                for tst_k in np.unique(tst_classes):
-                    results_dict[seed][k]['accuracy_testing'][e_indx][
-                        step - 2, epoch + 1, tst_k, :
-                    ] = tst_acc[tst_classes == tst_k]
-                    results_dict[seed][k]['task_accuracy_testing'][e_indx][
-                        step - 2, epoch + 1, tst_k, :
-                    ] = ttst_acc[tst_classes == tst_k]
+        results_dict[seed][k]['training'][e_indx][
+            step, epoch, ...
+        ] += tr_matrix
+        results_dict[seed][k]['testing'][e_indx][
+            step, epoch, ...
+        ] += tst_matrix
+        results_dict[seed][k]['task_training'][e_indx][
+            step, epoch, ...
+        ] += ttr_matrix
+        results_dict[seed][k]['task_testing'][e_indx][
+            step, epoch, ...
+        ] += ttst_matrix
+        if step == 0:
+            for tr_k in np.unique(tr_classes):
+                results_dict[seed][k]['init_accuracy_training'][
+                    0, 0, tr_k, :
+                ] = tr_acc[tr_classes == tr_k]
+            for tst_k in np.unique(tst_classes):
+                results_dict[seed][k]['init_accuracy_testing'][
+                    0, 0, tst_k, :
+                ] = tst_acc[tst_classes == tst_k]
+        elif step == 1:
+            for tr_k in np.unique(tr_classes):
+                results_dict[seed][k]['base_accuracy_training'][
+                    0, epoch, tr_k, :
+                ] = tr_acc[tr_classes == tr_k]
+            for tst_k in np.unique(tst_classes):
+                results_dict[seed][k]['base_accuracy_testing'][
+                    0, epoch, tst_k, :
+                ] = tst_acc[tst_classes == tst_k]
+        else:
+            for tr_k in np.unique(tr_classes):
+                results_dict[seed][k]['accuracy_training'][e_indx][
+                    step - 2, epoch + 1, tr_k, :
+                ] = tr_acc[tr_classes == tr_k]
+                results_dict[seed][k]['task_accuracy_training'][e_indx][
+                    step - 2, epoch + 1, tr_k, :
+                ] = ttr_acc[tr_classes == tr_k]
+            for tst_k in np.unique(tst_classes):
+                results_dict[seed][k]['accuracy_testing'][e_indx][
+                    step - 2, epoch + 1, tst_k, :
+                ] = tst_acc[tst_classes == tst_k]
+                results_dict[seed][k]['task_accuracy_testing'][e_indx][
+                    step - 2, epoch + 1, tst_k, :
+                ] = ttst_acc[tst_classes == tst_k]
 
     seed = str(seed)
     k = str(nc_per_task)
@@ -326,11 +325,11 @@ def update_results(
         )
         if step > 1:
             try:
-                _update_results(results, total_epochs)
+                _update_results(results, total_epochs - 1)
 
             except KeyError:
                 for results_i in results.values():
-                    _update_results(results_i, total_epochs)
+                    _update_results(results_i, total_epochs - 1)
         else:
             for n_e in range(total_epochs):
                 try:
@@ -748,7 +747,7 @@ def main(verbose=2):
                     for n_e in range(epochs):
                         net = all_incr[n_e][incr_name]
                         net.to(net.device)
-                        for epoch in range(n_e):
+                        for epoch in range(n_e + 1):
                             model_name = os.path.join(
                                 model_path,
                                 '{:}-{:}-t{:02d}.s{:05d}.c{:02d}'
@@ -762,7 +761,7 @@ def main(verbose=2):
                                 model_name, 1, 1, t_i, 2, clean=options['clean']
                             )
                             update_results(
-                                config, net, seed, epoch, n_e, nc_per_task,
+                                config, net, seed, epoch, n_e + 1, nc_per_task,
                                 t_i + 2, training_tasks, testing_tasks,
                                 results_i, n_classes, 2
                             )
