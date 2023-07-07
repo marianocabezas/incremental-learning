@@ -749,6 +749,7 @@ def main(verbose=2):
                         net = all_incr[n_e][incr_name]
                         net.to(net.device)
                         for epoch in range(n_e + 1):
+                            print(n_e, epoch)
                             model_name = os.path.join(
                                 model_path,
                                 '{:}-{:}-t{:02d}.s{:05d}.c{:02d}'
