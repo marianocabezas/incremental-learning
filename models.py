@@ -346,7 +346,7 @@ class ResNet2D(BaseModel):
         return torch.cat([flat_1, flat_2, flat_3, flat_4, flat_5], dim=1)
 
 
-class ViT_B_16(BaseModel):
+class ViT_B(BaseModel):
     def __init__(
         self, image_size, patch_size,
         n_outputs, pretrained=False, lr=1e-3,
@@ -446,12 +446,93 @@ class ViT_B_16(BaseModel):
         return self.vit(data)
 
 
+class ViT_B_16(BaseModel):
+    def __init__(
+        self, image_size, patch_size,
+        n_outputs, pretrained=False, lr=1e-3,
+        device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
+        verbose=True
+    ):
+        super().__init__()
+        # Init
+        self.n_classes = n_outputs
+        self.lr = lr
+        self.device = device
+        if pretrained:
+            try:
+                self.vit = models.vit_b_16(
+                    weights=models.ViT_B_16_Weights.IMAGENET1K_V1
+                )
+            except TypeError:
+                self.vit = models.vit_b_16(pretrained=True)
+        else:
+            self.vit = self.vit = models.vit_b_16()
+        self.last_features = self.vit.heads[0].in_features
+        self.vit.heads[0] = nn.Linear(self.last_features, self.n_classes)
+
+        # <Loss function setup>
+        self.train_functions = [
+            {
+                'name': 'xentropy',
+                'weight': 1,
+                'f': F.cross_entropy
+            }
+        ]
+
+        self.val_functions = [
+            {
+                'name': 'xent',
+                'weight': 1,
+                'f': F.cross_entropy
+            },
+        ]
+
+        self.update_logs()
+
+        # <Optimizer setup>
+        # We do this last step after all parameters are defined
+        model_params = filter(lambda p: p.requires_grad, self.parameters())
+        self.optimizer_alg = torch.optim.SGD(model_params, lr=self.lr)
+        if verbose > 1:
+            print(
+                'Network created on device {:} with training losses '
+                '[{:}] and validation losses [{:}]'.format(
+                    self.device,
+                    ', '.join([tf['name'] for tf in self.train_functions]),
+                    ', '.join([vf['name'] for vf in self.val_functions])
+                )
+            )
+
+    def reset_optimiser(self, model_params=None):
+        super().reset_optimiser(model_params)
+        if model_params is None:
+            model_params = filter(lambda p: p.requires_grad, self.parameters())
+        self.optimizer_alg = torch.optim.SGD(model_params, lr=self.lr)
+
+    def gram_matrix(self, data):
+        data = self.vit._process_input(data)
+        n = data.shape[0]
+        # Expand the class token to the full batch
+        batch_class_token = self.vit.class_token.expand(n, -1, -1)
+        data = torch.cat([batch_class_token, data], dim=1)
+        data = self.vit.encoder(data)
+
+        flat_data = data[:, 1:].unsqueeze(1)
+        G = torch.bmm(flat_data, flat_data.transpose(1, 2))
+        norm = data.numel() / len(data)
+        return G / norm
+
+    def forward(self, data):
+        self.vit.to(self.device)
+        return self.vit(data)
+
+
 def vitb_cifar(n_outputs, pretrained=False, lr=1e-3):
-    return ViT_B_16(32, 2, n_outputs, pretrained, lr=lr)
+    return ViT_B(32, 2, n_outputs, pretrained, lr=lr)
 
 
 def vitb_imagenet(n_outputs, pretrained=False, lr=1e-3):
-    return ViT_B_16(64, 4, n_outputs, pretrained, lr=lr)
+    return ViT_B(64, 4, n_outputs, pretrained, lr=lr)
 
 
 def resnet18(n_outputs, pretrained=False, lr=1e-3):
