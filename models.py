@@ -359,14 +359,32 @@ class ViT_B_16(BaseModel):
         self.lr = lr
         self.device = device
         if pretrained:
-            self.vit = models.vit_b_16(
-                image_size=image_size, patch_size=patch_size,
-                weights=models.ViT_B_16_Weights.IMAGENET1K_V1
-            )
+            try:
+                self.vit = models.vit_b_16(
+                    weights=models.ViT_B_16_Weights.IMAGENET1K_V1
+                )
+            except TypeError:
+                self.vit = models.vision_transformer._vision_transformer(
+                    arch="vit_b_16",
+                    image_size=image_size,
+                    patch_size=patch_size,
+                    num_layers=12,
+                    num_heads=12,
+                    hidden_dim=768,
+                    mlp_dim=3072,
+                    pretrained=pretrained,
+                    progress=True
+                )
         else:
-            self.vit = models.vit_b_16(
-                image_size=image_size, patch_size=patch_size,
-                weights=None
+            self.vit = models.vision_transformer._vision_transformer(
+                arch="vit_b_16",
+                image_size=image_size,
+                patch_size=patch_size,
+                num_layers=12,
+                num_heads=12,
+                hidden_dim=768,
+                mlp_dim=3072,
+                progress=True
             )
         self.last_features = self.vit.heads[0].in_features
         self.vit.heads[0] = nn.Linear(self.last_features, self.n_classes)
