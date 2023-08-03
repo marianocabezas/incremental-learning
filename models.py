@@ -448,8 +448,7 @@ class ViT_B(BaseModel):
 
 class ViT_B_16(BaseModel):
     def __init__(
-        self, image_size, patch_size,
-        n_outputs, pretrained=False, lr=1e-3,
+        self, n_outputs, pretrained=False, lr=1e-3,
         device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
         verbose=True
     ):
