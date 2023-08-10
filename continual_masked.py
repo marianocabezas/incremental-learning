@@ -262,6 +262,17 @@ class IncrementalModel(BaseModel):
         if self.task:
             pred_labels = pred_labels[:, self.task_mask]
             y_cuda = update_y(y_cuda, self.task_mask)
+        else:
+            ignore_mask = torch.from_numpy(
+                np.array([
+                    idx for idx in range(self.n_classes)
+                    if idx not in self.task_mask
+                ])
+            )
+            pred_labels = torch.cat([
+                pred_labels[:, self.task_mask],
+                pred_labels[:, ignore_mask].detach()
+            ], dim=-1)
 
         return pred_labels, x_cuda, y_cuda
 
