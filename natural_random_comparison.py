@@ -370,28 +370,29 @@ def save_results(config, file_name, results):
     path = config['results_path']
     json_file = os.path.join(path, json_name)
     pickle_file = os.path.join(path, pickle_name)
-    results_tmp = deepcopy(results)
+    r_tmp = deepcopy(results)
 
-    save_compressed_pickle(results_tmp, pickle_file)
+    save_compressed_pickle(r_tmp, pickle_file)
 
-    for incr_name, r_incr in results.items():
+    for incr, r_incr in results.items():
         for seed, r_seed in r_incr.items():
             for nc_x_task, r_nc in r_seed.items():
                 for name, r_numpy in r_nc.items():
                     if isinstance(r_numpy, np.ndarray):
-                        results_tmp[incr_name][seed][nc_x_task][name] = r_numpy.tolist()
+                        r = r_numpy.tolist()
+                        r_tmp[incr][seed][nc_x_task][name] = r
                     elif isinstance(r_numpy, dict):
                         for loss, r_array in r_numpy.items():
                             if isinstance(r_array, np.ndarray):
                                 r = r_array.tolist()
-                                results_tmp[incr_name][seed][nc_x_task][name][loss] = r
+                                r_tmp[incr][seed][nc_x_task][name][loss] = r
                     elif isinstance(r_numpy, list):
-                        results_tmp[incr_name][seed][nc_x_task][name] = [
+                        r_tmp[incr][seed][nc_x_task][name] = [
                             npy_i.tolist() if isinstance(npy_i, np.ndarray)
                             else npy_i for npy_i in r_numpy
                         ]
 
-    save_compressed_json(results_tmp, json_file)
+    save_compressed_json(r_tmp, json_file)
 
 
 """
