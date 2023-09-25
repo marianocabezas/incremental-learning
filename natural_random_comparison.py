@@ -8,6 +8,7 @@ import yaml
 import torch
 from torch.nn import ModuleList
 from torch.utils.data import DataLoader
+from torchvision import transforms
 from time import strftime
 from copy import deepcopy
 from utils import color_codes, time_to_string
@@ -74,12 +75,28 @@ def load_datasets(experiment_config):
     else:
         data_packages = data_path.split('.')
         datasets = importlib.import_module('.'.join(data_packages[:-1]))
-        d_tr = getattr(datasets, data_packages[-1])(
-            tmp_path, train=True, download=True
-        )
-        d_te = getattr(datasets, data_packages[-1])(
-            tmp_path, train=False, download=True
-        )
+        try:
+            crop = experiment_config['crop']
+            tf = transforms.Compose([
+                transforms.CenterCrop(crop),
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                ),
+            ])
+            d_tr = getattr(datasets, data_packages[-1])(
+                tmp_path, train=True, download=True, transform=tf
+            )
+            d_te = getattr(datasets, data_packages[-1])(
+                tmp_path, train=False, download=True, transform=tf
+            )
+        except KeyError:
+            d_tr = getattr(datasets, data_packages[-1])(
+                tmp_path, train=True, download=True
+            )
+            d_te = getattr(datasets, data_packages[-1])(
+                tmp_path, train=False, download=True
+            )
 
     s_tr = count_samples(d_tr)
     s_te = count_samples(d_te)
@@ -588,7 +605,7 @@ def main(verbose=2):
             np.random.seed(seed)
             torch.manual_seed(seed)
             net = network(n_outputs=n_classes, pretrained=pretrained)
-            alltraining_tasks, testing_tasks, task_list = split_data(
+            training_tasks, testing_tasks, task_list = split_data(
                 d_tr, d_te, nc_per_task, randomise=randomise
             )
             all_incr = [{} for _ in range(epochs)]
@@ -629,7 +646,6 @@ def main(verbose=2):
             # this is that we want to measure forgetting and that is easier to
             # measure if we only focus on the training set and leave the testing
             # set as an independent generalisation test.
-            training_tasks = alltraining_tasks
 
             # Baseline model (full continuum access)
             try:
