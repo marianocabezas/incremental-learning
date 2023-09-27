@@ -81,20 +81,25 @@ def load_datasets(experiment_config):
         data_packages = data_path.split('.')
         datasets = importlib.import_module('.'.join(data_packages[:-1]))
         if imagenet:
+            tf = transforms.Compose([
+                transforms.Resize(150),
+                transforms.CenterCrop(128),
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                )
+            ])
+            d_tr = getattr(datasets, data_packages[-1])(
+                tmp_path, 'train', transform=tf
+            )
+            d_te = getattr(datasets, data_packages[-1])(
+                tmp_path, 'val', transform=tf
+            )
+        else:
             d_tr = getattr(datasets, data_packages[-1])(
                 tmp_path, train=True, download=True
             )
-        else:
-            d_tr = getattr(datasets, data_packages[-1])(
-                tmp_path, 'train'
-            )
-        if imagenet:
             d_te = getattr(datasets, data_packages[-1])(
                 tmp_path, train=False, download=True
-            )
-        else:
-            d_te = getattr(datasets, data_packages[-1])(
-                tmp_path, 'val'
             )
 
     if imagenet:
