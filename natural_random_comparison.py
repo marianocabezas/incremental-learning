@@ -70,12 +70,17 @@ def parse_inputs():
 def load_datasets(experiment_config):
     data_path = experiment_config['path']
     tmp_path = experiment_config['tmp_path']
+    try:
+        imagenet = experiment_config['imagenet']
+    except KeyError:
+        imagenet = False
+
     if os.path.exists(data_path):
         d_tr, d_te = torch.load(data_path)
     else:
         data_packages = data_path.split('.')
         datasets = importlib.import_module('.'.join(data_packages[:-1]))
-        if 'ImageNet' not in data_path:
+        if imagenet:
             d_tr = getattr(datasets, data_packages[-1])(
                 tmp_path, train=True, download=True
             )
@@ -83,7 +88,7 @@ def load_datasets(experiment_config):
             d_tr = getattr(datasets, data_packages[-1])(
                 tmp_path, 'train'
             )
-        if 'ImageNet' not in data_path:
+        if imagenet:
             d_te = getattr(datasets, data_packages[-1])(
                 tmp_path, train=False, download=True
             )
@@ -92,8 +97,12 @@ def load_datasets(experiment_config):
                 tmp_path, 'val'
             )
 
-    s_tr = count_samples(d_tr)
-    s_te = count_samples(d_te)
+    if imagenet:
+        s_tr = len(d_tr) // len(d_tr.classes)
+        s_te = len(d_te) // len(d_te.classes)
+    else:
+        s_tr = count_samples(d_tr)
+        s_te = count_samples(d_te)
 
     return d_tr, d_te, s_tr, s_te
 
@@ -126,20 +135,51 @@ def split_dataset(dataset, tasks):
     return task_split
 
 
-def split_data(d_tr, d_te, classes, randomise=True):
-    all_classes = np.unique([y for _, y in d_tr]).tolist()
+def split_imagenet(dataset, all_classes, classes):
+    n_tasks = len(all_classes) // classes
+
+    tasks = []
+    for i in range(n_tasks):
+        task_classes = all_classes[i * classes:i * classes + classes]
+        task_class_idx = [
+            idx for idx, _ in task_classes
+        ]
+        d_task = deepcopy(dataset)
+        d_task.classes = task_classes
+        d_task.class_to_idx = {
+            cls: idx for idx, clss in task_classes for cls in clss
+        }
+        d_task.samples = d_task.make_dataset(
+            d_task.root, d_task.class_to_idx
+        )
+        d_task.targets = [s[1] for s in d_task.samples]
+        tasks.append((task_class_idx, d_task))
+    return tasks
+
+
+def split_data(d_tr, d_te, classes, randomise=True, imagenet=False):
+    # For ImageNet we want to avoid going image by image (time efficient).
+    if imagenet:
+        all_classes = [(cls_i, cls) for cls_i, cls in enumerate(d_tr.classes)]
+    else:
+        all_classes = np.unique([y for _, y in d_tr]).tolist()
+
     if randomise:
         all_classes = np.random.permutation(all_classes).tolist()
+
     n_tasks = len(all_classes) // classes
     if len(all_classes) % classes == 0:
-        tasks = [
-            tuple(all_classes[i * classes:i * classes + classes])
-            for i in range(n_tasks)
-        ]
+        if imagenet:
+            tasks_tr = split_imagenet(d_tr, all_classes, classes)
+            tasks_te = split_imagenet(d_te, all_classes, classes)
 
-        tasks_tr = split_dataset(d_tr, tasks)
-        tasks_te = split_dataset(d_te, tasks)
-
+        else:
+            tasks = [
+                tuple(all_classes[i * classes:i * classes + classes])
+                for i in range(n_tasks)
+            ]
+            tasks_tr = split_dataset(d_tr, tasks)
+            tasks_te = split_dataset(d_te, tasks)
     else:
         tasks_tr = []
         tasks_te = []
@@ -186,8 +226,12 @@ def train(
         # Training
         if verbose > 1:
             print('< Training dataset >')
-        dmask, dtrain, ltrain = training
-        train_dataset = getattr(datasets, config['training'])(dtrain, ltrain)
+
+        try:
+            dmask, dtrain, ltrain = training
+            train_dataset = getattr(datasets, config['training'])(dtrain, ltrain)
+        except ValueError:
+            dmask, train_dataset = training
 
         if verbose > 1:
             print('Dataloader creation')
@@ -224,7 +268,11 @@ def test(config, net, testing, task, n_classes, verbose=0):
     task_matrix = np.zeros((n_classes, n_classes))
     datasets = importlib.import_module('datasets')
     task_mask = testing[0]
-    dataset = getattr(datasets, config['validation'])(testing[1], testing[2])
+    try:
+        dataset = getattr(datasets, config['validation'])(testing[1], testing[2])
+    except IndexError:
+        dataset = testing[1]
+
     test_loader = DataLoader(
         dataset, config['test_batch'], num_workers=config['workers']
     )
@@ -456,6 +504,10 @@ def main(verbose=2):
         workers = config['workers']
     except KeyError:
         config['workers'] = 8
+    try:
+        imagenet = config['imagenet']
+    except KeyError:
+        imagenet = False
 
     if config['no_color']:
         print(
@@ -600,7 +652,8 @@ def main(verbose=2):
             torch.manual_seed(seed)
             net = network(n_outputs=n_classes, pretrained=pretrained)
             training_tasks, testing_tasks, task_list = split_data(
-                d_tr, d_te, nc_per_task, randomise=randomise
+                d_tr, d_te, nc_per_task, randomise=randomise,
+                imagenet=imagenet
             )
             all_incr = [{} for _ in range(epochs)]
             starting_model = os.path.join(
