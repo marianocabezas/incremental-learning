@@ -75,19 +75,19 @@ def load_datasets(experiment_config):
     else:
         data_packages = data_path.split('.')
         datasets = importlib.import_module('.'.join(data_packages[:-1]))
-        try:
+        if not 'ImageNet' in data_path:
             d_tr = getattr(datasets, data_packages[-1])(
                 tmp_path, train=True, download=True
             )
-        except TypeError:
+        else:
             d_tr = getattr(datasets, data_packages[-1])(
                 tmp_path, 'train'
             )
-        try:
+        if not 'ImageNet' in data_path:
             d_te = getattr(datasets, data_packages[-1])(
                 tmp_path, train=False, download=True
             )
-        except TypeError:
+        else:
             d_te = getattr(datasets, data_packages[-1])(
                 tmp_path, 'val'
             )
