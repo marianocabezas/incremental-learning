@@ -4,6 +4,7 @@ import itertools
 from copy import deepcopy
 import numpy as np
 import nibabel as nib
+import torch
 from torch.utils.data.dataset import Dataset
 from utils import get_bb, find_file, time_to_string
 
@@ -409,7 +410,7 @@ class NaturalDataset(Dataset):
         self.labels = labels
 
     def __getitem__(self, index):
-        x = self.data[index]
+        x = self.data[index].to(dtype=torch.float32)
         width = int(np.sqrt(len(x) / 3))
         x = x.view(3, width, width)
         y = self.labels[index]

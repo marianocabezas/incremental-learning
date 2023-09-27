@@ -6,13 +6,11 @@ import sys
 import traceback
 import json
 import gzip
-from functools import reduce
 from scipy import ndimage as nd
 import numpy as np
 from nibabel import load as load_nii
 from scipy.ndimage.morphology import binary_dilation as imdilate
 from scipy.ndimage.morphology import binary_erosion as imerode
-import torch
 
 
 """

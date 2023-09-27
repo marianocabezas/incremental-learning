@@ -76,26 +76,20 @@ def load_datasets(experiment_config):
         data_packages = data_path.split('.')
         datasets = importlib.import_module('.'.join(data_packages[:-1]))
         try:
-            crop = experiment_config['crop']
-            tf = transforms.Compose([
-                transforms.CenterCrop(crop),
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-                ),
-            ])
-            d_tr = getattr(datasets, data_packages[-1])(
-                tmp_path, train=True, download=True, transform=tf
-            )
-            d_te = getattr(datasets, data_packages[-1])(
-                tmp_path, train=False, download=True, transform=tf
-            )
-        except KeyError:
             d_tr = getattr(datasets, data_packages[-1])(
                 tmp_path, train=True, download=True
             )
+        except TypeError:
+            d_tr = getattr(datasets, data_packages[-1])(
+                tmp_path, 'train'
+            )
+        try:
             d_te = getattr(datasets, data_packages[-1])(
                 tmp_path, train=False, download=True
+            )
+        except TypeError:
+            d_te = getattr(datasets, data_packages[-1])(
+                tmp_path, 'val'
             )
 
     s_tr = count_samples(d_tr)
@@ -119,6 +113,14 @@ def split_dataset(dataset, tasks):
     tr_labels = [[] for _ in range(n_tasks)]
     for x, y in dataset:
         task_index = np.where([np.isin(y, t_i).tolist() for t_i in tasks])[0][0]
+        # crop = experiment_config['crop']
+        # tf = transforms.Compose([
+        #     transforms.CenterCrop(crop),
+        #     transforms.ToTensor(),
+        #     transforms.Normalize(
+        #         mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+        #     ),
+        # ])
         x_numpy = np.moveaxis(
             np.array(x.getdata(), dtype=np.float32), 0, 1
         ) / 255
@@ -585,14 +587,14 @@ def main(verbose=2):
     for test_n, seed in enumerate(seeds):
         if config['no_color']:
             print(
-                '[{:}] Starting cross-validation (model: {:})'
+                '[{:}] Starting experiment (model: {:})'
                 ' (seed {:d})'.format(
                     strftime("%H:%M:%S"), model_base, seed
                 )
             )
         else:
             print(
-                '{:}[{:}] {:}Starting cross-validation (model: {:}){:}'
+                '{:}[{:}] {:}Starting experiment (model: {:}){:}'
                 ' (seed {:d}){:}'.format(
                     c['clr'] + c['c'], strftime("%H:%M:%S"), c['g'], model_base,
                     c['nc'] + c['y'], seed, c['nc']
@@ -623,17 +625,17 @@ def main(verbose=2):
             if verbose > 0:
                 if config['no_color']:
                     print(
-                        'Testing initial weights - {:02d}/{:02d} '
+                        '[{:}] Testing initial weights - {:02d}/{:02d} '
                         '[{:02d}/{:02d}] ({:} parameters)'.format(
-                            k_i + 1, len(class_list), test_n + 1,
-                            len(seeds), str(n_param)
+                            strftime("%H:%M:%S"), k_i + 1, len(class_list),
+                            test_n + 1, len(seeds), str(n_param)
                         )
                     )
                 else:
                     print(
-                        '{:}Testing initial weights{:} - {:02d}/{:02d} '
+                        '{:}[{:}] Testing initial weights{:} - {:02d}/{:02d} '
                         '[{:02d}/{:02d}] ({:} parameters)'.format(
-                            c['clr'] + c['c'], c['nc'],
+                            strftime("%H:%M:%S"), c['clr'] + c['c'], c['nc'],
                             k_i + 1, len(class_list), test_n + 1,
                             len(seeds), c['b'] + str(n_param) + c['nc']
                         )
