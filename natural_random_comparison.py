@@ -426,7 +426,7 @@ def empty_confusion_matrix(n_tasks, n_epochs, n_classes):
 
 
 def empty_model_accuracies(n_tasks, n_epochs, n_classes, n_samples):
-    return np.zeros((n_tasks, n_epochs, n_classes, n_samples))
+    return np.zeros((n_tasks, n_epochs, n_classes, n_samples), dtype=bool)
 
 
 def save_results(config, file_name, results):
