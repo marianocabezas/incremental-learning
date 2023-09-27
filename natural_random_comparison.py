@@ -151,7 +151,7 @@ def split_imagenet(dataset, all_classes, classes):
             idx for idx, _ in task_classes
         ]
         d_task = deepcopy(dataset)
-        d_task.classes = task_classes
+        d_task.classes = [cls for _, cls in task_classes]
         d_task.class_to_idx = {
             cls: idx for idx, clss in task_classes for cls in clss
         }
