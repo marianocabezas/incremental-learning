@@ -156,7 +156,7 @@ def split_imagenet(dataset, all_classes, classes):
             cls: idx for idx, clss in task_classes for cls in clss
         }
         d_task.samples = d_task.make_dataset(
-            d_task.root, d_task.class_to_idx
+            d_task.root, d_task.class_to_idx, d_task.extensions
         )
         d_task.targets = [s[1] for s in d_task.samples]
         tasks.append((task_class_idx, d_task))
