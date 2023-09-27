@@ -113,14 +113,6 @@ def split_dataset(dataset, tasks):
     tr_labels = [[] for _ in range(n_tasks)]
     for x, y in dataset:
         task_index = np.where([np.isin(y, t_i).tolist() for t_i in tasks])[0][0]
-        # crop = experiment_config['crop']
-        # tf = transforms.Compose([
-        #     transforms.CenterCrop(crop),
-        #     transforms.ToTensor(),
-        #     transforms.Normalize(
-        #         mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-        #     ),
-        # ])
         x_numpy = np.moveaxis(
             np.array(x.getdata(), dtype=np.float32), 0, 1
         ) / 255
@@ -635,7 +627,7 @@ def main(verbose=2):
                     print(
                         '{:}[{:}] Testing initial weights{:} - {:02d}/{:02d} '
                         '[{:02d}/{:02d}] ({:} parameters)'.format(
-                            c['clr'] + c['c'], c['nc'], strftime("%H:%M:%S"),
+                            c['clr'] + c['c'], strftime("%H:%M:%S"), c['nc'],
                             k_i + 1, len(class_list), test_n + 1,
                             len(seeds), c['b'] + str(n_param) + c['nc']
                         )
