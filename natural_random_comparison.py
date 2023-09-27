@@ -84,6 +84,7 @@ def load_datasets(experiment_config):
             tf = transforms.Compose([
                 transforms.Resize(150),
                 transforms.CenterCrop(128),
+                transforms.ToTensor(),
                 transforms.Normalize(
                     mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
                 )
@@ -538,7 +539,10 @@ def main(verbose=2):
         class_list = config['classes_task']
     except KeyError:
         class_list = [2]
-    n_classes = len(np.unique([y for _, y in d_tr]))
+    if imagenet:
+        n_classes = len(d_tr.classes)
+    else:
+        n_classes = len(np.unique([y for _, y in d_tr]))
     try:
         randomise = config['randomise_split']
     except KeyError:
