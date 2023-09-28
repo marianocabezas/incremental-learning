@@ -158,7 +158,7 @@ def split_imagenet(dataset, all_classes, classes):
     for i in range(n_tasks):
         class_names = sorted(os.listdir(dataset.split_folder))
         task_classes = all_classes[i * classes:i * classes + classes]
-        task_class_idx = tuple([
+        task_class_idx = torch.tensor([
             idx for idx, _ in task_classes
         ])
         d_task = deepcopy(dataset)
