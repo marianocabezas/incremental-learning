@@ -360,37 +360,69 @@ def update_results(
             ] += ttst_matrix
             if step == 0:
                 for tr_k in np.unique(tr_classes):
+                    k_results = tr_acc[tr_classes == tr_k]
                     results_dict[seed][k]['init_accuracy_training'][
-                        0, 0, tr_k, :
-                    ] = tr_acc[tr_classes == tr_k]
+                        0, 0, tr_k, :len(k_results)
+                    ] = k_results
+                    results_dict[seed][k]['init_accuracy_training'][
+                        0, 0, tr_k, len(k_results):
+                    ] = -1
                 for tst_k in np.unique(tst_classes):
+                    k_results = tst_acc[tst_classes == tst_k]
                     results_dict[seed][k]['init_accuracy_testing'][
-                        0, 0, tst_k, :
-                    ] = tst_acc[tst_classes == tst_k]
+                        0, 0, tst_k, :len(k_results)
+                    ] = k_results
+                    results_dict[seed][k]['init_accuracy_testing'][
+                        0, 0, tst_k, len(k_results):
+                    ] = -1
             elif step == 1:
                 for tr_k in np.unique(tr_classes):
+                    k_results = tr_acc[tr_classes == tr_k]
                     results_dict[seed][k]['base_accuracy_training'][
-                        0, epoch, tr_k, :
-                    ] = tr_acc[tr_classes == tr_k]
+                        0, epoch, tr_k, :len(k_results)
+                    ] = k_results
+                    results_dict[seed][k]['base_accuracy_training'][
+                        0, epoch, tr_k, len(k_results):
+                    ] = -1
                 for tst_k in np.unique(tst_classes):
+                    k_results = tst_acc[tst_classes == tst_k]
                     results_dict[seed][k]['base_accuracy_testing'][
-                        0, epoch, tst_k, :
-                    ] = tst_acc[tst_classes == tst_k]
+                        0, epoch, tst_k, :len(k_results)
+                    ] = k_results
+                    results_dict[seed][k]['base_accuracy_testing'][
+                        0, epoch, tst_k, len(k_results):
+                    ] = -1
             else:
                 for tr_k in np.unique(tr_classes):
+                    k_results = tr_acc[tr_classes == tr_k]
                     results_dict[seed][k]['accuracy_training'][e_indx][
-                        step - 2, epoch, tr_k, :
-                    ] = tr_acc[tr_classes == tr_k]
+                        step - 2, epoch, tr_k, :len(k_results)
+                    ] = k_results
+                    results_dict[seed][k]['accuracy_training'][e_indx][
+                        step - 2, epoch, tr_k, len(k_results):
+                    ] = -1
+                    tk_results = ttr_acc[tr_classes == tr_k]
                     results_dict[seed][k]['task_accuracy_training'][e_indx][
-                        step - 2, epoch, tr_k, :
-                    ] = ttr_acc[tr_classes == tr_k]
+                        step - 2, epoch, tr_k, :len(tk_results)
+                    ] = tk_results
+                    results_dict[seed][k]['task_accuracy_training'][e_indx][
+                        step - 2, epoch, tr_k, len(tk_results):
+                    ] = -1
                 for tst_k in np.unique(tst_classes):
+                    k_results = tst_acc[tst_classes == tst_k]
                     results_dict[seed][k]['accuracy_testing'][e_indx][
-                        step - 2, epoch, tst_k, :
-                    ] = tst_acc[tst_classes == tst_k]
+                        step - 2, epoch, tst_k, :len(k_results)
+                    ] = k_results
+                    results_dict[seed][k]['accuracy_testing'][e_indx][
+                        step - 2, epoch, tst_k, :len(k_results)
+                    ] = -1
+                    tk_results = ttst_acc[tst_classes == tst_k]
                     results_dict[seed][k]['task_accuracy_testing'][e_indx][
-                        step - 2, epoch, tst_k, :
-                    ] = ttst_acc[tst_classes == tst_k]
+                        step - 2, epoch, tst_k, :len(tk_results)
+                    ] = tk_results
+                    results_dict[seed][k]['task_accuracy_testing'][e_indx][
+                        step - 2, epoch, tst_k, len(tk_results):
+                    ] = -1
 
     seed = str(seed)
     k = str(nc_per_task)
