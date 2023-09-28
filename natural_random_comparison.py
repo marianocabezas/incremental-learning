@@ -104,8 +104,18 @@ def load_datasets(experiment_config):
             )
 
     if imagenet:
-        s_tr = len(d_tr) // len(d_tr.classes)
-        s_te = len(d_te) // len(d_te.classes)
+        tr_classes = os.listdir(d_tr.split_folder)
+        tr_len = []
+        te_len = []
+        for cls in tr_classes:
+            tr_len.append(
+                len(os.listdir(os.path.join(d_tr.split_folder, cls)))
+            )
+            te_len.append(
+                len(os.listdir(os.path.join(d_tr.split_folder, cls)))
+            )
+        s_tr = np.max(tr_len)
+        s_te = np.max(te_len)
     else:
         s_tr = count_samples(d_tr)
         s_te = count_samples(d_te)
@@ -146,6 +156,7 @@ def split_imagenet(dataset, all_classes, classes):
 
     tasks = []
     for i in range(n_tasks):
+        class_names = sorted(os.listdir(dataset.split_folder))
         task_classes = all_classes[i * classes:i * classes + classes]
         task_class_idx = [
             idx for idx, _ in task_classes
@@ -155,9 +166,13 @@ def split_imagenet(dataset, all_classes, classes):
         d_task.class_to_idx = {
             cls: idx for idx, clss in task_classes for cls in clss
         }
+        class_to_idx = {
+            class_names[idx]: idx for idx, _ in task_classes
+        }
         d_task.samples = d_task.make_dataset(
-            d_task.root, d_task.class_to_idx, d_task.extensions
+            d_task.split_folder, class_to_idx, d_task.extensions
         )
+        d_task.images = d_task.samples
         d_task.targets = [s[1] for s in d_task.samples]
         tasks.append((task_class_idx, d_task))
     return tasks
