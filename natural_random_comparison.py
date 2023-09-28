@@ -305,7 +305,7 @@ def test(config, net, testing, task, n_classes, verbose=0):
         tests = len(test_loader) - batch_i
         test_elapsed = time.time() - test_start
         test_eta = tests * test_elapsed / (batch_i + 1)
-        if verbose > 0 and config['no_color']:
+        if verbose > 0 and not config['no_color']:
             print(
                 '\033[KTesting batch ({:d}/{:d}) {:} ETA {:}'.format(
                     batch_i + 1, len(test_loader),
@@ -882,10 +882,15 @@ def main(verbose=2):
                                     epoch, n_e
                                 )
                             )
+                            t_start = time.time()
                             train(
                                 config, seed, net, training_set,
                                 model_name, 1, 1, t_i, 2, clean=options['clean']
                             )
+                            if config['no_color']:
+                                t_end = time.time() - t_start
+                                t_end_s = time_to_string(t_end)
+                                print('Training finished in {:}'.format(t_end_s))
                             update_results(
                                 config, net, seed, epoch, n_e + 1, nc_per_task,
                                 t_i + 2, training_tasks, testing_tasks,
