@@ -727,11 +727,16 @@ def main(verbose=2):
                 n_outputs=n_classes, pretrained=pretrained, lr=lr
             )
             net.load_model(starting_model)
-            training_set = (
-                torch.from_numpy(np.array(range(n_classes))),
-                torch.cat([x for _, x, _ in training_tasks]),
-                torch.cat([y for _, _, y in training_tasks])
-            )
+            if imagenet:
+                training_set = (
+                    torch.from_numpy(np.array(range(n_classes))), d_tr
+                )
+            else:
+                training_set = (
+                    torch.from_numpy(np.array(range(n_classes))),
+                    torch.cat([x for _, x, _ in training_tasks]),
+                    torch.cat([y for _, _, y in training_tasks])
+                )
 
             # Init results
             update_results(
