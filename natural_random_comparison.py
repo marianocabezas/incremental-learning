@@ -677,6 +677,8 @@ def main(verbose=2):
         incremental_list = incremental_list[m_idx:m_idx + 1]
         model_suffix = '_{:}'.format(incremental_list[0][0])
 
+    print('-- Analysing the following models:', incremental_list)
+
     for model in incremental_list:
         incr_name = model[0]
         all_results[incr_name] = deepcopy(base_results)
@@ -707,6 +709,13 @@ def main(verbose=2):
             np.random.seed(seed)
             torch.manual_seed(seed)
             net = network(n_outputs=n_classes, pretrained=pretrained)
+            if not config['no_color']:
+                print(
+                    '{:}[{:}] {:}Data split {:}'.format(
+                        c['clr'] + c['c'], strftime("%H:%M:%S"), c['nc'],
+                        '(ImageNet)' if imagenet else ''
+                    )
+                )
             training_tasks, testing_tasks, task_list = split_data(
                 d_tr, d_te, nc_per_task, randomise=randomise,
                 imagenet=imagenet
