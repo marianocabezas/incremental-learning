@@ -215,7 +215,7 @@ def split_data(d_tr, d_te, classes, randomise=True, imagenet=False):
 
 def train(
     config, seed, net, training, model_name, epochs, patience, task,
-    verbose=0, clean=False
+    last_step=False, verbose=0, clean=False
 ):
     """
 
@@ -272,7 +272,7 @@ def train(
             net.fit(
                 train_loader, val_loader, task_mask=dmask.to(net.device),
                 epochs=epochs, patience=patience, task=task,
-                verbose=(not config['no_color'])
+                last_step=last_step, verbose=(not config['no_color'])
             )
         except TypeError:
             net.fit(
@@ -812,7 +812,7 @@ def main(verbose=2):
                 )
                 train(
                     config, seed, net, training_set,
-                    model_name, 1, n_tasks, 2
+                    model_name, 1, 1, n_tasks, (epoch + 1) == epochs, 2
                 )
                 update_results(
                     config, net, seed, epoch, epochs, nc_per_task, 0,
@@ -894,7 +894,8 @@ def main(verbose=2):
                             t_start = time.time()
                             train(
                                 config, seed, net, training_set,
-                                model_name, 1, 1, t_i, 2, clean=options['clean']
+                                model_name, 1, 1, t_i, epoch == n_e, 2,
+                                clean=options['clean']
                             )
                             if config['no_color']:
                                 t_end = time.time() - t_start

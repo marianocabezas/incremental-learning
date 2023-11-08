@@ -292,6 +292,7 @@ class IncrementalModel(BaseModel):
         patience=5,
         task=None,
         task_mask=None,
+        last_step=False,
         verbose=True
     ):
         self.task_mask = task_mask
@@ -374,6 +375,7 @@ class Independent(IncrementalModel):
         patience=5,
         task=None,
         task_mask=None,
+        last_step=False,
         verbose=True
     ):
         if task is None:
@@ -382,9 +384,9 @@ class Independent(IncrementalModel):
             self.optimizer_alg = self.model[task].optimizer_alg
         super().fit(
             train_loader, val_loader, epochs, patience, task, task_mask,
-            verbose
+            last_step, verbose
         )
-        if (self.current_task + 1) < len(self.model):
+        if (self.current_task + 1) < len(self.model) and last_step:
             self.model[self.current_task + 1].load_state_dict(
                 self.model[self.current_task].state_dict()
             )
@@ -538,6 +540,7 @@ class EWC(IncrementalModel):
         patience=5,
         task=None,
         task_mask=None,
+        last_step=False,
         verbose=True
     ):
         if self.first:
@@ -546,25 +549,26 @@ class EWC(IncrementalModel):
                     loss_f['weight'] = 0
         super().fit(
             train_loader, val_loader, epochs, patience, task, task_mask,
-            verbose
+            last_step, verbose
         )
-        if self.memory_manager is None:
-            self.fisher(train_loader)
-        else:
-            if self.ewc_alpha is None:
-                for n, param in self.ewc_parameters.items():
-                    param['fisher'] = []
-                    param['means'] = []
-            for task in self.observed_tasks:
-                task_memory = self.memory_manager.get_task(self, task)
-                task_loader = DataLoader(
-                    task_memory, train_loader.batch_size, drop_last=True
-                )
-                self.fisher(task_loader)
+        if last_step:
+            if self.memory_manager is None:
+                self.fisher(train_loader)
+            else:
+                if self.ewc_alpha is None:
+                    for n, param in self.ewc_parameters.items():
+                        param['fisher'] = []
+                        param['means'] = []
+                for task in self.observed_tasks:
+                    task_memory = self.memory_manager.get_task(self, task)
+                    task_loader = DataLoader(
+                        task_memory, train_loader.batch_size, drop_last=True
+                    )
+                    self.fisher(task_loader)
 
-        for loss_f in self.train_functions:
-            if loss_f['name'] is 'ewc':
-                loss_f['weight'] = self.ewc_weight
+            for loss_f in self.train_functions:
+                if loss_f['name'] is 'ewc':
+                    loss_f['weight'] = self.ewc_weight
 
     def epoch_update(self, epochs, loader):
         if self.ewc_alpha is not None:
@@ -735,12 +739,14 @@ class GEM(IncrementalModel):
         patience=5,
         task=None,
         task_mask=None,
+        last_step=False,
         verbose=True
     ):
-        self.masks.append(task_mask)
+        if self.current_task not in self.observed_tasks:
+            self.masks.append(task_mask)
         super().fit(
             train_loader, val_loader, epochs, patience, task, task_mask,
-            verbose
+            last_step, verbose
         )
 
 
@@ -851,78 +857,81 @@ class DER(IncrementalModelMemory):
         patience=5,
         task=None,
         task_mask=None,
+        last_step=False,
         verbose=True
     ):
         # 1) Representation learning stage
-        if task is None:
-            self.current_task += 1
-            self.optimizer_alg = self.model[self.current_task].optimizer_alg
-        else:
-            self.optimizer_alg = self.model[task].optimizer_alg
-            self.current_task = task
-        if task_mask is not None:
-            n_classes = len(task_mask)
-        else:
-            n_classes = self.n_classes
-        self.task_fc = nn.Linear(
-            self.last_features, n_classes
-        )
-        self.train_functions = [
-            {
-                'name': 'xentr',
-                'weight': 1,
-                'f': lambda p, t: F.cross_entropy(p[0], t)
-            },
-            {
-                'name': 'aux',
-                'weight': 1,
-                'f': lambda p, t: self.auxiliary_loss(p, t, task_mask)
-            },
-        ]
-        self.val_functions = [
-            {
-                'name': 'xentr',
-                'weight': 1,
-                'f': lambda p, t: F.cross_entropy(p[0], t)
-            }
-        ]
-        super().fit(
-            train_loader, val_loader, epochs, patience, task, task_mask,
-            verbose
-        )
-        if (self.current_task + 1) < len(self.model):
-            self.model[self.current_task + 1].load_state_dict(
-                self.model[self.current_task].state_dict()
+        if self.current_task not in self.observed_tasks:
+            if task is None:
+                self.current_task += 1
+                self.optimizer_alg = self.model[self.current_task].optimizer_alg
+            else:
+                self.optimizer_alg = self.model[task].optimizer_alg
+                self.current_task = task
+            if task_mask is not None:
+                n_classes = len(task_mask)
+            else:
+                n_classes = self.n_classes
+            self.task_fc = nn.Linear(
+                self.last_features, n_classes
             )
-        for param in self.model[self.current_task].parameters():
-            param.requires_grad = False
-        self.task_fc = None
-
-        # 2) Classifier stage
-        if self.memory_manager is not None and self.current_task > 0:
-            memory_sets = list(self.memory_manager.get_tasks())
-            new_dataset = MultiDataset(memory_sets)
-            mem_loader = DataLoader(
-                new_dataset, train_loader.batch_size, True,
-                num_workers=train_loader.num_workers, drop_last=True
-            )
-            self.fc = nn.Linear(
-                self.last_features * self.n_tasks, self.n_classes
-            )
-            self.train_functions = self.val_functions = [
+            self.train_functions = [
                 {
                     'name': 'xentr',
                     'weight': 1,
-                    'f': lambda p, t: F.cross_entropy(p, t)
+                    'f': lambda p, t: F.cross_entropy(p[0], t)
+                },
+                {
+                    'name': 'aux',
+                    'weight': 1,
+                    'f': lambda p, t: self.auxiliary_loss(p, t, task_mask)
+                },
+            ]
+            self.val_functions = [
+                {
+                    'name': 'xentr',
+                    'weight': 1,
+                    'f': lambda p, t: F.cross_entropy(p[0], t)
                 }
             ]
+        super().fit(
+            train_loader, val_loader, epochs, patience, task, task_mask,
+            last_step, verbose
+        )
+        if last_step:
+            if (self.current_task + 1) < len(self.model):
+                self.model[self.current_task + 1].load_state_dict(
+                    self.model[self.current_task].state_dict()
+                )
+            for param in self.model[self.current_task].parameters():
+                param.requires_grad = False
+            self.task_fc = None
 
-            super().fit(
-                mem_loader, mem_loader, epochs, patience, task,
-                self.global_mask, verbose
-            )
+        # 2) Classifier stage
+            if self.memory_manager is not None and self.current_task > 0:
+                memory_sets = list(self.memory_manager.get_tasks())
+                new_dataset = MultiDataset(memory_sets)
+                mem_loader = DataLoader(
+                    new_dataset, train_loader.batch_size, True,
+                    num_workers=train_loader.num_workers, drop_last=True
+                )
+                self.fc = nn.Linear(
+                    self.last_features * self.n_tasks, self.n_classes
+                )
+                self.train_functions = self.val_functions = [
+                    {
+                        'name': 'xentr',
+                        'weight': 1,
+                        'f': lambda p, t: F.cross_entropy(p, t)
+                    }
+                ]
 
-        self.masks.append(task_mask)
+                super().fit(
+                    mem_loader, mem_loader, epochs, patience, task,
+                    self.global_mask, last_step, verbose
+                )
+
+            self.masks.append(task_mask)
 
     def load_model(self, net_name):
         net_state = super().load_model(net_name)
@@ -959,6 +968,7 @@ class iCARL(IncrementalModel):
         # Memory
         self.memx = None  # stores raw inputs, PxD
         self.memy = None
+        self.last_step = False
 
     def prebatch_update(self, batch, batches, x, y):
         if self.task:
@@ -984,7 +994,7 @@ class iCARL(IncrementalModel):
 
     def epoch_update(self, epochs, loader):
         last_epoch = (self.model.epoch + 1) == epochs
-        if last_epoch:
+        if last_epoch and self.last_step:
             self.first = False
             if self.memory_manager is not None:
                 training = self.model.training
@@ -1006,11 +1016,13 @@ class iCARL(IncrementalModel):
         patience=5,
         task=None,
         task_mask=None,
+        last_step=False,
         verbose=True
     ):
+        self.last_step = last_step
         super().fit(
             train_loader, val_loader, epochs, patience, task, task_mask,
-            verbose
+            last_step, verbose
         )
 
     def load_model(self, net_name):
@@ -1189,11 +1201,12 @@ class GSS(IncrementalModel):
         patience=5,
         task=None,
         task_mask=None,
+        last_step=False,
         verbose=True
     ):
         super().fit(
             train_loader, val_loader, epochs, patience, task, task_mask,
-            verbose
+            last_step, verbose
         )
 
     def load_model(self, net_name):
@@ -1362,12 +1375,14 @@ class GDumb(IncrementalModel):
         patience=5,
         task=None,
         task_mask=None,
+        last_step=False,
         verbose=True
     ):
-        self.masks.append(task_mask)
+        if self.current_task not in self.observed_tasks:
+            self.masks.append(task_mask)
         super().fit(
             train_loader, val_loader, epochs, patience, task, task_mask,
-            verbose
+            last_step, verbose
         )
 
     def load_model(self, net_name):
@@ -1380,3 +1395,107 @@ class GDumb(IncrementalModel):
         net_state = super().get_state()
         net_state['masks'] = self.masks
         return net_state
+
+
+class Piggyback(IncrementalModel):
+    def __init__(
+        self, basemodel, best=True, memory_manager=None,
+        n_classes=100, n_tasks=10, lr=None, task=True,
+        prune_ratio=0.5
+    ):
+        super().__init__(
+            basemodel, best, memory_manager, n_classes, n_tasks, lr, task
+        )
+        self.first = True
+        self.prune_ratio = prune_ratio
+        self.weight_masks = []
+        self.current_mask = None
+        self.weight_buffer = []
+        self.model_layers = [
+            layer for layer in self.model.modules()
+            if isinstance(layer, nn.Conv2d) or isinstance(layer, nn.Linear)
+        ]
+
+    def prebatch_update(self, batch, batches, x, y):
+        # Copy all the weight that should not be modified
+        for layer, mask in zip(self.model_layers, self.current_mask):
+            self.weight_buffer.append(
+                deepcopy(layer.weight[mask].detach().cpu())
+            )
+
+    def batch_update(self, batch, batches, x, y):
+        super().batch_update(batch, batches, x, y)
+        for layer, mask, weight in zip(
+            self.model_layers, self.current_mask, self.weight_buffer
+        ):
+            layer.weight.data[mask].fill_(weight)
+        self.weight_buffer = []
+
+    def fit(
+        self,
+        train_loader,
+        val_loader,
+        epochs=50,
+        patience=5,
+        task=None,
+        task_mask=None,
+        last_step=False,
+        verbose=True
+    ):
+        # 1) Train the new task normally
+        if self.current_mask is None:
+            # If no weight mask exists (first step) a new one is created
+            # with no "safe" set of weights selected.
+            self.current_mask = []
+            for layer in self.model_layers:
+                self.current_mask.append(
+                    torch.zeros_like(
+                        layer.weight, dtype=torch.bool, device=layer.device
+                    )
+                )
+        super().fit(
+            train_loader, val_loader, epochs, patience, task, task_mask,
+            last_step, verbose
+        )
+
+        if last_step:
+            # 2) Prune the network
+            # We need to flatten the weights to make sure we select the lowest
+            # overall magnitudes.
+            # Another important detail is the need to only prune "prunable"
+            # weights! To guarantee that we focus on the "non-selected" weights
+            # (essentially the "not current mask" of weights).
+            all_weights = torch.cat([
+                layer.weight.data[torch.logical_not(mask)]
+                for layer, mask in zip(self.model_layers, self.current_mask)
+            ])
+
+            # We select the highest magnitudes to keep (we prune the lowest
+            # ones).
+            sorted_weights = torch.argsort(torch.abs(all_weights))
+            weight_indices = torch.argsort(sorted_weights)
+            dropped_weights = weight_indices < 0.5 * len(all_weights)
+
+            mask_idx = 0
+            for mask, layer in zip(self.current_mask, self.model_layers):
+                flat_mask = dropped_weights[mask_idx:mask_idx + mask.numel()]
+                # The mask represents the weights we want to keep secured.
+                # However, as the next step involves retraining the weights
+                # we will keep, for now we store an inverted matrix.
+                mask.data.copy_(flat_mask.view_as(mask.data))
+                layer.weight.data[mask].fill_(0.0)
+                mask_idx += mask.numel()
+
+            # 3) Retrain the pruned network
+            # The original paper trained for half the epochs. However, this
+            # framework relies on running epochs one by one. If we divide by 2
+            # the network of epochs this could lead to running this step 0
+            # epochs.
+            # To avoid that we assume a minimum of 1 epoch. The biggest issue
+            # is that we are now essentially training for the same number of
+            # epochs.
+            min_epochs = min(epochs // 2, 1)
+            super().fit(
+                train_loader, val_loader, min_epochs, patience, task, task_mask,
+                last_step, verbose
+            )
