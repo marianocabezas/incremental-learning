@@ -1453,6 +1453,14 @@ class Piggyback(IncrementalModel):
                         layer.weight, dtype=torch.bool, device=layer.device
                     )
                 )
+
+        new_mask = []
+        for layer in self.model_layers:
+            new_mask.append(
+                torch.zeros_like(
+                    layer.weight, dtype=torch.bool, device=layer.device
+                )
+            )
         super().fit(
             train_loader, val_loader, epochs, patience, task, task_mask,
             last_step, verbose
@@ -1477,14 +1485,25 @@ class Piggyback(IncrementalModel):
             dropped_weights = weight_indices < 0.5 * len(all_weights)
 
             mask_idx = 0
-            for mask, layer in zip(self.current_mask, self.model_layers):
-                flat_mask = dropped_weights[mask_idx:mask_idx + mask.numel()]
+            for c_mask, n_mask, layer in zip(
+                self.current_mask, new_mask, self.model_layers
+            ):
+                prune_mask = torch.logical_not(c_mask)
+                n_elem = torch.sum(prune_mask)
+                flat_mask = dropped_weights[mask_idx:mask_idx + n_elem]
                 # The mask represents the weights we want to keep secured.
                 # However, as the next step involves retraining the weights
                 # we will keep, for now we store an inverted matrix.
-                mask.data.copy_(flat_mask.view_as(mask.data))
-                layer.weight.data[mask].fill_(0.0)
-                mask_idx += mask.numel()
+
+                # New mask will contain the fixed weights (previous + new).
+                n_mask.data[prune_mask].copy_(np.logical_not(flat_mask))
+                n_mask[np.logical_not(prune_mask)].fill_(True)
+                # Current mask will contain the pruned weights (we do not want
+                # to train them) plus the previous ones already stored.
+                c_mask.data[prune_mask].copy_(flat_mask)
+
+                layer.weight.data[n_mask].fill_(0.0)
+                mask_idx += n_elem
 
             # 3) Retrain the pruned network
             # The original paper trained for half the epochs. However, this
@@ -1499,3 +1518,19 @@ class Piggyback(IncrementalModel):
                 train_loader, val_loader, min_epochs, patience, task, task_mask,
                 last_step, verbose
             )
+
+            # 4) Prepare the mask for the next task
+            self.current_mask = new_mask
+            self.weight_masks.append(new_mask)
+
+    def inference(self, data, nonbatched=True, task=None):
+        if task is None:
+            mask = self.current_mask
+        else:
+            mask = self.weight_masks[task]
+
+        for layer, mask in zip(self.model_layers, self.current_mask):
+            self.weight_buffer.append(
+                deepcopy(layer.weight[mask].detach().cpu())
+            )
+
