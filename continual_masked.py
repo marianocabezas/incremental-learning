@@ -545,7 +545,7 @@ class EWC(IncrementalModel):
     ):
         if self.first:
             for loss_f in self.train_functions:
-                if loss_f['name'] is 'ewc':
+                if loss_f['name'] == 'ewc':
                     loss_f['weight'] = 0
         super().fit(
             train_loader, val_loader, epochs, patience, task, task_mask,
