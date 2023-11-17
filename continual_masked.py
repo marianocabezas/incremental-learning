@@ -109,7 +109,7 @@ class IncrementalModel(BaseModel):
                 for mask in self.task_masks[:-1]:
                     losses += self._kl_div_loss(mask)
             else:
-                losses = self._kl_div_loss(0, self.n_classes)
+                losses = self._kl_div_loss(self.task_mask)
         else:
             losses = []
         return sum(losses)
