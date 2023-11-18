@@ -81,7 +81,7 @@ class IncrementalModel(BaseModel):
         y_logits = []
         for k in mask:
             x_k, y_k = self.memory_manager.get_class(k)
-            indx = np.random.randint(0, len(x_k) - 1)
+            indx = np.random.permutation(mask)[0]
             x.append(x_k[indx].clone())
             y_logits.append(y_k[indx].clone())
         x = torch.stack(x, dim=0).to(self.device)
@@ -107,9 +107,13 @@ class IncrementalModel(BaseModel):
             if self.task:
                 losses = []
                 for mask in self.task_masks[:-1]:
-                    losses += self._kl_div_loss(mask)
+                    losses += self._kl_div_loss(
+                        mask.cpu().detach().numpy()
+                    )
             else:
-                losses = self._kl_div_loss(self.task_mask)
+                losses = self._kl_div_loss(
+                    self.task_mask.cpu().detach().numpy()
+                )
         else:
             losses = []
         return sum(losses)
