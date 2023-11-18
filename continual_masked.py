@@ -81,7 +81,7 @@ class IncrementalModel(BaseModel):
         y_logits = []
         for k in mask:
             x_k, y_k = self.memory_manager.get_class(k)
-            indx = np.random.permutation(mask)[0]
+            indx = np.random.permutation(list(range(len(x_k))))[0]
             x.append(x_k[indx].clone())
             y_logits.append(y_k[indx].clone())
         x = torch.stack(x, dim=0).to(self.device)
