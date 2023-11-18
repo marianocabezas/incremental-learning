@@ -571,7 +571,7 @@ class EWC(IncrementalModel):
                     self.fisher(task_loader)
 
             for loss_f in self.train_functions:
-                if loss_f['name'] is 'ewc':
+                if loss_f['name'] == 'ewc':
                     loss_f['weight'] = self.ewc_weight
 
     def epoch_update(self, epochs, loader):
@@ -579,7 +579,7 @@ class EWC(IncrementalModel):
             self.fisher(loader)
             if self.epoch == 0:
                 for loss_f in self.train_functions:
-                    if loss_f['name'] is 'ewc':
+                    if loss_f['name'] == 'ewc':
                         loss_f['weight'] = self.ewc_weight
 
 
