@@ -112,7 +112,7 @@ class IncrementalModel(BaseModel):
                     )
             else:
                 losses = self._kl_div_loss(
-                    torch.cat(self.task_masks).cpu().detach().numpy()
+                    torch.cat(self.task_masks[:-1]).cpu().detach().numpy()
                 )
         else:
             losses = []
