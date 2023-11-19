@@ -1054,7 +1054,7 @@ class GSS(IncrementalModel):
         self.recent_y = []
 
     def mini_batch_loop(
-        self, data, train=True
+        self, data, train=True, verbose=True
     ):
         """
             This is the main loop. It's "generic" enough to account for multiple
@@ -1109,19 +1109,20 @@ class GSS(IncrementalModel):
                 # It's important to compute the global loss in both cases.
                 loss_value = batch_loss.tolist()
                 losses.append(loss_value)
-
-                self.print_progress(
-                    batch_i, n_batches, loss_value, np.mean(losses)
-                )
+                if verbose:
+                    self.print_progress(
+                        batch_i, n_batches, loss_value, np.mean(losses)
+                    )
                 torch.cuda.empty_cache()
                 torch.cuda.ipc_collect()
             else:
                 losses.append(self.model_update(
                     x, y, batch_i, n_batches, data.batch_size
                 ))
-                self.print_progress(
-                    batch_i, n_batches, losses[-1], np.mean(losses)
-                )
+                if verbose:
+                    self.print_progress(
+                        batch_i, n_batches, losses[-1], np.mean(losses)
+                    )
                 if self.n_recent is not None:
                     self.recent_x.append(x)
                     self.recent_y.append(y)
@@ -1236,7 +1237,7 @@ class GDumb(IncrementalModel):
         self.masks = []
 
     def mini_batch_loop(
-        self, data, train=True
+        self, data, train=True, verbose=True
     ):
         """
             This is the main loop. It's "generic" enough to account for multiple
@@ -1292,9 +1293,10 @@ class GDumb(IncrementalModel):
                 loss_value = batch_loss.tolist()
                 losses.append(loss_value)
 
-                self.print_progress(
-                    batch_i, n_batches, loss_value, np.mean(losses)
-                )
+                if verbose:
+                    self.print_progress(
+                        batch_i, n_batches, loss_value, np.mean(losses)
+                    )
                 torch.cuda.empty_cache()
                 torch.cuda.ipc_collect()
             else:
@@ -1313,7 +1315,7 @@ class GDumb(IncrementalModel):
                         batch_i, n_batches, data.batch_size
                     ))
                 else:
-                    if len(losses) > 0:
+                    if len(losses) > 0 and verbose:
                         self.print_progress(
                             batch_i, n_batches, losses[-1], np.mean(losses)
                         )
