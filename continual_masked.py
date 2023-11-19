@@ -80,9 +80,6 @@ class IncrementalModel(BaseModel):
         x = []
         y_logits = []
         for k in mask:
-            print(
-                k, [(len(x_ki), ki) for ki, x_ki in enumerate(self.memory_manager.data)]
-            )
             x_k, y_k = self.memory_manager.get_class(k)
             indx = np.random.permutation(list(range(len(x_k))))[0]
             x.append(x_k[indx].clone())
@@ -115,7 +112,7 @@ class IncrementalModel(BaseModel):
                     )
             else:
                 losses = self._kl_div_loss(
-                    self.task_mask.cpu().detach().numpy()
+                    torch.cat(self.task_masks).cpu().detach().numpy()
                 )
         else:
             losses = []
@@ -337,7 +334,7 @@ class IncrementalModelMemory(IncrementalModel):
 
     def mini_batch_loop(self, data, train=True, verbose=True):
         if self.memory_manager is not None and self.current_task > 0 and train:
-            if self.task_mask is not None:
+            if self.task_mask is None:
                 self.task_mask = torch.cat(self.task_masks)
             max_task = self.current_task - 1
             memory_sets = list(self.memory_manager.get_tasks(max_task))
