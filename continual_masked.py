@@ -300,6 +300,7 @@ class IncrementalModel(BaseModel):
         verbose=True
     ):
         self.task_mask = task_mask
+        self.task_masks.append(task_mask)
         if task is not None:
             self.current_task = task
         if self.current_task not in self.observed_tasks:
@@ -1535,8 +1536,8 @@ class Piggyback(IncrementalModel):
         else:
             mask = self.weight_masks[task]
 
-        for layer, mask in zip(self.model_layers, self.current_mask):
+        for layer, mask_i in zip(self.model_layers, mask):
             self.weight_buffer.append(
-                deepcopy(layer.weight[mask].detach().cpu())
+                deepcopy(layer.weight[mask_i].detach().cpu())
             )
 
