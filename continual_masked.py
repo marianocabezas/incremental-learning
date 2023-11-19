@@ -80,6 +80,9 @@ class IncrementalModel(BaseModel):
         x = []
         y_logits = []
         for k in mask:
+            print(
+                k, [(len(x_ki), ki) for ki, x_ki in enumerate(self.memory_manager.data)]
+            )
             x_k, y_k = self.memory_manager.get_class(k)
             indx = np.random.permutation(list(range(len(x_k))))[0]
             x.append(x_k[indx].clone())
