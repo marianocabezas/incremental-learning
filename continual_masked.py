@@ -832,9 +832,10 @@ class DER(IncrementalModelMemory):
         ]
         features = torch.cat(feature_list, dim=-1).to(self.device)
         n_features = features.shape[1]
-        weight = self.fc.weight[:self.offset2, :n_features].to(self.device)
+        mask = torch.cat(self.task_masks)
+        weight = self.fc.weight[mask, :n_features].to(self.device)
         if self.fc.bias is not None:
-            bias = self.fc.bias[:self.offset2].to(self.device)
+            bias = self.fc.bias[mask].to(self.device)
         else:
             bias = None
         if self.task_fc is not None:
