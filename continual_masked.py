@@ -282,11 +282,20 @@ class IncrementalModel(BaseModel):
                     if idx not in self.task_mask
                 ])
             )
-            print(self.task_mask, pred_labels.shape, type(self.task_mask))
-            pred_labels = torch.cat([
-                pred_labels[:, self.task_mask],
-                pred_labels[:, ignore_mask].detach()
-            ], dim=-1)
+
+            if isinstance(pred_labels, tuple):
+                pred_labels = tuple([
+                    torch.cat([
+                        pred_i[:, self.task_mask],
+                        pred_i[:, ignore_mask].detach()
+                    ], dim=-1)
+                    for pred_i in pred_labels
+                ])
+            else:
+                pred_labels = torch.cat([
+                    pred_labels[:, self.task_mask],
+                    pred_labels[:, ignore_mask].detach()
+                ], dim=-1)
 
         return pred_labels, x_cuda, y_cuda
 
