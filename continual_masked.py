@@ -802,7 +802,6 @@ class DER(IncrementalModelMemory):
 
     @property
     def global_mask(self):
-        """I'm the 'x' property."""
         mask = tuple([
             k for task_mask in self.masks for k in task_mask
         ])
