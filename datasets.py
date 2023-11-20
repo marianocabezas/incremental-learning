@@ -442,8 +442,8 @@ class MultiDataset(Dataset):
 
 class DiffusionDataset(Dataset):
     def __init__(
-            self, dmri, rois, directions, bvalues, patch_size=32,
-            overlap=0, min_lr=22, max_lr=22
+        self, dmri, rois, directions, bvalues, patch_size=32,
+        overlap=0, min_lr=22, max_lr=22
     ):
         # Init
         if type(patch_size) is not tuple:
