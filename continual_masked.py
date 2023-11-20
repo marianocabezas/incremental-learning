@@ -277,6 +277,7 @@ class IncrementalModel(BaseModel):
             y_cuda = update_y(y_cuda, self.task_mask)
         else:
             print(
+                'Incremental observe',
                 self.n_classes,
                 [idx for idx in range(self.n_classes)],
                 self.task_mask
@@ -288,7 +289,7 @@ class IncrementalModel(BaseModel):
                 ])
             )
             pred_labels = torch.cat([
-                pred_labels[:, self.task_mask],
+                pred_labels[:, torch.stack(self.task_mask)],
                 pred_labels[:, ignore_mask].detach()
             ], dim=-1)
 
