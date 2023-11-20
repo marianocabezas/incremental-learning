@@ -126,7 +126,6 @@ class BaseModel(nn.Module):
         mid_losses = list()
         accs = list()
         n_batches = len(data)
-        print('Base minibatchloop', n_batches)
         for batch_i, (x, y) in enumerate(data):
             # In case we are training the the gradient to zero.
             if self.training:
