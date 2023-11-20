@@ -780,11 +780,11 @@ def main(verbose=2):
                 )
 
             # Init results
-            update_results(
-                config, net, seed, 0, epochs, nc_per_task, 1,
-                training_tasks, testing_tasks,
-                all_results, n_classes, 2
-            )
+            # update_results(
+            #     config, net, seed, 0, epochs, nc_per_task, 1,
+            #     training_tasks, testing_tasks,
+            #     all_results, n_classes, 2
+            # )
             if config['no_color']:
                 print(
                     'Starting baseline - {:02d}/{:02d} '
