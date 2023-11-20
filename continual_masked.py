@@ -276,6 +276,11 @@ class IncrementalModel(BaseModel):
             pred_labels = pred_labels[:, self.task_mask]
             y_cuda = update_y(y_cuda, self.task_mask)
         else:
+            print(
+                self.n_classes,
+                [idx for idx in range(self.n_classes)],
+                self.task_mask
+            )
             ignore_mask = torch.from_numpy(
                 np.array([
                     idx for idx in range(self.n_classes)
@@ -833,12 +838,8 @@ class DER(IncrementalModelMemory):
         n_features = features.shape[1]
         weight = self.fc.weight[self.global_mask, :n_features].to(self.device)
         if self.fc.bias is not None:
-            print(
-                self.fc.bias.shape, self.global_mask
-            )
             bias = self.fc.bias[torch.stack(self.global_mask)].to(self.device)
         else:
-            print(features.shape, weight.shape, self.fc.weight.shape)
             bias = None
 
         if self.task_fc is not None:
