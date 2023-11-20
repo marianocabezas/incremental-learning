@@ -305,7 +305,6 @@ class IncrementalModel(BaseModel):
         last_step=False,
         verbose=True
     ):
-        print('Incremental fit', self.task_mask)
         self.task_mask = task_mask
         self.last_step = last_step
         if task is not None:
@@ -313,6 +312,7 @@ class IncrementalModel(BaseModel):
         if self.current_task not in self.observed_tasks:
             self.observed_tasks.append(self.current_task)
             self.task_masks.append(task_mask)
+        print('Incremental fit', self.task_mask)
         super().fit(train_loader, val_loader, epochs, patience, verbose)
 
 
