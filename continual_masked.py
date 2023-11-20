@@ -1389,7 +1389,7 @@ class Piggyback(IncrementalModel):
             for layer in self.model_layers:
                 self.current_mask.append(
                     torch.zeros_like(
-                        layer.weight, dtype=torch.bool, device=layer.device
+                        layer.weight, dtype=torch.bool, device=self.device
                     )
                 )
 
@@ -1397,7 +1397,7 @@ class Piggyback(IncrementalModel):
         for layer in self.model_layers:
             new_mask.append(
                 torch.zeros_like(
-                    layer.weight, dtype=torch.bool, device=layer.device
+                    layer.weight, dtype=torch.bool, device=self.device
                 )
             )
         super().fit(
