@@ -823,7 +823,7 @@ class DER(IncrementalModelMemory):
         features = torch.cat(feature_list, dim=-1).to(self.device)
         n_features = features.shape[1]
         weight = self.fc.weight[self.global_mask, :n_features].to(self.device)
-        print(self.global_mask)
+        print('DER forward', self.global_mask)
         if self.fc.bias is not None:
             bias = self.fc.bias[torch.stack(self.global_mask)].to(self.device)
         else:
@@ -895,6 +895,7 @@ class DER(IncrementalModelMemory):
             train_loader, val_loader, epochs, patience, task, task_mask,
             last_step, verbose
         )
+        print('DER fit finished #1', self.task_mask)
         if last_step:
             print('DER fit stage #2', self.task_mask)
             if (self.current_task + 1) < len(self.model):
