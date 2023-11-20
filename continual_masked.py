@@ -839,6 +839,7 @@ class DER(IncrementalModelMemory):
         features = torch.cat(feature_list, dim=-1).to(self.device)
         n_features = features.shape[1]
         weight = self.fc.weight[self.global_mask, :n_features].to(self.device)
+        print(torch.stack(self.global_mask), self.global_mask)
         if self.fc.bias is not None:
             bias = self.fc.bias[torch.stack(self.global_mask)].to(self.device)
         else:
