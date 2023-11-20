@@ -871,6 +871,7 @@ class DER(IncrementalModelMemory):
     ):
         # 1) Representation learning stage
         if self.current_task not in self.observed_tasks:
+            self.task_masks.append(task_mask)
             if task is None:
                 self.current_task += 1
                 self.optimizer_alg = self.model[self.current_task].optimizer_alg
@@ -916,7 +917,7 @@ class DER(IncrementalModelMemory):
                 param.requires_grad = False
             self.task_fc = None
 
-        # 2) Classifier stage
+            # 2) Classifier stage
             if self.memory_manager is not None and self.current_task > 0:
                 memory_sets = list(self.memory_manager.get_tasks())
                 new_dataset = MultiDataset(memory_sets)
@@ -939,8 +940,6 @@ class DER(IncrementalModelMemory):
                     mem_loader, mem_loader, epochs, patience, task,
                     self.global_mask, last_step, verbose
                 )
-
-            self.task_masks.append(task_mask)
 
     def load_model(self, net_name):
         net_state = super().load_model(net_name)
