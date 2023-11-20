@@ -810,14 +810,14 @@ def main(verbose=2):
                         model_base, seed, nc_per_task, epoch
                     )
                 )
-                train(
-                    config, seed, net, training_set,
-                    model_name, 1, 1, n_tasks, (epoch + 1) == epochs, 2
-                )
-                update_results(
-                    config, net, seed, epoch, epochs, nc_per_task, 0,
-                    training_tasks, testing_tasks, all_results, n_classes, 2
-                )
+                # train(
+                #     config, seed, net, training_set,
+                #     model_name, 1, 1, n_tasks, (epoch + 1) == epochs, 2
+                # )
+                # update_results(
+                #     config, net, seed, epoch, epochs, nc_per_task, 0,
+                #     training_tasks, testing_tasks, all_results, n_classes, 2
+                # )
 
             for model in incremental_list:
                 results_i = all_results[model[0]][str(seed)][str(nc_per_task)]
