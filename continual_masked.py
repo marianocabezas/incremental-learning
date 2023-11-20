@@ -834,8 +834,14 @@ class DER(IncrementalModelMemory):
         weight = self.fc.weight[self.global_mask, :n_features].to(self.device)
         if self.fc.bias is not None:
             bias = self.fc.bias[self.global_mask].to(self.device)
+            print(
+                features.shape, weight.shape, self.fc.weight.shape,
+                bias.shape, self.fc.bias.shape
+            )
         else:
+            print(features.shape, weight.shape, self.fc.weight.shape)
             bias = None
+
         if self.task_fc is not None:
             self.task_fc.to(self.device)
             prediction = (
