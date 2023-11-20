@@ -283,22 +283,10 @@ class IncrementalModel(BaseModel):
                 ])
             )
 
-            if isinstance(pred_labels, tuple):
-                print(tuple([
-                    pred_i.shape for pred_i in pred_labels
-                ]))
-                pred_labels = tuple([
-                    torch.cat([
-                        pred_i[:, self.task_mask],
-                        pred_i[:, ignore_mask].detach()
-                    ], dim=-1)
-                    for pred_i in pred_labels
-                ])
-            else:
-                pred_labels = torch.cat([
-                    pred_labels[:, self.task_mask],
-                    pred_labels[:, ignore_mask].detach()
-                ], dim=-1)
+            pred_labels = torch.cat([
+                pred_labels[:, self.task_mask],
+                pred_labels[:, ignore_mask].detach()
+            ], dim=-1)
 
         return pred_labels, x_cuda, y_cuda
 
@@ -819,6 +807,9 @@ class DER(IncrementalModelMemory):
             loss = torch.tensor(0., device=self.device)
 
         return loss
+
+    def observe(self, x, y):
+        return BaseModel.observe(self, x, y)
 
     def forward(self, *inputs):
         feature_list = [
