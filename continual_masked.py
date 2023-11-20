@@ -786,7 +786,10 @@ class DER(IncrementalModelMemory):
     @property
     def global_mask(self):
         if self.task_mask is None:
-            mask = tuple([range(self.n_classes)])
+            mask = tuple([
+                torch.tensor(k, device=self.device)
+                for k in range(self.n_classes)
+            ])
         else:
             mask = tuple([
                 k for task_mask in self.task_masks for k in task_mask
