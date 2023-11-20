@@ -312,6 +312,7 @@ class IncrementalModel(BaseModel):
             self.current_task = task
         if self.current_task not in self.observed_tasks:
             self.observed_tasks.append(self.current_task)
+            self.task_masks.append(task_mask)
         super().fit(train_loader, val_loader, epochs, patience, verbose)
 
 
@@ -742,24 +743,6 @@ class GEM(IncrementalModel):
         super().prebatch_update(batch, batches, x, y)
         self.update_gradients()
         self.constraint_check()
-
-    def fit(
-        self,
-        train_loader,
-        val_loader,
-        epochs=50,
-        patience=5,
-        task=None,
-        task_mask=None,
-        last_step=False,
-        verbose=True
-    ):
-        if self.current_task not in self.observed_tasks:
-            self.task_masks.append(task_mask)
-        super().fit(
-            train_loader, val_loader, epochs, patience, task, task_mask,
-            last_step, verbose
-        )
 
 
 class DER(IncrementalModelMemory):
@@ -1344,24 +1327,6 @@ class GDumb(IncrementalModel):
                     except RuntimeError:
                         pass
         return np.mean(losses)
-
-    def fit(
-        self,
-        train_loader,
-        val_loader,
-        epochs=50,
-        patience=5,
-        task=None,
-        task_mask=None,
-        last_step=False,
-        verbose=True
-    ):
-        if self.current_task not in self.observed_tasks:
-            self.task_masks.append(task_mask)
-        super().fit(
-            train_loader, val_loader, epochs, patience, task, task_mask,
-            last_step, verbose
-        )
 
     def load_model(self, net_name):
         net_state = super().load_model(net_name)
