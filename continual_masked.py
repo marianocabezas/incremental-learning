@@ -785,9 +785,12 @@ class DER(IncrementalModelMemory):
 
     @property
     def global_mask(self):
-        mask = tuple([
-            k for task_mask in self.task_masks for k in task_mask
-        ])
+        if self.mask is None:
+            mask = tuple([range(self.n_classes)])
+        else:
+            mask = tuple([
+                k for task_mask in self.task_masks for k in task_mask
+            ])
         return mask
 
     def auxiliary_loss(self, prediction, target, task_mask):
@@ -923,6 +926,7 @@ class DER(IncrementalModelMemory):
                     mem_loader, mem_loader, epochs, patience, task,
                     self.global_mask, last_step, verbose
                 )
+            self.task_mask = None
 
     def load_model(self, net_name):
         net_state = super().load_model(net_name)
