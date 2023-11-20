@@ -836,7 +836,7 @@ class DER(IncrementalModelMemory):
             print(
                 self.fc.bias.shape, self.global_mask
             )
-            bias = self.fc.bias[self.global_mask].to(self.device)
+            bias = self.fc.bias[torch.cat(self.global_mask)].to(self.device)
         else:
             print(features.shape, weight.shape, self.fc.weight.shape)
             bias = None
