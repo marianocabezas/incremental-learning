@@ -810,7 +810,7 @@ class DER(IncrementalModelMemory):
 
     def observe(self, x, y):
         pred_y, x_cuda, y_cuda = BaseModel.observe(self, x, y)
-        y_cuda = update_y(y_cuda, self.global_mask)
+        y_cuda = update_y(y_cuda, torch.stack(self.global_mask))
         return pred_y, x_cuda, y_cuda
 
     def forward(self, *inputs):
