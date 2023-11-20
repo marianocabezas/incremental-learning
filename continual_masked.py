@@ -284,6 +284,9 @@ class IncrementalModel(BaseModel):
             )
 
             if isinstance(pred_labels, tuple):
+                print(tuple([
+                    pred_i.shape for pred_i in pred_labels
+                ]))
                 pred_labels = tuple([
                     torch.cat([
                         pred_i[:, self.task_mask],
@@ -896,7 +899,6 @@ class DER(IncrementalModelMemory):
             last_step, verbose
         )
         if last_step:
-            print('DER fit stage #2', self.task_mask)
             if (self.current_task + 1) < len(self.model):
                 self.model[self.current_task + 1].load_state_dict(
                     self.model[self.current_task].state_dict()
