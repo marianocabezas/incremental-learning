@@ -305,6 +305,7 @@ class IncrementalModel(BaseModel):
         last_step=False,
         verbose=True
     ):
+        print('Incremental fit', self.task_mask)
         self.task_mask = task_mask
         self.last_step = last_step
         if task is not None:
@@ -340,6 +341,7 @@ class IncrementalModelMemory(IncrementalModel):
                 self.model.train()
 
     def mini_batch_loop(self, data, train=True, verbose=True):
+        print('Memory minibatchloop', self.task_mask)
         if self.memory_manager is not None and self.current_task > 0 and train:
             if self.task_mask is None:
                 self.task_mask = torch.cat(self.task_masks)
@@ -870,9 +872,8 @@ class DER(IncrementalModelMemory):
         verbose=True
     ):
         # 1) Representation learning stage
-        self.task_mask = task_mask
+        print('DER fit stage #1', self.task_mask)
         if self.current_task not in self.observed_tasks:
-            self.task_masks.append(task_mask)
             if task is None:
                 self.current_task += 1
                 self.optimizer_alg = self.model[self.current_task].optimizer_alg
@@ -910,6 +911,7 @@ class DER(IncrementalModelMemory):
             last_step, verbose
         )
         if last_step:
+            print('DER fit stage #2', self.task_mask)
             if (self.current_task + 1) < len(self.model):
                 self.model[self.current_task + 1].load_state_dict(
                     self.model[self.current_task].state_dict()
