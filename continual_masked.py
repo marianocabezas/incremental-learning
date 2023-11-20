@@ -310,8 +310,8 @@ class IncrementalModel(BaseModel):
 
 class IncrementalModelMemory(IncrementalModel):
     def __init__(
-            self, basemodel, best=True, memory_manager=None,
-            n_classes=100, n_tasks=10, lr=None, task=True
+        self, basemodel, best=True, memory_manager=None,
+        n_classes=100, n_tasks=10, lr=None, task=True
     ):
         super().__init__(
             basemodel, best, memory_manager, n_classes, n_tasks, lr, task
