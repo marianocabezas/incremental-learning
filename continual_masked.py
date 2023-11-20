@@ -869,6 +869,7 @@ class DER(IncrementalModelMemory):
         verbose=True
     ):
         # 1) Representation learning stage
+        self.task_mask = task_mask
         if self.current_task not in self.observed_tasks:
             self.task_masks.append(task_mask)
             if task is None:
