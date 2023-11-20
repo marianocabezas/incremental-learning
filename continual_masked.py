@@ -809,6 +809,8 @@ class DER(IncrementalModelMemory):
         return loss
 
     def observe(self, x, y):
+        pred_y, x_cuda, y_cuda = BaseModel.observe(self, x, y)
+        print(pred_y, y_cuda, self.global_mask)
         return BaseModel.observe(self, x, y)
 
     def forward(self, *inputs):
