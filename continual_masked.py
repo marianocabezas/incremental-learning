@@ -49,6 +49,7 @@ class IncrementalModel(BaseModel):
         self.observed_tasks = []
         self.current_task = -1
         self.task_mask = None
+        self.last_step = False
         self.task_masks = []
         self.grams = []
         self.logits = []
@@ -300,7 +301,7 @@ class IncrementalModel(BaseModel):
         verbose=True
     ):
         self.task_mask = task_mask
-        self.task_masks.append(task_mask)
+        self.last_step = last_step
         if task is not None:
             self.current_task = task
         if self.current_task not in self.observed_tasks:
@@ -600,7 +601,6 @@ class GEM(IncrementalModel):
         self.grads = torch.Tensor(sum(self.grad_dims), n_tasks)
         self.memory_data = [[] for _ in range(n_tasks)]
         self.memory_labs = [[] for _ in range(n_tasks)]
-        self.masks = []
 
     def store_grad(self, tid):
         """
@@ -652,7 +652,7 @@ class GEM(IncrementalModel):
     def update_gradients(self):
         if len(self.observed_tasks) > 1 and self.memory_manager is not None:
             for past_task, task_mask in zip(
-                self.observed_tasks[:-1], self.masks[:-1]
+                self.observed_tasks[:-1], self.task_masks[:-1]
             ):
                 self.zero_grad()
 
@@ -716,7 +716,7 @@ class GEM(IncrementalModel):
         net_state['grad_dims'] = self.grad_dims
         net_state['grads'] = self.grads
         net_state['tasks'] = self.observed_tasks
-        net_state['masks'] = self.masks
+        net_state['masks'] = self.task_masks
         return net_state
 
     def load_model(self, net_name):
@@ -727,7 +727,7 @@ class GEM(IncrementalModel):
         else:
             self.grads = net_state['grads'].cpu()
         self.observed_tasks = net_state['tasks']
-        self.masks = net_state['masks']
+        self.task_masks = net_state['masks']
 
         return net_state
 
@@ -748,7 +748,7 @@ class GEM(IncrementalModel):
         verbose=True
     ):
         if self.current_task not in self.observed_tasks:
-            self.masks.append(task_mask)
+            self.task_masks.append(task_mask)
         super().fit(
             train_loader, val_loader, epochs, patience, task, task_mask,
             last_step, verbose
@@ -798,12 +798,11 @@ class DER(IncrementalModelMemory):
                 model.reset_optimiser()
         self.first = True
         self.device = basemodel.device
-        self.masks = []
 
     @property
     def global_mask(self):
         mask = tuple([
-            k for task_mask in self.masks for k in task_mask
+            k for task_mask in self.task_masks for k in task_mask
         ])
         return mask
 
@@ -832,10 +831,9 @@ class DER(IncrementalModelMemory):
         ]
         features = torch.cat(feature_list, dim=-1).to(self.device)
         n_features = features.shape[1]
-        mask = torch.cat(self.task_masks)
-        weight = self.fc.weight[mask, :n_features].to(self.device)
+        weight = self.fc.weight[self.global_mask, :n_features].to(self.device)
         if self.fc.bias is not None:
-            bias = self.fc.bias[mask].to(self.device)
+            bias = self.fc.bias[self.global_mask].to(self.device)
         else:
             bias = None
         if self.task_fc is not None:
@@ -936,17 +934,17 @@ class DER(IncrementalModelMemory):
                     self.global_mask, last_step, verbose
                 )
 
-            self.masks.append(task_mask)
+            self.task_masks.append(task_mask)
 
     def load_model(self, net_name):
         net_state = super().load_model(net_name)
-        self.masks = net_state['masks']
+        self.task_masks = net_state['masks']
 
         return net_state
 
     def get_state(self):
         net_state = super().get_state()
-        net_state['masks'] = self.masks
+        net_state['masks'] = self.task_masks
         return net_state
 
 
@@ -1012,23 +1010,6 @@ class iCARL(IncrementalModel):
                     self.model.train()
             self.memx = None
             self.memy = None
-
-    def fit(
-        self,
-        train_loader,
-        val_loader,
-        epochs=50,
-        patience=5,
-        task=None,
-        task_mask=None,
-        last_step=False,
-        verbose=True
-    ):
-        self.last_step = last_step
-        super().fit(
-            train_loader, val_loader, epochs, patience, task, task_mask,
-            last_step, verbose
-        )
 
     def load_model(self, net_name):
         net_state = super().load_model(net_name)
@@ -1199,22 +1180,6 @@ class GSS(IncrementalModel):
 
         return final_loss
 
-    def fit(
-        self,
-        train_loader,
-        val_loader,
-        epochs=50,
-        patience=5,
-        task=None,
-        task_mask=None,
-        last_step=False,
-        verbose=True
-    ):
-        super().fit(
-            train_loader, val_loader, epochs, patience, task, task_mask,
-            last_step, verbose
-        )
-
     def load_model(self, net_name):
         net_state = super().load_model(net_name)
 
@@ -1233,9 +1198,6 @@ class GDumb(IncrementalModel):
         super().__init__(
             basemodel, best, memory_manager, n_classes, n_tasks, lr, task
         )
-
-        # Memory
-        self.masks = []
 
     def mini_batch_loop(
         self, data, train=True, verbose=True
@@ -1342,7 +1304,7 @@ class GDumb(IncrementalModel):
         losses = list()
         if self.memory_manager is not None:
             for task_mask, memory_set in zip(
-                self.masks, self.memory_manager.get_tasks()
+                self.task_masks, self.memory_manager.get_tasks()
             ):
                 memory_loader = DataLoader(
                     memory_set, batch_size=batch_size, shuffle=True,
@@ -1386,7 +1348,7 @@ class GDumb(IncrementalModel):
         verbose=True
     ):
         if self.current_task not in self.observed_tasks:
-            self.masks.append(task_mask)
+            self.task_masks.append(task_mask)
         super().fit(
             train_loader, val_loader, epochs, patience, task, task_mask,
             last_step, verbose
@@ -1394,13 +1356,13 @@ class GDumb(IncrementalModel):
 
     def load_model(self, net_name):
         net_state = super().load_model(net_name)
-        self.masks = net_state['masks']
+        self.task_masks = net_state['masks']
 
         return net_state
 
     def get_state(self):
         net_state = super().get_state()
-        net_state['masks'] = self.masks
+        net_state['masks'] = self.task_masks
         return net_state
 
 
