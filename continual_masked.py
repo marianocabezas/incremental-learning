@@ -786,7 +786,7 @@ class DER(IncrementalModelMemory):
     @property
     def global_mask(self):
         if self.task_mask is None:
-            mask = tuple([
+            mask = torch.stack([
                 torch.tensor(k, device=self.device)
                 for k in range(self.n_classes)
             ])
@@ -814,7 +814,7 @@ class DER(IncrementalModelMemory):
 
     def observe(self, x, y):
         pred_y, x_cuda, y_cuda = BaseModel.observe(self, x, y)
-        y_cuda = update_y(y_cuda, torch.stack(self.global_mask))
+        y_cuda = update_y(y_cuda, self.global_mask)
         return pred_y, x_cuda, y_cuda
 
     def forward(self, *inputs):
@@ -826,7 +826,7 @@ class DER(IncrementalModelMemory):
         n_features = features.shape[1]
         weight = self.fc.weight[self.global_mask, :n_features].to(self.device)
         if self.fc.bias is not None:
-            bias = self.fc.bias[torch.stack(self.global_mask)].to(self.device)
+            bias = self.fc.bias[self.global_mask].to(self.device)
         else:
             bias = None
 
