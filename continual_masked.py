@@ -842,6 +842,13 @@ class DER(IncrementalModelMemory):
             prediction = F.linear(features, weight, bias)
         return prediction
 
+    def inference(self, data, nonbatched=True, task=None):
+        temp_fc = self.task_fc
+        self.task_fc = None
+        results = super().inference(data, nonbatched, task)
+        self.task_fc = temp_fc
+        return results
+
     def reset_optimiser(self, model_params=None):
         pass
 
