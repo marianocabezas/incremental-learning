@@ -936,7 +936,7 @@ class DER(IncrementalModelMemory):
                     mem_loader, mem_loader, epochs, patience, task,
                     self.global_mask, last_step, verbose
                 )
-            self.task_mask = None
+        self.task_mask = None
 
     def load_model(self, net_name):
         net_state = super().load_model(net_name)
