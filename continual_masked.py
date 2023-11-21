@@ -903,6 +903,7 @@ class DER(IncrementalModelMemory):
             last_step, verbose
         )
         if last_step:
+            self.task_mask = None
             if (self.current_task + 1) < len(self.model):
                 self.model[self.current_task + 1].load_state_dict(
                     self.model[self.current_task].state_dict()
@@ -934,7 +935,6 @@ class DER(IncrementalModelMemory):
                     mem_loader, mem_loader, epochs, patience, task,
                     self.global_mask, last_step, verbose
                 )
-        self.task_mask = None
 
     def load_model(self, net_name):
         net_state = super().load_model(net_name)
