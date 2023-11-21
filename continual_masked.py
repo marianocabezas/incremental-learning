@@ -791,9 +791,7 @@ class DER(IncrementalModelMemory):
                 for k in range(self.n_classes)
             ])
         else:
-            mask = tuple([
-                k for task_mask in self.task_masks for k in task_mask
-            ])
+            mask = self.task_mask
         return mask
 
     def auxiliary_loss(self, prediction, target, task_mask):
