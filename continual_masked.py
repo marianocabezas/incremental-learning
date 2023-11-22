@@ -812,7 +812,10 @@ class DER(IncrementalModelMemory):
     def observe(self, x, y):
         pred_y, x_cuda, y_cuda = BaseModel.observe(self, x, y)
         y_cuda = update_y(y_cuda, self.global_mask)
-        print(pred_y[0].shape, pred_y[1].shape, x_cuda.shape, y_cuda.shape)
+        print(
+            pred_y[0].shape, pred_y[1].shape, x_cuda.shape, y_cuda.shape,
+            self.global_mask, self.task_mask, self.task_masks
+        )
         return pred_y, x_cuda, y_cuda
 
     def forward(self, *inputs):
