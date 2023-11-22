@@ -867,13 +867,8 @@ class DER(IncrementalModelMemory):
     ):
         print(task, self.observed_tasks, task_mask, last_step)
         # 1) Representation learning stage
-        if self.current_task not in self.observed_tasks:
-            if task is None:
-                self.current_task += 1
-                self.optimizer_alg = self.model[self.current_task].optimizer_alg
-            else:
-                self.optimizer_alg = self.model[task].optimizer_alg
-                self.current_task = task
+        if task not in self.observed_tasks:
+            self.optimizer_alg = self.model[task].optimizer_alg
             if task_mask is not None:
                 n_classes = len(task_mask)
             else:
