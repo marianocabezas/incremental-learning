@@ -795,6 +795,20 @@ class DER(IncrementalModelMemory):
         if self.current_task > 0:
             if task_mask is None:
                 task_mask = self.global_mask
+            print(
+                [
+                    torch.where(task_mask.to(target.device) == y_i)[0] + 1
+                    if y_i in task_mask
+                    else torch.tensor(0, dtype=y_i.dtype, device=y_i.device)
+                    for y_i in target
+                ],
+                len([
+                    torch.where(task_mask.to(target.device) == y_i)[0] + 1
+                    if y_i in task_mask
+                    else torch.tensor(0, dtype=y_i.dtype, device=y_i.device)
+                    for y_i in target
+                ])
+            )
             target = torch.cat(
                 [
                     torch.where(task_mask.to(target.device) == y_i)[0] + 1
