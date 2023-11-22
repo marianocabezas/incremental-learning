@@ -878,6 +878,7 @@ class DER(IncrementalModelMemory):
                 n_classes = len(task_mask)
             else:
                 n_classes = self.n_classes
+            print('Creating task_fc', self.last_features, n_classes)
             self.task_fc = nn.Linear(
                 self.last_features, n_classes
             )
