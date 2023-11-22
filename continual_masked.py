@@ -912,6 +912,7 @@ class DER(IncrementalModelMemory):
                     new_dataset, train_loader.batch_size, True,
                     num_workers=train_loader.num_workers, drop_last=True
                 )
+                print(train_loader.batch_size, len(new_dataset), len(mem_loader))
                 self.fc = nn.Linear(
                     self.last_features * self.n_tasks, self.n_classes
                 )
