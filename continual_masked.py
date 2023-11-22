@@ -835,10 +835,6 @@ class DER(IncrementalModelMemory):
             )
         else:
             prediction = F.linear(features, weight, bias)
-            print(
-                'NO FC', features.shape, self.fc.weight.shape, weight.shape,
-                self.fc.bias.shape, bias.shape
-            )
         return prediction
 
     def inference(self, data, nonbatched=True, task=None):
