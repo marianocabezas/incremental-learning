@@ -799,7 +799,7 @@ class DER(IncrementalModelMemory):
                 [
                     torch.where(task_mask.to(target.device) == y_i)[0] + 1
                     if y_i in task_mask
-                    else torch.tensor(0, y_i.dtype, y_i.device)
+                    else torch.tensor(0, dtype=y_i.dtype, device=y_i.device)
                     for y_i in target
                 ]
             ).to(target.device)
