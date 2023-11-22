@@ -811,7 +811,11 @@ class DER(IncrementalModelMemory):
 
     def observe(self, x, y):
         pred_y, x_cuda, y_cuda = BaseModel.observe(self, x, y)
+        if self.task_fc is None and self.current_task > 0:
+            print('Pre update', y_cuda, pred_y.shape, x_cuda.shape, y_cuda.shape)
         y_cuda = update_y(y_cuda, self.global_mask)
+        if self.task_fc is None and self.current_task > 0:
+            print('Post update', y_cuda, pred_y.shape, x_cuda.shape, y_cuda.shape)
         return pred_y, x_cuda, y_cuda
 
     def forward(self, *inputs):
@@ -835,6 +839,7 @@ class DER(IncrementalModelMemory):
                 self.task_fc(feature_list[-1])
             )
         else:
+            print('No task fc')
             prediction = F.linear(features, weight, bias)
         return prediction
 
@@ -916,6 +921,7 @@ class DER(IncrementalModelMemory):
                 self.fc = nn.Linear(
                     self.last_features * self.n_tasks, self.n_classes
                 )
+                self.task_mask = torch.cat(self.task_masks)
                 self.train_functions = self.val_functions = [
                     {
                         'name': 'xentr',
