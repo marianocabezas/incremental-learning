@@ -788,7 +788,7 @@ class DER(IncrementalModelMemory):
         if self.task_mask is None:
             mask = slice(None)
         else:
-            mask = self.task_mask
+            mask = self.task_mask.to(self.device)
         return mask
 
     def auxiliary_loss(self, prediction, target, task_mask):
