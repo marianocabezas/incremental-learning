@@ -865,7 +865,7 @@ class DER(IncrementalModelMemory):
         last_step=False,
         verbose=True
     ):
-        print(task, task_mask, last_step)
+        print(task, self.observed_tasks, task_mask, last_step)
         # 1) Representation learning stage
         if self.current_task not in self.observed_tasks:
             if task is None:
