@@ -861,7 +861,6 @@ class DER(IncrementalModelMemory):
         last_step=False,
         verbose=True
     ):
-        print(task, self.observed_tasks, task_mask, last_step)
         # 1) Representation learning stage
         if task not in self.observed_tasks:
             self.optimizer_alg = self.model[task].optimizer_alg
@@ -869,7 +868,6 @@ class DER(IncrementalModelMemory):
                 n_classes = len(task_mask)
             else:
                 n_classes = self.n_classes
-            print('Creating task_fc', self.last_features, n_classes)
             self.task_fc = nn.Linear(
                 self.last_features, n_classes
             )
