@@ -833,10 +833,6 @@ class DER(IncrementalModelMemory):
                 F.linear(features, weight, bias),
                 self.task_fc(feature_list[-1])
             )
-            print(
-                'FC', features.shape, self.fc.weight.shape, weight.shape,
-                self.fc.bias.shape, bias.shape
-            )
         else:
             prediction = F.linear(features, weight, bias)
             print(
@@ -869,6 +865,7 @@ class DER(IncrementalModelMemory):
         last_step=False,
         verbose=True
     ):
+        print(task, task_mask, last_step)
         # 1) Representation learning stage
         if self.current_task not in self.observed_tasks:
             if task is None:
