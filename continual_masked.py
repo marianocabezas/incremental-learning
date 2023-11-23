@@ -745,7 +745,7 @@ class DER(IncrementalModelMemory):
         n_classes=100, n_tasks=10, lr=None
     ):
         super().__init__(
-            basemodel, best, memory_manager, n_classes, n_tasks, lr, False
+            basemodel, best, memory_manager, n_classes, n_tasks, lr, True
         )
         self.last_features = basemodel.last_features
         self.model = nn.ModuleList([deepcopy(basemodel) for _ in range(n_tasks)])
@@ -917,7 +917,6 @@ class DER(IncrementalModelMemory):
                     new_dataset, train_loader.batch_size, True,
                     num_workers=train_loader.num_workers, drop_last=True
                 )
-                print(train_loader.batch_size, len(new_dataset), len(mem_loader))
                 self.fc = nn.Linear(
                     self.last_features * self.n_tasks, self.n_classes
                 )
