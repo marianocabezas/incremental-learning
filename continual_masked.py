@@ -793,6 +793,7 @@ class DER(IncrementalModelMemory):
 
     def auxiliary_loss(self, prediction, target, task_mask):
         if self.current_task > 0:
+            print(self.task_mask, task_mask, self.global_mask)
             if task_mask is None:
                 task_mask = self.global_mask
             target = torch.stack(
