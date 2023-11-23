@@ -836,10 +836,18 @@ class DER(IncrementalModelMemory):
         return prediction
 
     def inference(self, data, nonbatched=True, task=None):
+        # We remove all the training-specific variables
         temp_fc = self.task_fc
+        tmp_masks = self.task_masks
+        self.task_masks = [
+            torch.tensor(i, dtype=torch.LongTensor)
+            for i in range(self.n_classes)
+        ]
         self.task_fc = None
         results = super().inference(data, nonbatched, task)
+        # We restore the object to keep training-specific variables
         self.task_fc = temp_fc
+        self.task_masks = tmp_masks
         return results
 
     def reset_optimiser(self, model_params=None):
