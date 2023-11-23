@@ -785,6 +785,9 @@ class DER(IncrementalModelMemory):
 
     @property
     def global_mask(self):
+        print(
+            self.task_masks, len(self.task_masks)
+        )
         return torch.cat(self.task_masks).to(self.device)
 
     def auxiliary_loss(self, prediction, target, task_mask):
