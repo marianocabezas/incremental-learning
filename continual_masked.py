@@ -20,7 +20,6 @@ from memory import MemoryContainer
 
 
 def update_y(y, mask):
-    # print('Update', y, mask)
     y = torch.cat(
         [torch.where(mask.to(y.device) == y_i)[0] for y_i in y]
     ).to(y.device)
@@ -812,14 +811,12 @@ class DER(IncrementalModelMemory):
 
     def observe(self, x, y):
         pred_y, x_cuda, y_cuda = BaseModel.observe(self, x, y)
-        # if self.current_task > 0:
-        #     print(
-        #         'Pre update', y_cuda, y_cuda.shape,
-        #         self.task_mask, self.task_masks, self.global_mask
-        #     )
+        if self.current_task > 0 and self.task_fc is None:
+            print(
+                'Pre update', y_cuda, y_cuda.shape,
+                self.task_mask, self.task_masks, self.global_mask
+            )
         y_cuda = update_y(y_cuda, self.global_mask)
-        # if self.current_task > 0:
-        #     print('Post update', y_cuda, y_cuda.shape)
         return pred_y, x_cuda, y_cuda
 
     def forward(self, *inputs):
