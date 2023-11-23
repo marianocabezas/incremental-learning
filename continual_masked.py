@@ -924,6 +924,8 @@ class DER(IncrementalModelMemory):
                     }
                 ]
 
+                if patience > epochs:
+                    epochs = patience
                 super().fit(
                     mem_loader, mem_loader, epochs, patience, task,
                     self.global_mask, last_step, verbose

@@ -894,7 +894,7 @@ def main(verbose=2):
                             t_start = time.time()
                             train(
                                 config, seed, net, training_set,
-                                model_name, 1, 1, t_i, epoch == n_e, 2,
+                                model_name, 1, n_e, t_i, epoch == n_e, 2,
                                 clean=options['clean']
                             )
                             if config['no_color']:
