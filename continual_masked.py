@@ -785,11 +785,7 @@ class DER(IncrementalModelMemory):
 
     @property
     def global_mask(self):
-        if self.task_mask is None:
-            mask = slice(None)
-        else:
-            mask = self.task_mask.to(self.device)
-        return mask
+        return torch.cat(self.task_masks).to(self.device)
 
     def auxiliary_loss(self, prediction, target, task_mask):
         if self.current_task > 0:
@@ -866,13 +862,16 @@ class DER(IncrementalModelMemory):
         # 1) Representation learning stage
         if task not in self.observed_tasks:
             self.optimizer_alg = self.model[task].optimizer_alg
-            if task_mask is not None:
+            if task == 0:
                 n_classes = len(task_mask)
+                self.task_fc = nn.Linear(
+                    self.last_features, n_classes + 1
+                )
             else:
-                n_classes = self.n_classes
-            self.task_fc = nn.Linear(
-                self.last_features, n_classes
-            )
+                n_classes = len(task_mask) + len(torch.cat(self.task_masks))
+                self.task_fc = nn.Linear(
+                    self.last_features, n_classes + 1
+                )
             self.train_functions = [
                 {
                     'name': 'xentr',
@@ -916,7 +915,6 @@ class DER(IncrementalModelMemory):
                 self.fc = nn.Linear(
                     self.last_features * self.n_tasks, self.n_classes
                 )
-                self.task_mask = torch.cat(self.task_masks)
                 self.train_functions = self.val_functions = [
                     {
                         'name': 'xentr',
