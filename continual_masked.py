@@ -20,6 +20,7 @@ from memory import MemoryContainer
 
 
 def update_y(y, mask):
+    print(y, mask)
     y = torch.cat(
         [torch.where(mask.to(y.device) == y_i)[0] for y_i in y]
     ).to(y.device)
