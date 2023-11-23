@@ -840,7 +840,7 @@ class DER(IncrementalModelMemory):
         temp_fc = self.task_fc
         tmp_masks = self.task_masks
         self.task_masks = [
-            torch.tensor(i, dtype=torch.LongTensor)
+            torch.tensor(i, dtype=torch.long)
             for i in range(self.n_classes)
         ]
         self.task_fc = None
