@@ -785,9 +785,6 @@ class DER(IncrementalModelMemory):
 
     @property
     def global_mask(self):
-        print(
-            self.task_masks, len(self.task_masks)
-        )
         return torch.cat(self.task_masks).to(self.device)
 
     def auxiliary_loss(self, prediction, target, task_mask):
@@ -843,8 +840,10 @@ class DER(IncrementalModelMemory):
         temp_fc = self.task_fc
         tmp_masks = self.task_masks
         self.task_masks = [
-            torch.tensor(i, dtype=torch.long)
-            for i in range(self.n_classes)
+            torch.stack([
+                torch.tensor(i, dtype=torch.long)
+                for i in range(self.n_classes)
+            ])
         ]
         self.task_fc = None
         results = super().inference(data, nonbatched, task)
