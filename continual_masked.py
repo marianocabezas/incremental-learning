@@ -325,7 +325,6 @@ class IncrementalModelMemory(IncrementalModel):
         self._update_cum_grad(batches)
 
     def batch_update(self, batch, batches, x, y):
-        print('Batch update!', batch, batches, self.memory_manager)
         if self.task:
             y = self.task_mask[y]
         if self.memory_manager is not None:
