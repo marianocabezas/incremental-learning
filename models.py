@@ -348,8 +348,8 @@ class ResNet2D(BaseModel):
 
 class ViT_B(BaseModel):
     def __init__(
-        self, image_size, patch_size,
-        n_outputs, pretrained=False, lr=1e-3,
+        self, image_size, patch_size, n_outputs,
+        pretrained=False, lr=1e-3, hidden_dim=768,
         device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
         verbose=True
     ):
@@ -360,15 +360,32 @@ class ViT_B(BaseModel):
         self.device = device
         self.vit = models.vision_transformer._vision_transformer(
             arch="vit_b_16",
-            image_size=image_size,
-            patch_size=patch_size,
             num_layers=12,
             num_heads=12,
-            hidden_dim=768,
+            hidden_dim=hidden_dim,
             mlp_dim=3072,
             pretrained=pretrained,
             progress=True
         )
+        # Parameters for the new ViT layers
+        kernel_size = image_size // patch_size
+        seq_length = (image_size // patch_size) ** 2 + 1
+
+        new_proj = nn.Conv2d(
+            self.vit.conv_proj.in_features,
+            self.vit.conv_proj.out_features,
+            kernel_size
+        )
+        new_proj.weight.copy_(
+            self.vit.conv_proj.weight[..., :kernel_size, :kernel_size]
+        )
+        pos_embedding = nn.Parameter(
+            torch.empty(1, seq_length, hidden_dim).normal_(std=0.02)
+        )
+        pos_embedding.copy_(
+            self.vit.pos_embedding[:, :seq_length, :]
+        )
+
         self.last_features = self.vit.heads[0].in_features
         self.vit.heads[0] = nn.Linear(self.last_features, self.n_classes)
 
@@ -448,7 +465,6 @@ class ViT_B_16(BaseModel):
             except TypeError:
                 self.vit = models.vit_b_16(pretrained=True)
         else:
-
             self.vit = self.vit = models.vit_b_16()
         self.last_features = self.vit.heads[0].in_features
         self.vit.heads[0] = nn.Linear(self.last_features, self.n_classes)
