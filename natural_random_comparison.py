@@ -832,9 +832,7 @@ def main(verbose=2):
 
                 try:
                     manager = getattr(memory, memory_class)
-                    print('Memory', incr_name, memory_class)
                     memory_manager = manager(memories, n_classes, n_tasks)
-                    print('Success')
                 except TypeError:
                     memory_manager = None
 

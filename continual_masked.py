@@ -331,7 +331,6 @@ class IncrementalModelMemory(IncrementalModel):
             training = self.model.training
             self.model.eval()
             with torch.no_grad():
-                print('Updating memory', self.current_task)
                 self.memory_manager.update_memory(
                     x.cpu(), y.cpu(), self.current_task, self.model
                 )
@@ -342,8 +341,9 @@ class IncrementalModelMemory(IncrementalModel):
         if self.memory_manager is not None and self.current_task > 0 and train:
             if self.task_mask is None:
                 self.task_mask = torch.cat(self.task_masks)
-            max_task = self.current_task - 1
-            memory_sets = list(self.memory_manager.get_tasks(max_task))
+            memory_sets = list(
+                self.memory_manager.get_tasks(self.current_task)
+            )
             new_dataset = MultiDataset([data.dataset] + memory_sets)
             print(
                 'New mixed dataset', self.current_task,
