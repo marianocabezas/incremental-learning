@@ -798,9 +798,6 @@ class DER(IncrementalModelMemory):
 
     def auxiliary_loss(self, prediction, target, task_mask):
         if self.current_task > 0:
-            print(
-                'Pre', task_mask, self.global_mask, target
-            )
             target = torch.cat(
                 [
                     torch.where(task_mask.to(target.device) == y_i)[0] + 1
