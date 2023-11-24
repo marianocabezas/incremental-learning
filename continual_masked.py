@@ -345,11 +345,6 @@ class IncrementalModelMemory(IncrementalModel):
                 self.memory_manager.get_tasks(self.current_task)
             )
             new_dataset = MultiDataset([data.dataset] + memory_sets)
-            print(
-                'New mixed dataset', self.current_task,
-                len(data.dataset), len(new_dataset), len(memory_sets),
-                len(self.memory_manager)
-            )
             data = DataLoader(
                 new_dataset, data.batch_size, True,
                 num_workers=data.num_workers, drop_last=True
@@ -808,14 +803,14 @@ class DER(IncrementalModelMemory):
                 [
                     torch.where(task_mask.to(target.device) == y_i)[0] + 1
                     if y_i in task_mask
-                    else torch.tensor(0, dtype=y_i.dtype, device=y_i.device)
+                    else torch.tensor([0], dtype=y_i.dtype, device=y_i.device)
                     for y_i in target
                 ]
             ).to(target.device)
-            # print(
-            #     'Post', task_mask, self.global_mask, target,
-            #     prediction[1].shape
-            # )
+            print(
+                'Post', task_mask, self.global_mask, target,
+                prediction[1].shape
+            )
             loss = F.cross_entropy(prediction[1], target)
         else:
             loss = torch.tensor(0., device=self.device)
