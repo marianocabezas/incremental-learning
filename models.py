@@ -358,15 +358,15 @@ class ViT_B(BaseModel):
         self.n_classes = n_outputs
         self.lr = lr
         self.device = device
-        self.vit = models.vision_transformer._vision_transformer(
-            arch="vit_b_16",
-            num_layers=12,
-            num_heads=12,
-            hidden_dim=hidden_dim,
-            mlp_dim=3072,
-            pretrained=pretrained,
-            progress=True
-        )
+        if pretrained:
+            try:
+                self.vit = models.vit_b_16(
+                    weights=models.ViT_B_16_Weights.IMAGENET1K_V1
+                )
+            except TypeError:
+                self.vit = models.vit_b_16(pretrained=True)
+        else:
+            self.vit = self.vit = models.vit_b_16()
         # Parameters for the new ViT layers
         kernel_size = image_size // patch_size
         seq_length = (image_size // patch_size) ** 2 + 1
