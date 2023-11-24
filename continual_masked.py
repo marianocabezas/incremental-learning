@@ -331,6 +331,7 @@ class IncrementalModelMemory(IncrementalModel):
             training = self.model.training
             self.model.eval()
             with torch.no_grad():
+                print('Updating memory', self.current_task)
                 self.memory_manager.update_memory(
                     x.cpu(), y.cpu(), self.current_task, self.model
                 )
