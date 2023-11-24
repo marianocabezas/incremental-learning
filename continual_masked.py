@@ -883,16 +883,10 @@ class DER(IncrementalModelMemory):
         # 1) Representation learning stage
         if task not in self.observed_tasks:
             self.optimizer_alg = self.model[task].optimizer_alg
-            if task == 0:
-                n_classes = len(task_mask)
-                self.task_fc = nn.Linear(
-                    self.last_features, n_classes + 1
-                )
-            else:
-                n_classes = len(task_mask) + len(torch.cat(self.task_masks))
-                self.task_fc = nn.Linear(
-                    self.last_features, n_classes + 1
-                )
+            n_classes = len(task_mask)
+            self.task_fc = nn.Linear(
+                self.last_features, n_classes + 1
+            )
             self.train_functions = [
                 {
                     'name': 'xentr',
