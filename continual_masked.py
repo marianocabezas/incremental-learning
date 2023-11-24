@@ -344,7 +344,10 @@ class IncrementalModelMemory(IncrementalModel):
             max_task = self.current_task - 1
             memory_sets = list(self.memory_manager.get_tasks(max_task))
             new_dataset = MultiDataset([data.dataset] + memory_sets)
-            print('New mixed dataset', len(data.dataset), len(new_dataset))
+            print(
+                'New mixed dataset', len(data.dataset), len(new_dataset), len(memory_sets)
+                len(self.memory_manager)
+            )
             data = DataLoader(
                 new_dataset, data.batch_size, True,
                 num_workers=data.num_workers, drop_last=True
