@@ -386,7 +386,7 @@ class ViT_B(BaseModel):
         print(
             image_size, patch_size, seq_length,
             self.vit.conv_proj.weight.shape,
-            new_proj.shape,
+            new_proj.weight.shape,
             self.vit.encoder.pos_embedding.shape,
             pos_embedding.shape
         )
