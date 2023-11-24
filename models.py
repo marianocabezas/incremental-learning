@@ -363,7 +363,7 @@ class ViT_B(BaseModel):
                 self.vit = models.vit_b_16(
                     weights=models.ViT_B_16_Weights.IMAGENET1K_V1
                 )
-            except TypeError:
+            except (TypeError, AttributeError):
                 self.vit = models.vit_b_16(pretrained=True)
         else:
             self.vit = self.vit = models.vit_b_16()
@@ -376,14 +376,14 @@ class ViT_B(BaseModel):
             self.vit.conv_proj.out_features,
             kernel_size
         )
-        new_proj.weight.copy_(
+        new_proj.weight[..., :kernel_size, :kernel_size].copy_(
             self.vit.conv_proj.weight[..., :kernel_size, :kernel_size]
         )
         self.vit.conv_proj = new_proj
         pos_embedding = nn.Parameter(
             torch.empty(1, seq_length, hidden_dim).normal_(std=0.02)
         )
-        pos_embedding.copy_(
+        pos_embedding[:, :seq_length, :].copy_(
             self.vit.pos_embedding[:, :seq_length, :]
         )
         self.vit.pos_embedding = pos_embedding
