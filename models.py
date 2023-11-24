@@ -369,6 +369,7 @@ class ViT_B(BaseModel):
             self.vit = self.vit = models.vit_b_16()
 
         self.vit.image_size = image_size
+        self.vit.patch_size = patch_size
         # Parameters for the new ViT layers
         if pretrained:
             seq_length = (image_size // patch_size) ** 2 + 1
