@@ -376,16 +376,18 @@ class ViT_B(BaseModel):
             self.vit.conv_proj.out_channels,
             kernel_size
         )
-        new_proj.weight[..., :kernel_size, :kernel_size].copy_(
-            self.vit.conv_proj.weight[..., :kernel_size, :kernel_size].detach()
-        )
+        with torch.no_grad():
+            new_proj.weight[..., :kernel_size, :kernel_size].copy_(
+                self.vit.conv_proj.weight[..., :kernel_size, :kernel_size]
+            )
         self.vit.conv_proj = new_proj
         pos_embedding = nn.Parameter(
             torch.empty(1, seq_length, hidden_dim).normal_(std=0.02)
         )
-        pos_embedding[:, :seq_length, :].copy_(
-            self.vit.pos_embedding[:, :seq_length, :].detach()
-        )
+        with torch.no_grad():
+            pos_embedding[:, :seq_length, :].copy_(
+                self.vit.pos_embedding[:, :seq_length, :].detach()
+            )
         self.vit.pos_embedding = pos_embedding
 
         self.last_features = self.vit.heads[0].in_features
