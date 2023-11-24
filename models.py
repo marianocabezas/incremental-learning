@@ -379,12 +379,14 @@ class ViT_B(BaseModel):
         new_proj.weight.copy_(
             self.vit.conv_proj.weight[..., :kernel_size, :kernel_size]
         )
+        self.vit.conv_proj = new_proj
         pos_embedding = nn.Parameter(
             torch.empty(1, seq_length, hidden_dim).normal_(std=0.02)
         )
         pos_embedding.copy_(
             self.vit.pos_embedding[:, :seq_length, :]
         )
+        self.vit.pos_embedding = pos_embedding
 
         self.last_features = self.vit.heads[0].in_features
         self.vit.heads[0] = nn.Linear(self.last_features, self.n_classes)
