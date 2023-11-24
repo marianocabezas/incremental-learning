@@ -372,8 +372,8 @@ class ViT_B(BaseModel):
         seq_length = (image_size // patch_size) ** 2 + 1
 
         new_proj = nn.Conv2d(
-            self.vit.conv_proj.in_features,
-            self.vit.conv_proj.out_features,
+            self.vit.conv_proj.in_channels,
+            self.vit.conv_proj.out_channels,
             kernel_size
         )
         new_proj.weight[..., :kernel_size, :kernel_size].copy_(
