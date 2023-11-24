@@ -746,7 +746,7 @@ class DER(IncrementalModelMemory):
         n_classes=100, n_tasks=10, lr=None
     ):
         super().__init__(
-            basemodel, best, memory_manager, n_classes, n_tasks, lr, True
+            basemodel, best, memory_manager, n_classes, n_tasks, lr, False
         )
         self.last_features = basemodel.last_features
         self.model = nn.ModuleList([deepcopy(basemodel) for _ in range(n_tasks)])
@@ -794,7 +794,7 @@ class DER(IncrementalModelMemory):
         except ValueError:
             main_pred = prediction
 
-        return F.cross_entropy(main_pred, update_y(target))
+        return F.cross_entropy(main_pred, update_y(target, self.global_mask))
 
     def auxiliary_loss(self, prediction, target, task_mask):
         if self.current_task > 0:
