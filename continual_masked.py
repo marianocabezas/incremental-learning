@@ -799,7 +799,7 @@ class DER(IncrementalModelMemory):
     def auxiliary_loss(self, prediction, target, task_mask):
         if self.current_task > 0:
             print(
-                'Pre', self.task_mask, task_mask, self.global_mask, target
+                'Pre', task_mask, self.global_mask, target
             )
             target = torch.cat(
                 [
@@ -810,7 +810,8 @@ class DER(IncrementalModelMemory):
                 ]
             ).to(target.device)
             print(
-                'Post', self.task_mask, task_mask, self.global_mask, target
+                'Post', task_mask, self.global_mask, target,
+                prediction[1].shape
             )
             loss = F.cross_entropy(prediction[1], target)
         else:
