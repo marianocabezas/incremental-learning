@@ -6,6 +6,7 @@ import shutil
 import quadprog
 import numpy as np
 from copy import deepcopy
+from functools import partial
 
 # Pytorch imports
 import torch
@@ -757,7 +758,7 @@ class DER(IncrementalModelMemory):
             {
                 'name': 'xentr',
                 'weight': 1,
-                'f': lambda p, t: F.cross_entropy(p[0], t)
+                'f': self.main_loss
             },
             {
                 'name': 'aux',
@@ -770,7 +771,7 @@ class DER(IncrementalModelMemory):
             {
                 'name': 'xentr',
                 'weight': 1,
-                'f': lambda p, t: F.cross_entropy(p[0], t)
+                'f': self.main_loss
             }
         ]
 
@@ -786,6 +787,14 @@ class DER(IncrementalModelMemory):
     @property
     def global_mask(self):
         return torch.cat(self.task_masks).to(self.device)
+
+    def main_loss(self, prediction, target):
+        try:
+            main_pred, aux_pred = prediction
+        except ValueError:
+            main_pred = prediction
+
+        return F.cross_entropy(main_pred, update_y(target))
 
     def auxiliary_loss(self, prediction, target, task_mask):
         if self.current_task > 0:
@@ -815,9 +824,7 @@ class DER(IncrementalModelMemory):
         return loss
 
     def observe(self, x, y):
-        pred_y, x_cuda, y_cuda = BaseModel.observe(self, x, y)
-        y_cuda = update_y(y_cuda, self.global_mask)
-        return pred_y, x_cuda, y_cuda
+        return BaseModel.observe(self, x, y)
 
     def forward(self, *inputs):
         feature_list = [
@@ -894,19 +901,19 @@ class DER(IncrementalModelMemory):
                 {
                     'name': 'xentr',
                     'weight': 1,
-                    'f': lambda p, t: F.cross_entropy(p[0], t)
+                    'f': self.main_loss
                 },
                 {
                     'name': 'aux',
                     'weight': 1,
-                    'f': lambda p, t: self.auxiliary_loss(p, t, task_mask)
+                    'f': partial(self.auxiliary_loss, task_mask=task_mask)
                 },
             ]
             self.val_functions = [
                 {
                     'name': 'xentr',
                     'weight': 1,
-                    'f': lambda p, t: F.cross_entropy(p[0], t)
+                    'f': self.main_loss
                 }
             ]
         super().fit(
