@@ -377,14 +377,14 @@ class ViT_B(BaseModel):
             kernel_size
         )
         new_proj.weight[..., :kernel_size, :kernel_size].copy_(
-            self.vit.conv_proj.weight[..., :kernel_size, :kernel_size]
+            self.vit.conv_proj.weight[..., :kernel_size, :kernel_size].detach()
         )
         self.vit.conv_proj = new_proj
         pos_embedding = nn.Parameter(
             torch.empty(1, seq_length, hidden_dim).normal_(std=0.02)
         )
         pos_embedding[:, :seq_length, :].copy_(
-            self.vit.pos_embedding[:, :seq_length, :]
+            self.vit.pos_embedding[:, :seq_length, :].detach()
         )
         self.vit.pos_embedding = pos_embedding
 
