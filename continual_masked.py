@@ -807,10 +807,10 @@ class DER(IncrementalModelMemory):
                     for y_i in target
                 ]
             ).to(target.device)
-            print(
-                'Post', task_mask, self.global_mask, target,
-                prediction[1].shape
-            )
+            # print(
+            #     'Post', task_mask, self.global_mask, target,
+            #     prediction[1].shape
+            # )
             loss = F.cross_entropy(prediction[1], target)
         else:
             loss = torch.tensor(0., device=self.device)
