@@ -398,11 +398,6 @@ class ViT_B(BaseModel):
                     )
         self.vit.encoder.pos_embedding = pos_embedding
 
-        print(
-            new_proj.weight.shape, image_size, patch_size, seq_length,
-            image_size // patch_size
-        )
-
         self.last_features = self.vit.heads[0].in_features
         self.vit.heads[0] = nn.Linear(self.last_features, self.n_classes)
 
