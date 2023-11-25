@@ -374,7 +374,8 @@ class ViT_B(BaseModel):
         new_proj = nn.Conv2d(
             self.vit.conv_proj.in_channels,
             self.vit.conv_proj.out_channels,
-            patch_size
+            kernel_size=patch_size,
+            stride=patch_size
         )
         if pretrained:
             with torch.no_grad():
