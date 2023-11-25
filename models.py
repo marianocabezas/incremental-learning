@@ -371,29 +371,36 @@ class ViT_B(BaseModel):
         self.vit.image_size = image_size
         self.vit.patch_size = patch_size
         # Parameters for the new ViT layers
+        new_proj = nn.Conv2d(
+            self.vit.conv_proj.in_channels,
+            self.vit.conv_proj.out_channels,
+            patch_size
+        )
         if pretrained:
-            seq_length = (image_size // patch_size) ** 2 + 1
-            old_seq_length = self.vit.encoder.pos_embedding.shape[1]
-            new_proj = nn.Conv2d(
-                self.vit.conv_proj.in_channels,
-                self.vit.conv_proj.out_channels,
-                patch_size
-            )
             with torch.no_grad():
                 if patch_size < 16:
                     new_proj.weight[..., :patch_size, :patch_size].copy_(
                         self.vit.conv_proj.weight[..., :patch_size, :patch_size]
                     )
-                self.vit.conv_proj = new_proj
-            pos_embedding = nn.Parameter(
-                torch.empty(1, seq_length, hidden_dim).normal_(std=0.02)
-            )
+        self.vit.conv_proj = new_proj
+
+        seq_length = (image_size // patch_size) ** 2 + 1
+        pos_embedding = nn.Parameter(
+            torch.empty(1, seq_length, hidden_dim).normal_(std=0.02)
+        )
+        if pretrained:
+            old_seq_length = self.vit.encoder.pos_embedding.shape[1]
             with torch.no_grad():
                 if seq_length < old_seq_length:
                     pos_embedding[:, :seq_length, :].copy_(
                         self.vit.encoder.pos_embedding[:, :seq_length, :]
                     )
-                    self.vit.encoder.pos_embedding = pos_embedding
+        self.vit.encoder.pos_embedding = pos_embedding
+
+        print(
+            new_proj.weight.shape, image_size, patch_size, seq_length,
+            image_size // patch_size
+        )
 
         self.last_features = self.vit.heads[0].in_features
         self.vit.heads[0] = nn.Linear(self.last_features, self.n_classes)
