@@ -1377,12 +1377,6 @@ class Piggyback(IncrementalModel):
             self.weight_buffer.append(
                 deepcopy(layer.weight[mask].detach().cpu())
             )
-            print(
-                'Freezing {:d}/{:d} weights'.format(
-                    torch.sum(mask), torch.numel(mask)
-                )
-            )
-
 
     def batch_update(self, batch, batches, x, y):
         super().batch_update(batch, batches, x, y)
@@ -1465,7 +1459,11 @@ class Piggyback(IncrementalModel):
 
                 layer.weight.data[n_mask].fill_(0.0)
                 print(
-                    'Filling', torch.sum(n_mask),
+                    'Filling {:d}/{:d}[{:d}]'.format(
+                        torch.sum(n_mask),
+                        len(all_weights),
+                        torch.numel(all_weights)
+                    ),
                     'weights (layer {:d})'.format(i),
                     '- prunable weights {:d}/{:d}'.format(
                         torch.sum(prune_mask), torch.numel(prune_mask)
