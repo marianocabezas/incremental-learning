@@ -1451,7 +1451,7 @@ class Piggyback(IncrementalModel):
                 # we will keep, for now we store an inverted matrix.
 
                 # New mask will contain the fixed weights (previous + new).
-                n_mask.data[prune_mask].copy_(np.logical_not(flat_mask))
+                n_mask.data[prune_mask].copy_(np.logical_not(flat_mask.cpu()))
                 n_mask[np.logical_not(prune_mask)].fill_(True)
                 # Current mask will contain the pruned weights (we do not want
                 # to train them) plus the previous ones already stored.
@@ -1463,7 +1463,7 @@ class Piggyback(IncrementalModel):
             # 3) Retrain the pruned network
             # The original paper trained for half the epochs. However, this
             # framework relies on running epochs one by one. If we divide by 2
-            # the network of epochs this could lead to running this step 0
+            # the number of epochs this could lead to running this step 0
             # epochs.
             # To avoid that we assume a minimum of 1 epoch. The biggest issue
             # is that we are now essentially training for the same number of
