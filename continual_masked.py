@@ -1377,6 +1377,12 @@ class Piggyback(IncrementalModel):
             self.weight_buffer.append(
                 deepcopy(layer.weight[mask].detach().cpu())
             )
+            print(
+                'Freezing {:d}/{:d} weights'.format(
+                    torch.sum(mask), torch.numel(mask)
+                )
+            )
+
 
     def batch_update(self, batch, batches, x, y):
         super().batch_update(batch, batches, x, y)
@@ -1476,7 +1482,6 @@ class Piggyback(IncrementalModel):
             # is that we are now essentially training for the same number of
             # epochs.
             min_epochs = max(epochs // 2, 1)
-            print(min_epochs, epochs, patience)
             super().fit(
                 train_loader, val_loader, min_epochs, patience, task, task_mask,
                 last_step, verbose
