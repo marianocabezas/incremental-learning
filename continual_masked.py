@@ -1477,11 +1477,9 @@ class Piggyback(IncrementalModel):
                 prune_mask = torch.clone(prunable_mask)
                 prune_mask[prunable_mask] = flat_mask
                 print(
-                    '0 weights {:,} (layer {:d})'.format(
-                        torch.sum(layer.weight.data[prune_mask] == 0.0), i,
-                    )
+                    '0 weights', torch.sum(layer.weight.data[prune_mask] == 0.0)
                 )
-                layer.weight.data[prune_mask].fill_(0.0)
+                layer.weight.data[prune_mask] = 0.0
                 print(
                     'Filling {:,}[{:,}]/{:,}[{:,}] weights (layer {:d})'.format(
                         torch.sum(prune_mask), torch.sum(flat_mask),
@@ -1489,9 +1487,7 @@ class Piggyback(IncrementalModel):
                     )
                 )
                 print(
-                    '0 weights {:,} (layer {:d})'.format(
-                        torch.sum(layer.weight.data[prune_mask] == 0.0), i,
-                    )
+                    '0 weights', torch.sum(layer.weight.data[prune_mask] == 0.0)
                 )
 
                 mask_idx += n_elem
