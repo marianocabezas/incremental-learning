@@ -1472,10 +1472,12 @@ class Piggyback(IncrementalModel):
                 c_mask[prunable_mask].copy_(flat_mask)
                 c_mask[torch.logical_not(prunable_mask)].fill_(True)
 
-                # Finally, me create a mask (same shape as layer weight) of
+                # Finally, me create a mask (same shape as the layer weight) of
                 # the prunable weights
+                notflat_mask = torch.logical_not(flat_mask)
                 prune_mask = torch.clone(prunable_mask)
                 prune_mask[prunable_mask][flat_mask].fill_(True)
+                prune_mask[prunable_mask][notflat_mask].fill_(False)
                 layer.weight.data[prune_mask].fill_(0.0)
                 print(
                     'Filling {:,}[{:,}]/{:,}[{:,}] weights (layer {:d})'.format(
@@ -1505,7 +1507,7 @@ class Piggyback(IncrementalModel):
             self.weight_masks.append(new_mask)
 
     def inference(self, data, nonbatched=True, task=None):
-        if task is None or task < len(self.weight_masks):
+        if task is None or task >= len(self.weight_masks):
             mask = self.current_mask
         else:
             mask = self.weight_masks[task]
