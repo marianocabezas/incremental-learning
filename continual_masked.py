@@ -1384,7 +1384,6 @@ class Piggyback(IncrementalModel):
             self.model_layers, self.current_mask, self.weight_buffer
         ):
             if torch.sum(mask) > 0:
-                print('Restoring old weights')
                 layer.weight.data[mask].copy_(weight)
         self.weight_buffer = []
 
@@ -1440,6 +1439,11 @@ class Piggyback(IncrementalModel):
             sorted_weights = torch.argsort(torch.abs(all_weights))
             weight_indices = torch.argsort(sorted_weights)
             dropped_weights = weight_indices < self.prune_ratio * len(all_weights)
+            print(
+                '{:d}/{:d} to be pruned weights'.format(
+                    torch.sum(dropped_weights), torch.numel(dropped_weights)
+                )
+            )
 
             mask_idx = 0
             for i, (c_mask, n_mask, layer) in enumerate(zip(
