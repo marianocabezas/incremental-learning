@@ -1451,8 +1451,8 @@ class Piggyback(IncrementalModel):
                 # we will keep, for now we store an inverted matrix.
 
                 # New mask will contain the fixed weights (previous + new).
-                n_mask.data[prune_mask].copy_(np.logical_not(flat_mask.cpu()))
-                n_mask[np.logical_not(prune_mask)].fill_(True)
+                n_mask.data[prune_mask].copy_(torch.logical_not(flat_mask))
+                n_mask[torch.logical_not(prune_mask)].fill_(True)
                 # Current mask will contain the pruned weights (we do not want
                 # to train them) plus the previous ones already stored.
                 c_mask.data[prune_mask].copy_(flat_mask)
