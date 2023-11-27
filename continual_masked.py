@@ -1472,7 +1472,7 @@ class Piggyback(IncrementalModel):
                 c_mask.data[prunable_mask].copy_(flat_mask)
                 c_mask.data[torch.logical_not(prunable_mask)].fill_(True)
 
-                prunable_mask[np.logical_not(flat_mask)].data.fill_(False)
+                prunable_mask[torch.logical_not(flat_mask)].data.fill_(False)
                 layer.weight.data[prunable_mask].fill_(0.0)
                 print(
                     'Filling {:,}[{:,}]/{:,}[{:,}] weights (layer {:d})'.format(
