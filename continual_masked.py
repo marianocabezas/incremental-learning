@@ -1465,17 +1465,17 @@ class Piggyback(IncrementalModel):
                 # we will keep, for now we store an inverted matrix.
 
                 # New mask will contain the fixed weights (previous + new).
-                n_mask.data[prunable_mask].copy_(torch.logical_not(flat_mask))
-                n_mask.data[torch.logical_not(prunable_mask)].fill_(True)
+                n_mask[prunable_mask].copy_(torch.logical_not(flat_mask))
+                n_mask[torch.logical_not(prunable_mask)].fill_(True)
                 # Current mask will contain the pruned weights (we do not want
                 # to train them) plus the previous ones already stored.
-                c_mask.data[prunable_mask].copy_(flat_mask)
-                c_mask.data[torch.logical_not(prunable_mask)].fill_(True)
+                c_mask[prunable_mask].copy_(flat_mask)
+                c_mask[torch.logical_not(prunable_mask)].fill_(True)
 
                 # Finally, me create a mask (same shape as layer weight) of
                 # the prunable weights
                 prune_mask = torch.clone(prunable_mask)
-                prune_mask.data[prunable_mask].copy_(flat_mask)
+                prune_mask[prunable_mask].copy_(flat_mask)
                 layer.weight.data[prune_mask].fill_(0.0)
                 print(
                     'Filling {:,}[{:,}]/{:,}[{:,}] weights (layer {:d})'.format(
