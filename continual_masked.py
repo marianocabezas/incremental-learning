@@ -1440,9 +1440,9 @@ class Piggyback(IncrementalModel):
             dropped_weights = weight_indices < 0.5 * len(all_weights)
 
             mask_idx = 0
-            for c_mask, n_mask, layer in zip(
+            for i, (c_mask, n_mask, layer) in enumerate(zip(
                 self.current_mask, new_mask, self.model_layers
-            ):
+            )):
                 prune_mask = torch.logical_not(c_mask)
                 n_elem = torch.sum(prune_mask)
                 flat_mask = dropped_weights[mask_idx:mask_idx + n_elem]
@@ -1458,6 +1458,10 @@ class Piggyback(IncrementalModel):
                 c_mask.data[prune_mask].copy_(flat_mask)
 
                 layer.weight.data[n_mask].fill_(0.0)
+                print(
+                    'Filling', torch.sum(n_mask),
+                    'weights (layer {:d})'.format(i)
+                )
                 mask_idx += n_elem
 
             # 3) Retrain the pruned network
@@ -1469,6 +1473,7 @@ class Piggyback(IncrementalModel):
             # is that we are now essentially training for the same number of
             # epochs.
             min_epochs = min(epochs // 2, 1)
+            print(min_epochs, epochs, patience)
             super().fit(
                 train_loader, val_loader, min_epochs, patience, task, task_mask,
                 last_step, verbose
