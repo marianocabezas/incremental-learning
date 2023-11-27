@@ -1383,7 +1383,9 @@ class Piggyback(IncrementalModel):
         for layer, mask, weight in zip(
             self.model_layers, self.current_mask, self.weight_buffer
         ):
-            layer.weight.data[mask].copy_(weight)
+            if torch.sum(mask) > 0:
+                print('Restoring old weights')
+                layer.weight.data[mask].copy_(weight)
         self.weight_buffer = []
 
     def fit(
