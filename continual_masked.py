@@ -1455,8 +1455,8 @@ class Piggyback(IncrementalModel):
                 self.current_mask, new_mask, self.model_layers
             )):
                 # Mask with all the "prunable weights" for the layer.
-                prune_mask = torch.logical_not(c_mask)
-                n_elem = torch.sum(prune_mask)
+                prunable_mask = torch.logical_not(c_mask)
+                n_elem = torch.sum(prunable_mask)
                 # Boolean list. True means the weights must be pruned, while
                 # False means not a prunable weight.
                 flat_mask = dropped_weights[mask_idx:mask_idx + n_elem]
@@ -1465,22 +1465,21 @@ class Piggyback(IncrementalModel):
                 # we will keep, for now we store an inverted matrix.
 
                 # New mask will contain the fixed weights (previous + new).
-                n_mask.data[prune_mask].copy_(torch.logical_not(flat_mask))
-                layer.weight.data[n_mask].fill_(0.0)
-                print(
-                    'Filling {:,}[{:,}]/{:,}[{:,}] weights'
-                    ' (layer {:d}) - prunable weights {:d}/{:d} <idx {:,}:{:,}>'.format(
-                        torch.sum(n_mask), torch.sum(flat_mask),
-                        len(all_weights), torch.numel(all_weights),
-                        i, torch.sum(prune_mask), torch.numel(prune_mask),
-                        mask_idx, mask_idx + n_elem
-                    )
-                )
-                n_mask.data[torch.logical_not(prune_mask)].fill_(True)
+                n_mask.data[prunable_mask].copy_(torch.logical_not(flat_mask))
+                n_mask.data[torch.logical_not(prunable_mask)].fill_(True)
                 # Current mask will contain the pruned weights (we do not want
                 # to train them) plus the previous ones already stored.
-                c_mask.data[prune_mask].copy_(flat_mask)
-                c_mask.data[torch.logical_not(prune_mask)].fill_(True)
+                c_mask.data[prunable_mask].copy_(flat_mask)
+                c_mask.data[torch.logical_not(prunable_mask)].fill_(True)
+
+                prunable_mask[np.logical_not(flat_mask)].data.fill_(False)
+                layer.weight.data[prunable_mask].fill_(0.0)
+                print(
+                    'Filling {:,}[{:,}]/{:,}[{:,}] weights (layer {:d})'.format(
+                        torch.sum(n_mask), torch.sum(flat_mask),
+                        len(all_weights), torch.numel(all_weights), i,
+                    )
+                )
 
                 mask_idx += n_elem
 
