@@ -1480,7 +1480,7 @@ class Piggyback(IncrementalModel):
                 layer.weight.data[prunable_mask].fill_(0.0)
                 print(
                     'Filling {:,}[{:,}]/{:,}[{:,}] weights (layer {:d})'.format(
-                        torch.sum(n_mask), torch.sum(flat_mask),
+                        torch.sum(prunable_mask), torch.sum(flat_mask),
                         len(all_weights), torch.numel(all_weights), i,
                     )
                 )
@@ -1506,7 +1506,7 @@ class Piggyback(IncrementalModel):
             self.weight_masks.append(new_mask)
 
     def inference(self, data, nonbatched=True, task=None):
-        if task is None:
+        if task is None or task < len(self.weight_masks):
             mask = self.current_mask
         else:
             mask = self.weight_masks[task]
