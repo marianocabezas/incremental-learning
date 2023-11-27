@@ -1385,7 +1385,7 @@ class Piggyback(IncrementalModel):
         ):
             if torch.sum(mask) > 0:
                 print(
-                    'Restoring weights {:d}/{:d}'.format(
+                    'Restoring weights {:,}/{:,}'.format(
                         torch.sum(mask), torch.numel(mask)
                     )
                 )
@@ -1445,7 +1445,7 @@ class Piggyback(IncrementalModel):
             weight_indices = torch.argsort(sorted_weights)
             dropped_weights = weight_indices < self.prune_ratio * len(all_weights)
             print(
-                '{:d}/{:d} to be pruned weights'.format(
+                '{:,}/{:,} to be pruned weights'.format(
                     torch.sum(dropped_weights), torch.numel(dropped_weights)
                 )
             )
