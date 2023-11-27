@@ -1384,11 +1384,6 @@ class Piggyback(IncrementalModel):
             self.model_layers, self.current_mask, self.weight_buffer
         ):
             if torch.sum(mask) > 0:
-                print(
-                    'Restoring weights {:,}/{:,}'.format(
-                        torch.sum(mask), torch.numel(mask)
-                    )
-                )
                 with torch.no_grad():
                     layer.weight.data[mask] = weight.to(self.device)
         self.weight_buffer = []
