@@ -1383,7 +1383,7 @@ class Piggyback(IncrementalModel):
         for layer, mask, weight in zip(
             self.model_layers, self.current_mask, self.weight_buffer
         ):
-            layer.weight.data[mask].fill_(weight)
+            layer.weight.data[mask].copy_(weight)
         self.weight_buffer = []
 
     def fit(
@@ -1496,7 +1496,7 @@ class Piggyback(IncrementalModel):
         for layer, mask, weight in zip(
             self.model_layers, self.current_mask, self.weight_buffer
         ):
-            layer.weight.data[mask].fill_(weight)
+            layer.weight.data[mask].copy_(weight)
         self.weight_buffer = []
 
         return results
