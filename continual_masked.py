@@ -1437,7 +1437,7 @@ class Piggyback(IncrementalModel):
             # ones).
             sorted_weights = torch.argsort(torch.abs(all_weights))
             weight_indices = torch.argsort(sorted_weights)
-            dropped_weights = weight_indices < 0.5 * len(all_weights)
+            dropped_weights = weight_indices < self.prune_ratio * len(all_weights)
 
             mask_idx = 0
             for i, (c_mask, n_mask, layer) in enumerate(zip(
@@ -1460,7 +1460,10 @@ class Piggyback(IncrementalModel):
                 layer.weight.data[n_mask].fill_(0.0)
                 print(
                     'Filling', torch.sum(n_mask),
-                    'weights (layer {:d})'.format(i)
+                    'weights (layer {:d})'.format(i),
+                    '- prunable weights {:d}/{:d}'.format(
+                        torch.sum(prune_mask), torch.numel(prune_mask)
+                    )
                 )
                 mask_idx += n_elem
 
@@ -1472,7 +1475,7 @@ class Piggyback(IncrementalModel):
             # To avoid that we assume a minimum of 1 epoch. The biggest issue
             # is that we are now essentially training for the same number of
             # epochs.
-            min_epochs = min(epochs // 2, 1)
+            min_epochs = max(epochs // 2, 1)
             print(min_epochs, epochs, patience)
             super().fit(
                 train_loader, val_loader, min_epochs, patience, task, task_mask,
