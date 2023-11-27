@@ -1474,9 +1474,7 @@ class Piggyback(IncrementalModel):
 
                 # Finally, me create a mask (same shape as layer weight) of
                 # the prunable weights
-                prunable_mask.data[prunable_mask].copy_(
-                    flat_mask
-                )
+                prunable_mask[prunable_mask] = flat_mask
                 layer.weight.data[prunable_mask].fill_(0.0)
                 print(
                     'Filling {:,}[{:,}]/{:,}[{:,}] weights (layer {:d})'.format(
