@@ -1389,7 +1389,8 @@ class Piggyback(IncrementalModel):
                         torch.sum(mask), torch.numel(mask)
                     )
                 )
-                layer.weight.data[mask].copy_(weight)
+                with torch.no_grad():
+                    layer.weight.data[mask] = weight.to(self.device)
         self.weight_buffer = []
 
     def fit(
@@ -1444,11 +1445,6 @@ class Piggyback(IncrementalModel):
             sorted_weights = torch.argsort(torch.abs(all_weights))
             weight_indices = torch.argsort(sorted_weights)
             dropped_weights = weight_indices < self.prune_ratio * len(all_weights)
-            print(
-                '{:,}/{:,} to be pruned weights'.format(
-                    torch.sum(dropped_weights), torch.numel(dropped_weights)
-                )
-            )
 
             mask_idx = 0
             for i, (c_mask, n_mask, layer) in enumerate(zip(
@@ -1466,29 +1462,17 @@ class Piggyback(IncrementalModel):
 
                 # New mask will contain the fixed weights (previous + new).
                 n_mask[prunable_mask].copy_(torch.logical_not(flat_mask))
-                n_mask[torch.logical_not(prunable_mask)].fill_(True)
+                n_mask[torch.logical_not(prunable_mask)] = True
                 # Current mask will contain the pruned weights (we do not want
                 # to train them) plus the previous ones already stored.
-                c_mask[prunable_mask].copy_(flat_mask)
-                c_mask[torch.logical_not(prunable_mask)].fill_(True)
+                c_mask[prunable_mask] = flat_mask
+                c_mask[torch.logical_not(prunable_mask)] = True
 
                 # Finally, me create a mask (same shape as the layer weight) of
                 # the prunable weights
                 prune_mask = torch.clone(prunable_mask)
                 prune_mask[prunable_mask] = flat_mask
-                print(
-                    '0 weights', torch.sum(layer.weight.data[prune_mask] == 0.0)
-                )
                 layer.weight.data[prune_mask] = 0.0
-                print(
-                    'Filling {:,}[{:,}]/{:,}[{:,}] weights (layer {:d})'.format(
-                        torch.sum(prune_mask), torch.sum(flat_mask),
-                        torch.numel(prune_mask), torch.numel(flat_mask), i,
-                    )
-                )
-                print(
-                    '0 weights', torch.sum(layer.weight.data[prune_mask] == 0.0)
-                )
 
                 mask_idx += n_elem
 
