@@ -1374,6 +1374,11 @@ class Piggyback(IncrementalModel):
     def prebatch_update(self, batch, batches, x, y):
         # Copy all the weight that should not be modified
         for layer, mask in zip(self.model_layers, self.current_mask):
+            print(
+                'Ignoring weights {:,}/{:,}'.format(
+                    torch.sum(mask), torch.numel(mask)
+                )
+            )
             self.weight_buffer.append(
                 deepcopy(layer.weight[mask].detach().cpu())
             )
