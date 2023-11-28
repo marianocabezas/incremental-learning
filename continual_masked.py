@@ -621,7 +621,9 @@ class GEM(IncrementalModel):
             if param.grad is not None:
                 beg = 0 if cnt == 0 else sum(self.grad_dims[:cnt])
                 en = sum(self.grad_dims[:cnt + 1])
-                self.grads[beg:en, tid].copy_(param.grad.cpu().data.view(-1))
+                self.grads[beg:en, tid] = torch.clone(
+                    param.grad.cpu().data.view(-1)
+                )
             cnt += 1
 
     def project(self, gradient, memories, eps=1e-3):
@@ -692,9 +694,9 @@ class GEM(IncrementalModel):
                 beg = 0 if cnt == 0 else sum(self.grad_dims[:cnt])
                 en = sum(self.grad_dims[:cnt + 1])
                 this_grad = newgrad[beg:en].contiguous().view(
-                    param.grad.data.size()
+                    param.grad.size()
                 )
-                param.grad.data.copy_(this_grad.to(param.device))
+                param.grad = torch.clone(this_grad).to(param.device)
             cnt += 1
 
     def constraint_check(self):
