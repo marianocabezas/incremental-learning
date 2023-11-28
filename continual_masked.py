@@ -1511,7 +1511,7 @@ class Piggyback(IncrementalModel):
             self.model_layers, self.current_mask, self.weight_buffer
         ):
             with torch.no_grad():
-                layer.weight[mask] = torc.clone(weight).to(self.device)
+                layer.weight[mask] = torch.clone(weight).to(self.device)
         self.weight_buffer = []
 
         return results
