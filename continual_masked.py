@@ -1503,7 +1503,7 @@ class Piggyback(IncrementalModel):
                 deepcopy(layer.weight[mask_i].detach().cpu())
             )
             with torch.no_grad():
-                layer.weight.data[torch.logical_not(mask_i)] = 0.0
+                layer.weight[torch.logical_not(mask_i)] = 0.0
 
         results = super().inference(data, nonbatched, task)
         # We fill the weights again
@@ -1511,7 +1511,7 @@ class Piggyback(IncrementalModel):
             self.model_layers, self.current_mask, self.weight_buffer
         ):
             with torch.no_grad():
-                layer.weight.data[mask] = weight
+                layer.weight[mask] = torc.clone(weight).to(self.device)
         self.weight_buffer = []
 
         return results
