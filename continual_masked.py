@@ -1508,7 +1508,7 @@ class Piggyback(IncrementalModel):
         results = super().inference(data, nonbatched, task)
         # We fill the weights again
         for layer, mask, weight in zip(
-            self.model_layers, self.current_mask, self.weight_buffer
+            self.model_layers, mask, self.weight_buffer
         ):
             with torch.no_grad():
                 layer.weight[mask] = torch.clone(weight).to(self.device)
