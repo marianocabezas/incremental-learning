@@ -1456,7 +1456,7 @@ class Piggyback(IncrementalModel):
                 # we will keep, for now we store an inverted matrix.
 
                 # New mask will contain the fixed weights (previous + new).
-                n_mask[prunable_mask].copy_(torch.logical_not(flat_mask))
+                n_mask[prunable_mask] = torch.logical_not(flat_mask)
                 n_mask[torch.logical_not(prunable_mask)] = True
                 # Current mask will contain the pruned weights (we do not want
                 # to train them) plus the previous ones already stored.
@@ -1500,14 +1500,16 @@ class Piggyback(IncrementalModel):
             self.weight_buffer.append(
                 deepcopy(layer.weight[mask_i].detach().cpu())
             )
-            layer.weight.data[torch.logical_not(mask_i)].fill_(0.0)
+            with torch.no_grad():
+                layer.weight.data[torch.logical_not(mask_i)] = 0.0
 
         results = super().inference(data, nonbatched, task)
         # We fill the weights again
         for layer, mask, weight in zip(
             self.model_layers, self.current_mask, self.weight_buffer
         ):
-            layer.weight.data[mask].copy_(weight)
+            with torch.no_grad():
+                layer.weight.data[mask] = weight
         self.weight_buffer = []
 
         return results
