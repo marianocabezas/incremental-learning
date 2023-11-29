@@ -860,13 +860,7 @@ class DER(IncrementalModelMemory):
         return results
 
     def reset_optimiser(self, model_params=None):
-        if model_params is None:
-            for model in self.model:
-                model_params = filter(lambda p: p.requires_grad, model.parameters())
-                model.reset_optimiser()
-
-        self.model[self.current_task].reset_optimiser(model_params)
-        self.optimizer_alg = self.model[self.current_task].optimizer_alg
+        pass
 
     def _update_cum_grad(self, norm):
         pass
@@ -1434,7 +1428,6 @@ class Piggyback(IncrementalModel):
         )
 
         if last_step:
-            print('Last step!', [layer.weight.requires_grad for layer in self.model_layers])
             # 2) Prune the network
             # We need to flatten the weights to make sure we select the lowest
             # overall magnitudes.
