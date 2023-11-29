@@ -1395,12 +1395,6 @@ class Piggyback(IncrementalModel):
                     layer.weight.data[mask] = weight.to(self.device)
         self.weight_buffer = []
 
-    def reset_optimiser(self, model_params=None):
-        if model_params is None:
-            model_params = filter(lambda p: p.requires_grad, self.parameters())
-        self.model.reset_optimiser(model_params)
-        self.optimizer_alg = self.model.optimizer_alg
-
     def fit(
         self,
         train_loader,
@@ -1437,6 +1431,7 @@ class Piggyback(IncrementalModel):
         )
 
         if last_step:
+            print('Last step!', [layer.weight.requires_grad for layer in self.model_layers])
             # 2) Prune the network
             # We need to flatten the weights to make sure we select the lowest
             # overall magnitudes.
