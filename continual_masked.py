@@ -753,6 +753,7 @@ class DER(IncrementalModelMemory):
         )
         self.last_features = basemodel.last_features
         self.model = nn.ModuleList([deepcopy(basemodel) for _ in range(n_tasks)])
+        print(len(self.model))
         self.fc = nn.Linear(
             self.last_features * n_tasks, self.n_classes
         )
@@ -931,11 +932,13 @@ class DER(IncrementalModelMemory):
                     'f': self.main_loss
                 }
             ]
+            print(len(self.model))
             self.reset_optimiser()
         super().fit(
             train_loader, val_loader, epochs, patience, task, task_mask,
             last_step, verbose
         )
+        print(len(self.model))
         if last_step:
             if (self.current_task + 1) < len(self.model):
                 self.model[self.current_task + 1].load_state_dict(
