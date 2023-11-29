@@ -910,6 +910,7 @@ class DER(IncrementalModelMemory):
     ):
         # 1) Representation learning stage
         if task not in self.observed_tasks:
+            print('yeeeah', task, self.observed_tasks)
             self.current_task = task
             n_classes = len(task_mask)
             self.task_fc = nn.Linear(
