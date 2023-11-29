@@ -891,7 +891,17 @@ class DER(IncrementalModelMemory):
                         )
                     )
                 )
-            print(len(model_params))
+            print(
+                len(model_params),
+                len(
+                    list(
+                        filter(
+                            lambda p: p.requires_grad,
+                            self.model[self.current_task].parameters()
+                        )
+                    )
+                )
+            )
             self.model[self.current_task].reset_optimiser(model_params)
             self.optimizer_alg = self.model[self.current_task].optimiser_alg
         except AttributeError:
