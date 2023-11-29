@@ -1481,7 +1481,7 @@ class Piggyback(IncrementalModel):
             # To avoid that we assume a minimum of 1 epoch. The biggest issue
             # is that we are now essentially training for the same number of
             # epochs.
-            min_epochs = max(epochs // 2, 1)
+            min_epochs = max(patience // 2, 1)
             super().fit(
                 train_loader, val_loader, min_epochs, patience, task, task_mask,
                 last_step, verbose
