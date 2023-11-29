@@ -937,7 +937,6 @@ class DER(IncrementalModelMemory):
                         'f': self.main_loss
                     }
                 ]
-                self.reset_optimiser()
 
                 if patience > epochs:
                     epochs = patience
