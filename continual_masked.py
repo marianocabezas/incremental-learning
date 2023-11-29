@@ -861,37 +861,40 @@ class DER(IncrementalModelMemory):
         return results
 
     def reset_optimiser(self, model_params=None):
-        if model_params is None:
-            model_params = []
-            if self.task_fc is not None:
+        try:
+            if model_params is None:
+                model_params = []
+                if self.task_fc is not None:
+                    model_params.extend(
+                        list(
+                            filter(
+                                lambda p: p.requires_grad,
+                                self.task_fc.parameters()
+                            )
+                        )
+                    )
+                if self.fc is not None:
+                    model_params.extend(
+                        list(
+                            filter(
+                                lambda p: p.requires_grad,
+                                self.fc.parameters()
+                            )
+                        )
+                    )
                 model_params.extend(
                     list(
                         filter(
                             lambda p: p.requires_grad,
-                            self.task_fc.parameters()
+                            self.model[self.current_task].parameters()
                         )
                     )
                 )
-            if self.fc is not None:
-                model_params.extend(
-                    list(
-                        filter(
-                            lambda p: p.requires_grad,
-                            self.fc.parameters()
-                        )
-                    )
-                )
-            model_params.extend(
-                list(
-                    filter(
-                        lambda p: p.requires_grad,
-                        self.model[self.current_task].parameters()
-                    )
-                )
-            )
-        self.model[self.current_task].reset_optimiser(model_params)
-        self.optimizer_alg = self.model[self.current_task].optimiser_alg
-        BaseModel.reset_optimiser()
+            self.model[self.current_task].reset_optimiser(model_params)
+            self.optimizer_alg = self.model[self.current_task].optimiser_alg
+            BaseModel.reset_optimiser(self)
+        except AttributeError:
+            pass
 
     def _update_cum_grad(self, norm):
         pass
