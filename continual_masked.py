@@ -860,7 +860,10 @@ class DER(IncrementalModelMemory):
         return results
 
     def reset_optimiser(self, model_params=None):
-        pass
+        if model_params is None:
+            model_params = filter(lambda p: p.requires_grad, self.parameters())
+        self.model.reset_optimiser(model_params)
+        self.optimizer_alg = self.model[self.current_task].optimizer_alg
 
     def _update_cum_grad(self, norm):
         pass
@@ -878,7 +881,7 @@ class DER(IncrementalModelMemory):
     ):
         # 1) Representation learning stage
         if task not in self.observed_tasks:
-            self.optimizer_alg = self.model[task].optimizer_alg
+            self.current_task = task
             n_classes = len(task_mask)
             self.task_fc = nn.Linear(
                 self.last_features, n_classes + 1
@@ -902,6 +905,7 @@ class DER(IncrementalModelMemory):
                     'f': self.main_loss
                 }
             ]
+            self.reset_optimiser()
         super().fit(
             train_loader, val_loader, epochs, patience, task, task_mask,
             last_step, verbose
@@ -933,6 +937,7 @@ class DER(IncrementalModelMemory):
                         'f': self.main_loss
                     }
                 ]
+                self.reset_optimiser()
 
                 if patience > epochs:
                     epochs = patience
@@ -1390,6 +1395,12 @@ class Piggyback(IncrementalModel):
                 with torch.no_grad():
                     layer.weight.data[mask] = weight.to(self.device)
         self.weight_buffer = []
+
+    def reset_optimiser(self, model_params=None):
+        if model_params is None:
+            model_params = filter(lambda p: p.requires_grad, self.parameters())
+        self.model.reset_optimiser(model_params)
+        self.optimizer_alg = self.model.optimizer_alg
 
     def fit(
         self,
