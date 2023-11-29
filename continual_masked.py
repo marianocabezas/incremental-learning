@@ -891,6 +891,7 @@ class DER(IncrementalModelMemory):
             )
         self.model[self.current_task].reset_optimiser(model_params)
         self.optimizer_alg = self.model[self.current_task].optimiser_alg
+        BaseModel.reset_optimiser()
 
     def _update_cum_grad(self, norm):
         pass
