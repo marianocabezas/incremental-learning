@@ -753,7 +753,6 @@ class DER(IncrementalModelMemory):
         )
         self.last_features = basemodel.last_features
         self.model = nn.ModuleList([deepcopy(basemodel) for _ in range(n_tasks)])
-        print(len(self.model))
         self.fc = nn.Linear(
             self.last_features * n_tasks, self.n_classes
         )
@@ -784,7 +783,6 @@ class DER(IncrementalModelMemory):
         if self.lr is not None:
             for model in self.model:
                 model.lr = self.lr
-                model.reset_optimiser()
         self.first = True
         self.device = basemodel.device
 
@@ -832,6 +830,7 @@ class DER(IncrementalModelMemory):
             bias = self.fc.bias[self.global_mask].to(self.device)
         else:
             bias = None
+        print(weight.shape, weight.requires_grad)
 
         if self.task_fc is not None:
             self.task_fc.to(self.device)
@@ -891,17 +890,6 @@ class DER(IncrementalModelMemory):
                         )
                     )
                 )
-            print(
-                len(model_params),
-                len(
-                    list(
-                        filter(
-                            lambda p: p.requires_grad,
-                            self.model[self.current_task].parameters()
-                        )
-                    )
-                )
-            )
             self.model[self.current_task].reset_optimiser(model_params)
             self.optimizer_alg = self.model[self.current_task].optimiser_alg
         except AttributeError:
