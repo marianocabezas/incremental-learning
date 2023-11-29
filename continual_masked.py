@@ -793,6 +793,7 @@ class DER(IncrementalModelMemory):
     def main_loss(self, prediction, target):
         try:
             main_pred, aux_pred = prediction
+            print('Aux prediction!', main_pred.shape, aux_pred.shape)
         except ValueError:
             main_pred = prediction
 
@@ -810,6 +811,7 @@ class DER(IncrementalModelMemory):
             ).to(target.device)
             loss = F.cross_entropy(prediction[1], target)
         else:
+            print('No aux loss baby')
             loss = torch.tensor(0., device=self.device)
 
         return loss
