@@ -936,6 +936,7 @@ class DER(IncrementalModelMemory):
 
                 if patience > epochs:
                     epochs = patience
+                self.reset_optimiser()
                 super().fit(
                     mem_loader, mem_loader, epochs, patience, task,
                     self.global_mask, last_step, verbose
@@ -1482,6 +1483,7 @@ class Piggyback(IncrementalModel):
             # is that we are now essentially training for the same number of
             # epochs.
             min_epochs = max(patience // 2, 1)
+            self.reset_optimiser()
             super().fit(
                 train_loader, val_loader, min_epochs, patience, task, task_mask,
                 last_step, verbose
