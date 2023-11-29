@@ -861,7 +861,10 @@ class DER(IncrementalModelMemory):
 
     def reset_optimiser(self, model_params=None):
         if model_params is None:
-            model_params = filter(lambda p: p.requires_grad, self.parameters())
+            for model in self.model:
+                model_params = filter(lambda p: p.requires_grad, model.parameters())
+                model.reset_optimiser()
+
         self.model[self.current_task].reset_optimiser(model_params)
         self.optimizer_alg = self.model[self.current_task].optimizer_alg
 
@@ -1513,15 +1516,15 @@ class Piggyback(IncrementalModel):
                 deepcopy(layer.weight[mask_i].detach().cpu())
             )
             with torch.no_grad():
-                layer.weight[torch.logical_not(mask_i)] = 0.0
+                layer.weight[mask_i] = 0.0
 
         results = super().inference(data, nonbatched, task)
         # We fill the weights again
-        for layer, mask, weight in zip(
+        for layer, mask_i, weight in zip(
             self.model_layers, mask, self.weight_buffer
         ):
             with torch.no_grad():
-                layer.weight[mask] = torch.clone(weight).to(self.device)
+                layer.weight[mask_i] = torch.clone(weight).to(self.device)
         self.weight_buffer = []
 
         return results
