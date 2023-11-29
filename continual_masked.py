@@ -1504,6 +1504,9 @@ class Piggyback(IncrementalModel):
             self.current_mask = new_mask
             self.weight_masks.append(new_mask)
 
+            # 5) Reset the optimiser again
+            self.reset_optimiser()
+
     def inference(self, data, nonbatched=True, task=None):
         if task is None or task >= len(self.weight_masks):
             mask = self.current_mask
