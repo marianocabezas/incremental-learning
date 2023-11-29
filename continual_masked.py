@@ -942,7 +942,6 @@ class DER(IncrementalModelMemory):
             train_loader, val_loader, epochs, patience, task, task_mask,
             last_step, verbose
         )
-        print(len(self.model))
         if last_step:
             if (self.current_task + 1) < len(self.model):
                 self.model[self.current_task + 1].load_state_dict(
