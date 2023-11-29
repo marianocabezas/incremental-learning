@@ -862,7 +862,7 @@ class DER(IncrementalModelMemory):
     def reset_optimiser(self, model_params=None):
         if model_params is None:
             model_params = filter(lambda p: p.requires_grad, self.parameters())
-        self.model.reset_optimiser(model_params)
+        self.model[self.current_task].reset_optimiser(model_params)
         self.optimizer_alg = self.model[self.current_task].optimizer_alg
 
     def _update_cum_grad(self, norm):
