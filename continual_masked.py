@@ -29,7 +29,7 @@ def update_y(y, mask):
 
 class IncrementalModel(BaseModel):
     def __init__(
-        self, basemodel, best=True, memory_manager=None,
+        self, basemodel, best=False, memory_manager=None,
         n_classes=100, n_tasks=10, lr=None, task=True
     ):
         super().__init__()
@@ -314,7 +314,7 @@ class IncrementalModel(BaseModel):
 
 class IncrementalModelMemory(IncrementalModel):
     def __init__(
-        self, basemodel, best=True, memory_manager=None,
+        self, basemodel, best=False, memory_manager=None,
         n_classes=100, n_tasks=10, lr=None, task=True
     ):
         super().__init__(
@@ -354,7 +354,7 @@ class IncrementalModelMemory(IncrementalModel):
 
 class Independent(IncrementalModel):
     def __init__(
-        self, basemodel, best=True, memory_manager=None,
+        self, basemodel, best=False, memory_manager=None,
         n_classes=100, n_tasks=10, lr=None, task=True
     ):
         super().__init__(
@@ -404,7 +404,7 @@ class Independent(IncrementalModel):
 
 class EWC(IncrementalModel):
     def __init__(
-        self, basemodel, best=True, memory_manager=None,
+        self, basemodel, best=False, memory_manager=None,
         n_classes=100, n_tasks=10, lr=None, task=True,
         ewc_weight=1e6, ewc_binary=True, ewc_alpha=None
     ):
@@ -591,7 +591,7 @@ class EWC(IncrementalModel):
 
 class GEM(IncrementalModel):
     def __init__(
-        self, basemodel, best=True, memory_manager=None,
+        self, basemodel, best=False, memory_manager=None,
         n_classes=100, n_tasks=10, lr=None, task=True,
         memory_strength=0.5,
     ):
@@ -745,7 +745,7 @@ class GEM(IncrementalModel):
 
 class DER(IncrementalModelMemory):
     def __init__(
-        self, basemodel, best=True, memory_manager=None,
+        self, basemodel, best=False, memory_manager=None,
         n_classes=100, n_tasks=10, lr=None
     ):
         super().__init__(
@@ -991,7 +991,7 @@ class DER(IncrementalModelMemory):
 
 class iCARL(IncrementalModel):
     def __init__(
-        self, basemodel, best=True, memory_manager=None,
+        self, basemodel, best=False, memory_manager=None,
         n_classes=100, n_tasks=10, lr=None, task=True,
         memory_strength=0.5,
     ):
@@ -1064,7 +1064,7 @@ class iCARL(IncrementalModel):
 
 class GSS(IncrementalModel):
     def __init__(
-        self, basemodel, best=True, memory_manager=None,
+        self, basemodel, best=False, memory_manager=None,
         n_classes=100, n_tasks=10, lr=None, task=True, n_recent=None
     ):
         super().__init__(
@@ -1233,7 +1233,7 @@ class GSS(IncrementalModel):
 
 class GDumb(IncrementalModel):
     def __init__(
-        self, basemodel, best=True, memory_manager=None,
+        self, basemodel, best=False, memory_manager=None,
         n_classes=100, n_tasks=10, lr=None, task=True
     ):
         super().__init__(
@@ -1391,7 +1391,7 @@ class GDumb(IncrementalModel):
 
 class Piggyback(IncrementalModel):
     def __init__(
-        self, basemodel, best=True, memory_manager=None,
+        self, basemodel, best=False, memory_manager=None,
         n_classes=100, n_tasks=10, lr=None, task=True,
         prune_ratio=0.5
     ):
