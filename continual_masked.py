@@ -123,6 +123,15 @@ class IncrementalModel(BaseModel):
     def prebatch_update(self, batch, batches, x, y):
         if self.task:
             y = self.task_mask[y]
+        else:
+            ignore_mask = torch.from_numpy(
+                np.array([
+                    idx for idx in range(self.n_classes)
+                    if idx not in self.task_mask
+                ])
+            ).to(self.device)
+            y_mask = torch.cat([self.task_mask, ignore_mask])
+            y = y_mask[y]
         if self.memory_manager is not None:
             training = self.model.training
             self.model.eval()
@@ -282,12 +291,14 @@ class IncrementalModel(BaseModel):
                     idx for idx in range(self.n_classes)
                     if idx not in self.task_mask
                 ])
-            )
-
+            ).to(self.device)
             pred_labels = torch.cat([
                 pred_labels[:, self.task_mask],
                 pred_labels[:, ignore_mask].detach()
             ], dim=-1)
+
+            y_mask = torch.cat([self.task_mask, ignore_mask])
+            y_cuda = update_y(y_cuda, y_mask)
 
         return pred_labels, x_cuda, y_cuda
 
@@ -327,6 +338,16 @@ class IncrementalModelMemory(IncrementalModel):
     def batch_update(self, batch, batches, x, y):
         if self.task:
             y = self.task_mask[y]
+        else:
+            ignore_mask = torch.from_numpy(
+                np.array([
+                    idx for idx in range(self.n_classes)
+                    if idx not in self.task_mask
+                ])
+            ).to(self.device)
+            y_mask = torch.cat([self.task_mask, ignore_mask])
+            y = y_mask[y]
+
         if self.memory_manager is not None:
             training = self.model.training
             self.model.eval()
@@ -1019,6 +1040,15 @@ class iCARL(IncrementalModel):
     def prebatch_update(self, batch, batches, x, y):
         if self.task:
             y = self.task_mask[y]
+        else:
+            ignore_mask = torch.from_numpy(
+                np.array([
+                    idx for idx in range(self.n_classes)
+                    if idx not in self.task_mask
+                ])
+            ).to(self.device)
+            y_mask = torch.cat([self.task_mask, ignore_mask])
+            y = y_mask[y]
         if self.epoch == 0:
             if self.memx is None:
                 self.memx = x.detach().cpu().data.clone()
