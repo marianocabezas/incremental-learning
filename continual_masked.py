@@ -861,6 +861,7 @@ class DER(IncrementalModelMemory):
         return results
 
     def reset_optimiser(self, model_params=None):
+        BaseModel.reset_optimiser(self)
         try:
             if model_params is None:
                 model_params = []
@@ -890,9 +891,9 @@ class DER(IncrementalModelMemory):
                         )
                     )
                 )
+            print(len(model_params))
             self.model[self.current_task].reset_optimiser(model_params)
             self.optimizer_alg = self.model[self.current_task].optimiser_alg
-            BaseModel.reset_optimiser(self)
         except AttributeError:
             pass
 
@@ -936,7 +937,6 @@ class DER(IncrementalModelMemory):
                     'f': self.main_loss
                 }
             ]
-            print(len(self.model))
             self.reset_optimiser()
         super().fit(
             train_loader, val_loader, epochs, patience, task, task_mask,
