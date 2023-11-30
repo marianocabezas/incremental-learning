@@ -819,7 +819,7 @@ class DER(IncrementalModelMemory):
 
         with torch.no_grad():
             print(
-                torch.argmax(main_pred), target, self.global_mask,
+                torch.argmax(main_pred, dim=1), target, self.global_mask,
                 update_y(target, self.global_mask)
             )
 
