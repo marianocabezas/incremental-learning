@@ -893,6 +893,7 @@ class DER(IncrementalModelMemory):
     def reset_optimiser(self, model_params=None):
         BaseModel.reset_optimiser(self)
         try:
+            print('Preparing optimiser', self.current_task)
             if model_params is None:
                 model_params = []
                 if self.task_fc is not None:
@@ -920,11 +921,11 @@ class DER(IncrementalModelMemory):
                         )
                     )
                 )
+            self.model[self.current_task].reset_optimiser(model_params)
+            self.optimizer_alg = self.model[self.current_task].optimiser_alg
         except (AttributeError, TypeError):
             pass
         print(model_params)
-        self.model[self.current_task].reset_optimiser(model_params)
-        self.optimizer_alg = self.model[self.current_task].optimiser_alg
 
     def _update_cum_grad(self, norm):
         pass
