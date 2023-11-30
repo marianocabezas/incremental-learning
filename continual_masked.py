@@ -775,7 +775,7 @@ class DER(IncrementalModelMemory):
         self.last_features = basemodel.last_features
         self.model = nn.ModuleList([deepcopy(basemodel) for _ in range(n_tasks)])
         self.fc = nn.Linear(
-            self.last_features * n_tasks, self.n_classes
+            self.last_features, self.n_classes
         )
         self.task_fc = None
         self.train_functions = self.train_functions = [
@@ -846,21 +846,18 @@ class DER(IncrementalModelMemory):
         features = torch.cat(feature_list, dim=-1).to(self.device)
         n_features = features.shape[1]
         self.fc.to(self.device)
-        weight = self.fc.weight[self.global_mask, :n_features].to(self.device)
-        if self.fc.bias is not None:
-            bias = self.fc.bias[self.global_mask].to(self.device)
-        else:
-            bias = None
 
         if self.task_fc is not None:
-            print(weight.requires_grad, self.fc.weight.requires_grad)
+            print(
+                self.fc.weight
+            )
             self.task_fc.to(self.device)
             prediction = (
-                F.linear(features, weight, bias),
+                self.fc(features),
                 self.task_fc(feature_list[-1])
             )
         else:
-            prediction = F.linear(features, weight, bias)
+            prediction = self.fc(features)
         return prediction
 
     def inference(self, data, nonbatched=True, task=None):
@@ -989,7 +986,8 @@ class DER(IncrementalModelMemory):
                     num_workers=train_loader.num_workers, drop_last=True
                 )
                 self.fc = nn.Linear(
-                    self.last_features * self.n_tasks, self.n_classes
+                    self.last_features * (self.current_task + 1),
+                    self.n_classes
                 )
                 self.train_functions = self.val_functions = [
                     {
