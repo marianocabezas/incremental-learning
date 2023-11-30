@@ -853,6 +853,7 @@ class DER(IncrementalModelMemory):
             bias = None
 
         if self.task_fc is not None:
+            print(weight)
             self.task_fc.to(self.device)
             prediction = (
                 F.linear(features, weight, bias),
@@ -893,7 +894,6 @@ class DER(IncrementalModelMemory):
     def reset_optimiser(self, model_params=None):
         BaseModel.reset_optimiser(self)
         try:
-            print('Preparing optimiser', self.current_task)
             if model_params is None:
                 model_params = []
                 if self.task_fc is not None:
