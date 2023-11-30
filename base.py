@@ -33,6 +33,7 @@ class BaseModel(nn.Module):
         """
         super().__init__()
         # Init values
+        self.best = False
         self.device = None
         self.init = True
         self.optimizer_alg = None
@@ -395,7 +396,8 @@ class BaseModel(nn.Module):
 
         self.last_state = deepcopy(self.state_dict())
         self.epoch = best_e
-        self.load_state_dict(self.best_state)
+        if self.best:
+            self.load_state_dict(self.best_state)
 
     def inference(self, data, nonbatched=True, task=None):
         temp_task = task
