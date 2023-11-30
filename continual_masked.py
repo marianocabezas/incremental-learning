@@ -817,7 +817,7 @@ class DER(IncrementalModelMemory):
         except ValueError:
             main_pred = prediction
 
-        with torch.no_grad:
+        with torch.no_grad():
             print(
                 torch.argmax(main_pred), target, self.global_mask,
                 update_y(target, self.global_mask)
