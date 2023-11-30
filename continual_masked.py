@@ -879,6 +879,17 @@ class DER(IncrementalModelMemory):
         self.task_masks = tmp_masks
         return results
 
+    def batch_update(self, batch, batches, x, y):
+        if self.memory_manager is not None:
+            training = self.model.training
+            self.model.eval()
+            with torch.no_grad():
+                self.memory_manager.update_memory(
+                    x.cpu(), y.cpu(), self.current_task, self.model
+                )
+            if training:
+                self.model.train()
+
     def reset_optimiser(self, model_params=None):
         BaseModel.reset_optimiser(self)
         if model_params is None:
