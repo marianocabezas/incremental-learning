@@ -920,7 +920,7 @@ class DER(IncrementalModelMemory):
                         )
                     )
                 )
-        except AttributeError:
+        except (AttributeError, TypeError):
             pass
         print(model_params)
         self.model[self.current_task].reset_optimiser(model_params)
