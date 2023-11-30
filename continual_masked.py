@@ -852,7 +852,7 @@ class DER(IncrementalModelMemory):
         else:
             bias = None
         if self.training:
-            print(np.mean(weight, dim=-1))
+            print(torch.mean(weight, dim=-1))
 
         if self.task_fc is not None:
             self.task_fc.to(self.device)
