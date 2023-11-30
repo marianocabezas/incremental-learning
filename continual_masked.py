@@ -925,7 +925,6 @@ class DER(IncrementalModelMemory):
             self.optimizer_alg = self.model[self.current_task].optimiser_alg
         except (AttributeError, TypeError):
             pass
-        print(model_params)
 
     def _update_cum_grad(self, norm):
         pass
