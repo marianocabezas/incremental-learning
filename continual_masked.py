@@ -879,14 +879,6 @@ class DER(IncrementalModelMemory):
         self.task_masks = tmp_masks
         return results
 
-    def prebatch_update(self, batch, batches, x, y):
-        for n, p in self.named_parameters():
-            if p.requires_grad:
-                if p.grad is None:
-                    print('Empty fucking parameter', n)
-                else:
-                    print('Good parameter', n)
-
     def batch_update(self, batch, batches, x, y):
         if self.memory_manager is not None:
             training = self.model.training
