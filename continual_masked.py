@@ -844,7 +844,6 @@ class DER(IncrementalModelMemory):
             for i in range(self.current_task + 1)
         ]
         features = torch.cat(feature_list, dim=-1).to(self.device)
-        n_features = features.shape[1]
         self.fc.to(self.device)
 
         if self.task_fc is not None:
