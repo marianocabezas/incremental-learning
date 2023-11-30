@@ -848,12 +848,12 @@ class DER(IncrementalModelMemory):
 
         if self.task_fc is not None:
             print(
-                self.fc.weight[self.global_mask, :],
+                torch.mean(self.fc.weight[self.global_mask, :], dim=-1),
                 self.fc.weight.shape
             )
             self.task_fc.to(self.device)
             prediction = (
-                self.fc(features)[:, self.global_mask],
+                self.fc(features),
                 self.task_fc(feature_list[-1])
             )
         else:
