@@ -853,11 +853,11 @@ class DER(IncrementalModelMemory):
             )
             self.task_fc.to(self.device)
             prediction = (
-                self.fc(features),
+                self.fc(features)[:, self.global_mask],
                 self.task_fc(feature_list[-1])
             )
         else:
-            prediction = self.fc(features)
+            prediction = self.fc(features)[:, self.global_mask]
         return prediction
 
     def inference(self, data, nonbatched=True, task=None):
