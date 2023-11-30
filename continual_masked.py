@@ -848,7 +848,8 @@ class DER(IncrementalModelMemory):
 
         if self.task_fc is not None:
             print(
-                self.fc.weight, self.fc.weight.shape
+                self.fc.weight[self.global_mask, :],
+                self.fc.weight.shape
             )
             self.task_fc.to(self.device)
             prediction = (
