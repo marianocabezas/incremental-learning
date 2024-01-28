@@ -1394,7 +1394,7 @@ class GDumb(IncrementalModel):
                     pred_y = self.model(x.to(self.device))
                     y_cuda = y.to(self.device)
                     if self.task:
-                        pred_labels = pred_labels[:, self.task_mask]
+                        pred_y = pred_y[:, self.task_mask]
                         y_cuda = update_y(y_cuda, self.task_mask)
                     batch_losses = [
                         l_f['weight'] * l_f['f'](pred_y, y_cuda)
